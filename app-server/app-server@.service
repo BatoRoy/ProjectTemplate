@@ -1,0 +1,16 @@
+[Unit]
+Description=App Server Daemon
+After=network.target
+
+[Service]
+Type=simple
+User=%i
+WorkingDirectory=/srv/app
+ExecStart=/usr/local/bin/app-server --port=8080
+Restart=on-failure
+RestartSec=5
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=multi-user.target

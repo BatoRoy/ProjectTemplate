@@ -1,0 +1,39 @@
+# ── Frontend build & dependencies ─────────────────────────
+app-client/frontend/dist/
+app-client/build/bin/
+**/node_modules/
+app-client/frontend/package.json.md5
+
+# ── Electron build output ─────────────────────────────────
+dist/
+
+# ── Go binaries ────────────────────────────────────────────
+app-server/app-server
+app-server/app-server.exe
+
+# ── Generic binary extensions ─────────────────────────────
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+
+# ── Go tooling output ──────────────────────────────────────
+*.test
+*.out
+
+# ── OS / editor ────────────────────────────────────────────
+.DS_Store
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# ── Environment ────────────────────────────────────────────
+.env
+.env.*
+
+# ── Misc ───────────────────────────────────────────────────
+tmp/
+tools/
+*.AppImage

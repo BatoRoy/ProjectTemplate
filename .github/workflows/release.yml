@@ -1,0 +1,131 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*.*.*'
+
+permissions:
+  contents: write
+
+jobs:
+  build-server:
+    name: Build app-server
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: app-server
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.22'
+
+      - name: Extract version
+        id: version
+        run: echo "version=${GITHUB_REF_NAME#v}" >> "$GITHUB_OUTPUT"
+
+      - name: Build Linux (amd64)
+        run: |
+          GOOS=linux GOARCH=amd64 go build \
+            -ldflags="-s -w -X main.Version=${{ steps.version.outputs.version }}" \
+            -o ../dist/app-server-linux-amd64 .
+
+      - name: Build Windows (amd64)
+        run: |
+          GOOS=windows GOARCH=amd64 go build \
+            -ldflags="-s -w -X main.Version=${{ steps.version.outputs.version }}" \
+            -o ../dist/app-server-windows-amd64.exe .
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: app-server-binaries
+          path: dist/app-server-*
+
+  build-client-linux:
+    name: Build Electron client (Linux)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install frontend deps
+        run: npm ci
+        working-directory: app-client/frontend
+
+      - name: Build frontend
+        run: npm run build
+        working-directory: app-client/frontend
+
+      - name: Install Electron deps
+        run: npm ci
+        working-directory: app-client
+
+      - name: Package AppImage
+        run: npm run package:linux
+        working-directory: app-client
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: app-client-linux
+          path: dist/electron/*.AppImage
+
+  build-client-windows:
+    name: Build Electron client (Windows)
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install frontend deps
+        run: npm ci
+        working-directory: app-client/frontend
+
+      - name: Build frontend
+        run: npm run build
+        working-directory: app-client/frontend
+
+      - name: Install Electron deps
+        run: npm ci
+        working-directory: app-client
+
+      - name: Package NSIS installer
+        run: npm run package:win
+        working-directory: app-client
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: app-client-windows
+          path: dist/electron/*.exe
+
+  release:
+    name: Create GitHub Release
+    needs: [build-server, build-client-linux, build-client-windows]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+          merge-multiple: true
+
+      - name: Create release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: artifacts/*
+          generate_release_notes: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

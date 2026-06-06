@@ -1,0 +1,65 @@
+{
+  "name": "app-client",
+  "version": "0.1.0",
+  "description": "Desktop client",
+  "author": "Your Name",
+  "private": true,
+  "main": "electron/main.js",
+  "scripts": {
+    "dev": "concurrently -k -n vite,electron -c blue,yellow \"npm run dev:renderer\" \"wait-on http://localhost:5173 && electron .\"",
+    "dev:renderer": "npm run dev --prefix frontend",
+    "build:renderer": "npm run build --prefix frontend",
+    "package:linux": "npm run build:renderer && electron-builder --linux AppImage --publish=never",
+    "package:win": "npm run build:renderer && electron-builder --win nsis --publish=never",
+    "package": "npm run build:renderer && electron-builder --linux AppImage --win nsis --publish=never"
+  },
+  "build": {
+    "appId": "com.example.app",
+    "productName": "App",
+    "copyright": "Copyright © 2026 Your Name",
+    "asar": true,
+    "directories": {
+      "buildResources": "build",
+      "output": "../dist/electron"
+    },
+    "files": [
+      "electron/**/*",
+      "frontend/dist/**/*",
+      "package.json"
+    ],
+    "linux": {
+      "target": [
+        {
+          "target": "AppImage",
+          "arch": [
+            "x64"
+          ]
+        }
+      ],
+      "icon": "build/appicon.png",
+      "category": "Utility",
+      "executableName": "app"
+    },
+    "win": {
+      "target": [
+        {
+          "target": "nsis",
+          "arch": [
+            "x64"
+          ]
+        }
+      ],
+      "icon": "build/windows/icon.ico"
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true
+    }
+  },
+  "devDependencies": {
+    "concurrently": "^9.0.0",
+    "electron": "^42.0.0",
+    "electron-builder": "^26.8.1",
+    "wait-on": "^8.0.0"
+  }
+}
