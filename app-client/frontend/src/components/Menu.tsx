@@ -46,7 +46,7 @@ export const MenuList = forwardRef<HTMLDivElement, MenuListProps>(function MenuL
               item.disabled && 'opacity-40 cursor-not-allowed',
               !item.disabled && item.danger && 'text-app-red',
               !item.disabled && !item.danger && 'text-app-subtext',
-              !item.disabled && active && (item.danger ? 'bg-app-red/10 text-app-red' : 'bg-app-accent/10 text-app-text'),
+              !item.disabled && active && (item.danger ? 'bg-app-red/10 text-app-red' : 'bg-app-accent/15 text-app-accentBright'),
             )}
           >
             {Icon && <Icon size={15} className="flex-shrink-0" />}

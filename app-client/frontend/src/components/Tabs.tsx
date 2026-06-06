@@ -30,7 +30,7 @@ export function Tabs({ tabs, value, onChange, className }: TabsProps) {
             className={clsx(
               'flex-1 py-1.5 px-3 rounded-md text-sm font-medium transition-colors',
               active
-                ? 'bg-app-accent/10 text-app-accent'
+                ? 'bg-app-accent/15 text-app-accentBright'
                 : 'text-app-muted hover:text-app-text',
             )}
           >

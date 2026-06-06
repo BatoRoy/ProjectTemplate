@@ -34,18 +34,6 @@ export interface SaveFileOpts {
 }
 
 // ── Theme system ────────────────────────────────────────────
-export type GradientQuality = 'lite' | 'normal' | 'quality'
-
-export interface Background {
-  id: string
-  label: string
-  build?: (bg: string) => string
-  buildLite?: (bg: string) => string
-  buildQuality?: (bg: string) => string
-  size?: string
-  previewSize?: string
-}
-
 export interface ThemePreset {
   id: string
   label: string
@@ -53,9 +41,15 @@ export interface ThemePreset {
     bg: string
     surface: string
     border: string
-    accent: string
     text: string
   }
+}
+
+// A selectable accent color. `hex` drives the --app-accent* trio at runtime.
+export interface AccentPreset {
+  id: string
+  label: string
+  hex: string
 }
 
 export interface ScaleOption {
@@ -92,10 +86,6 @@ export interface ThemeContextValue {
   setTheme: (id: string) => void
   scale: number
   setScale: (value: number) => void
-  background: string
-  setBackground: (id: string) => void
-  bgOpacity: number
-  setBgOpacity: (value: number) => void
-  gradientQuality: GradientQuality
-  setGradientQuality: (value: GradientQuality) => void
+  accent: string            // hex, e.g. "#7c3aed"
+  setAccent: (hex: string) => void
 }

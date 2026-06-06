@@ -34,7 +34,7 @@ const badgeTones: Record<BadgeTone, string> = {
   success: 'bg-app-green/15 text-app-green',
   error:   'bg-app-red/15 text-app-red',
   warning: 'bg-app-yellow/15 text-app-yellow',
-  info:    'bg-app-accent/15 text-app-accent',
+  info:    'bg-app-accent/15 text-app-accentBright',
   neutral: 'bg-app-border/40 text-app-subtext',
 }
 

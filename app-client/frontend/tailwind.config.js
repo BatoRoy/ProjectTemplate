@@ -5,23 +5,24 @@ export default {
     extend: {
       colors: {
         app: {
-          bg:      'rgb(var(--app-bg)      / <alpha-value>)',
-          surface: 'rgb(var(--app-surface) / <alpha-value>)',
-          card:    'rgb(var(--app-card)    / <alpha-value>)',
-          border:  'rgb(var(--app-border)  / <alpha-value>)',
-          accent:  'rgb(var(--app-accent)  / <alpha-value>)',
-          accent2: 'rgb(var(--app-accent2) / <alpha-value>)',
-          green:   'rgb(var(--app-green)   / <alpha-value>)',
-          red:     'rgb(var(--app-red)     / <alpha-value>)',
-          yellow:  'rgb(var(--app-yellow)  / <alpha-value>)',
-          muted:   'rgb(var(--app-muted)   / <alpha-value>)',
-          text:    'rgb(var(--app-text)    / <alpha-value>)',
-          subtext: 'rgb(var(--app-subtext) / <alpha-value>)',
+          bg:          'rgb(var(--app-bg)           / <alpha-value>)',
+          surface:     'rgb(var(--app-surface)      / <alpha-value>)',
+          card:        'rgb(var(--app-card)         / <alpha-value>)',
+          border:      'rgb(var(--app-border)       / <alpha-value>)',
+          accent:      'rgb(var(--app-accent)       / <alpha-value>)',
+          accentHover: 'rgb(var(--app-accent-hover) / <alpha-value>)',
+          accentBright:'rgb(var(--app-accent-bright)/ <alpha-value>)',
+          green:       'rgb(var(--app-green)        / <alpha-value>)',
+          red:         'rgb(var(--app-red)          / <alpha-value>)',
+          yellow:      'rgb(var(--app-yellow)       / <alpha-value>)',
+          muted:       'rgb(var(--app-muted)        / <alpha-value>)',
+          text:        'rgb(var(--app-text)         / <alpha-value>)',
+          subtext:     'rgb(var(--app-subtext)      / <alpha-value>)',
         }
       },
       fontFamily: {
         mono: ['"JetBrains Mono"', '"Fira Code"', 'monospace'],
-        sans: ['"DM Sans"', 'system-ui', 'sans-serif'],
+        sans: ['"Inter Variable"', 'Inter', '-apple-system', 'BlinkMacSystemFont', '"Segoe UI"', 'Roboto', 'sans-serif'],
       },
       animation: {
         'pulse-slow': 'pulse 3s cubic-bezier(0.4, 0, 0.6, 1) infinite',

@@ -51,10 +51,10 @@ interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
 }
 
 export function Button({ children, variant = 'primary', disabled, loading, className = '', ...props }: ButtonProps) {
-  const base = 'flex items-center justify-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed'
+  const base = 'flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg text-sm font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed'
   const variants: Record<ButtonVariant, string> = {
-    primary: 'bg-app-accent text-white hover:bg-blue-500',
-    danger:  'bg-app-red text-white hover:bg-red-500',
+    primary: 'bg-app-accent text-white hover:bg-app-accentHover',
+    danger:  'bg-app-red text-white hover:opacity-90',
     ghost:   'border border-app-border text-app-subtext hover:text-app-text hover:border-app-accent/50',
     success: 'bg-app-green text-white hover:opacity-90',
   }

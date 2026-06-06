@@ -33,10 +33,10 @@ export function ShowcasePage({ toast }: ShowcasePageProps) {
   if (boom) throw new Error('Demo error thrown from ShowcasePage')
 
   return (
-    <div className="max-w-2xl mx-auto px-8 py-10 space-y-6">
+    <div className="max-w-2xl mx-auto p-6 space-y-6">
       <div>
-        <h2 className="text-2xl font-semibold text-app-text">Component kit</h2>
-        <p className="text-app-subtext mt-1">Right-click menu, overlays, form controls, and feedback atoms.</p>
+        <h1 className="text-xl font-semibold text-app-text">Component kit</h1>
+        <p className="text-sm text-app-subtext mt-1">Right-click menu, overlays, form controls, and feedback atoms.</p>
       </div>
 
       {/* Context menu */}

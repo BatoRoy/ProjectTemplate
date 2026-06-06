@@ -3,10 +3,10 @@
 A starting template for desktop apps: **Electron + React + TypeScript** frontend with a
 **Go** backend, a polished theming system, and a version-tagged build/release pipeline.
 
-It ships the look-and-feel ready to go — theme presets (Dark / Dim / Light), DM Sans + JetBrains
-Mono fonts, an oklab gradient/pattern background engine, and a self-contained **App Options**
-panel for theme / background / UI scale, all persisted to `localStorage`. Drop in your pages and
-backend routes; the chrome is done.
+It ships the look-and-feel ready to go — a clean zinc-based dark UI, theme presets
+(Dark / Dim / Light), bundled Inter + JetBrains Mono fonts, a per-app **accent color** (presets +
+custom), and a self-contained **App Options** panel for theme / accent / UI scale, all persisted to
+`localStorage`. Drop in your pages and backend routes; the chrome is done.
 
 ## Stack
 
@@ -34,7 +34,7 @@ make dev-client
 ```
 
 The app opens to a demo HomePage. Use the **App Options** button in the sidebar to switch
-theme / background / scale. The "Ping" card calls the Go backend's `/api/health`.
+theme / accent color / scale. The "Ping" card calls the Go backend's `/api/health`.
 
 ## Building
 
@@ -65,8 +65,11 @@ Pushing a `v*.*.*` tag triggers `.github/workflows/release.yml`, which builds th
 
 - **Theme engine** lives in `app-client/frontend/src/lib/theme.tsx` and `src/index.css`. Colors
   are CSS variables (`--app-*`) selected by a `data-theme` attribute; Tailwind exposes them as
-  `app.*` tokens (e.g. `bg-app-card`, `text-app-text`). Backgrounds render into a single
-  GPU-composited layer (`#app-bg-layer`).
+  `app.*` tokens (e.g. `bg-app-card`, `text-app-text`). The **accent** is a separate runtime
+  dimension: `applyAccent()` derives `--app-accent` / `--app-accent-hover` / `--app-accent-bright`
+  from the chosen hex (preset or custom), lightening on dark themes and darkening on light. Use
+  `bg-app-accent` (+ `hover:bg-app-accentHover`) for solid actions and `bg-app-accent/15
+  text-app-accentBright` for active/soft states. Surfaces are flat — there is no background engine.
 - **Frontend ↔ backend** goes over HTTP via `src/lib/bridge.ts` (default `http://localhost:8080`).
 - **Frontend ↔ OS** (file dialogs, settings store, file I/O) goes through the Electron preload
   bridge, typed in `src/lib/electron.d.ts` and implemented in `electron/main.js`.

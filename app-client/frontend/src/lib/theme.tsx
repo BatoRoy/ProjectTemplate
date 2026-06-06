@@ -1,26 +1,41 @@
 import { createContext, useContext, useState, useEffect } from 'react'
 import type { ReactNode } from 'react'
-import type { ThemeContextValue, ThemePreset, ScaleOption, Background, GradientQuality } from '../types'
+import type { ThemeContextValue, ThemePreset, ScaleOption, AccentPreset } from '../types'
 
 const ThemeContext = createContext<ThemeContextValue | null>(null)
 
+// Preview swatches in App Options use these summaries; the live values live in index.css.
 export const THEMES: ThemePreset[] = [
   {
     id: 'dark',
     label: 'Dark',
-    colors: { bg: '#151820', surface: '#1C1F2A', border: '#2D3344', accent: '#4F8EF7', text: '#E2E8F0' },
+    colors: { bg: '#161619', surface: '#1d1d21', border: '#36363c', text: '#fafafa' },
   },
   {
     id: 'dim',
     label: 'Dim',
-    colors: { bg: '#22272E', surface: '#2D333B', border: '#444C56', accent: '#4F8EF7', text: '#CDD9E5' },
+    colors: { bg: '#1d1d21', surface: '#242429', border: '#3f3f46', text: '#fafafa' },
   },
   {
     id: 'light',
     label: 'Light',
-    colors: { bg: '#F6F8FA', surface: '#FFFFFF', border: '#D0D7DE', accent: '#0969DA', text: '#1F2328' },
+    colors: { bg: '#fafafa', surface: '#ffffff', border: '#e4e4e7', text: '#18181b' },
   },
 ]
+
+// Per-app accent colors. `hex` is the base (~600); applyAccent derives hover/bright.
+export const ACCENTS: AccentPreset[] = [
+  { id: 'violet',  label: 'Violet',  hex: '#7c3aed' },
+  { id: 'blue',    label: 'Blue',    hex: '#2563eb' },
+  { id: 'indigo',  label: 'Indigo',  hex: '#4f46e5' },
+  { id: 'cyan',    label: 'Cyan',    hex: '#0891b2' },
+  { id: 'emerald', label: 'Emerald', hex: '#059669' },
+  { id: 'amber',   label: 'Amber',   hex: '#d97706' },
+  { id: 'rose',    label: 'Rose',    hex: '#e11d48' },
+  { id: 'pink',    label: 'Pink',    hex: '#db2777' },
+]
+
+export const DEFAULT_ACCENT = ACCENTS[0].hex
 
 export const SCALES: ScaleOption[] = [
   { value: 85,  label: '85%' },
@@ -30,122 +45,40 @@ export const SCALES: ScaleOption[] = [
   { value: 120, label: '120%' },
 ]
 
-// Using `in oklab` color interpolation significantly reduces banding — oklab blends
-// through a perceptually uniform space, avoiding the grey-muddy-middle issue of sRGB.
-// Transparent stops use rgba(r,g,b,0) matching the accent color so oklab doesn't
-// interpolate toward black.
-// buildQuality uses 5-stop quadratic ease-out curves to further smooth the falloff,
-// eliminating the hard alpha "step" visible in 2-stop gradients at 8-bit precision.
-export const BACKGROUNDS: Background[] = [
-  { id: 'plain', label: 'Plain' },
-  // ── Gradient ──────────────────────────────────────────────────────────────
-  {
-    id: 'blue-glow',
-    label: 'Blue Glow',
-    build: (bg) =>
-      `radial-gradient(in oklab ellipse at 75% 20%, rgba(79,142,247,0.28) 0%, rgba(79,142,247,0) 55%),` +
-      `radial-gradient(in oklab ellipse at 15% 80%, rgba(79,142,247,0.14) 0%, rgba(79,142,247,0) 50%), ${bg}`,
-    buildLite: (bg) =>
-      `radial-gradient(in oklab ellipse at 72% 18%, rgba(79,142,247,0.18) 0%, rgba(79,142,247,0) 42%), ${bg}`,
-    buildQuality: (bg) =>
-      `radial-gradient(in oklab ellipse at 75% 20%, ` +
-      `rgba(79,142,247,0.28) 0%, rgba(79,142,247,0.22) 12%, rgba(79,142,247,0.14) 25%, ` +
-      `rgba(79,142,247,0.06) 42%, rgba(79,142,247,0) 60%),` +
-      `radial-gradient(in oklab ellipse at 15% 80%, ` +
-      `rgba(79,142,247,0.14) 0%, rgba(79,142,247,0.09) 12%, rgba(79,142,247,0.05) 25%, ` +
-      `rgba(79,142,247,0) 42%), ${bg}`,
-  },
-  {
-    id: 'purple-mist',
-    label: 'Purple Mist',
-    build: (bg) =>
-      `radial-gradient(in oklab ellipse at 65% 15%, rgba(139,92,246,0.28) 0%, rgba(139,92,246,0) 55%),` +
-      `radial-gradient(in oklab ellipse at 25% 80%, rgba(79,142,247,0.14) 0%, rgba(79,142,247,0) 50%), ${bg}`,
-    buildLite: (bg) =>
-      `radial-gradient(in oklab ellipse at 65% 15%, rgba(139,92,246,0.18) 0%, rgba(139,92,246,0) 42%), ${bg}`,
-    buildQuality: (bg) =>
-      `radial-gradient(in oklab ellipse at 65% 15%, ` +
-      `rgba(139,92,246,0.28) 0%, rgba(139,92,246,0.22) 12%, rgba(139,92,246,0.14) 25%, ` +
-      `rgba(139,92,246,0.06) 42%, rgba(139,92,246,0) 60%),` +
-      `radial-gradient(in oklab ellipse at 25% 80%, ` +
-      `rgba(79,142,247,0.14) 0%, rgba(79,142,247,0.09) 12%, rgba(79,142,247,0.05) 25%, ` +
-      `rgba(79,142,247,0) 42%), ${bg}`,
-  },
-  {
-    id: 'aurora',
-    label: 'Aurora',
-    build: (bg) =>
-      `radial-gradient(in oklab ellipse at 50% 0%, rgba(34,197,94,0.24) 0%, rgba(34,197,94,0) 60%),` +
-      `radial-gradient(in oklab ellipse at 85% 100%, rgba(79,142,247,0.18) 0%, rgba(79,142,247,0) 50%), ${bg}`,
-    buildLite: (bg) =>
-      `radial-gradient(in oklab ellipse at 50% 0%, rgba(34,197,94,0.16) 0%, rgba(34,197,94,0) 48%), ${bg}`,
-    buildQuality: (bg) =>
-      `radial-gradient(in oklab ellipse at 50% 0%, ` +
-      `rgba(34,197,94,0.24) 0%, rgba(34,197,94,0.18) 15%, rgba(34,197,94,0.10) 32%, ` +
-      `rgba(34,197,94,0.04) 48%, rgba(34,197,94,0) 65%),` +
-      `radial-gradient(in oklab ellipse at 85% 100%, ` +
-      `rgba(79,142,247,0.18) 0%, rgba(79,142,247,0.11) 15%, rgba(79,142,247,0.06) 30%, ` +
-      `rgba(79,142,247,0) 45%), ${bg}`,
-  },
-  {
-    id: 'ember',
-    label: 'Ember',
-    build: (bg) =>
-      `radial-gradient(in oklab ellipse at 85% 85%, rgba(255,100,50,0.26) 0%, rgba(255,100,50,0) 55%),` +
-      `radial-gradient(in oklab ellipse at 15% 15%, rgba(245,158,11,0.16) 0%, rgba(245,158,11,0) 50%), ${bg}`,
-    buildLite: (bg) =>
-      `radial-gradient(in oklab ellipse at 85% 85%, rgba(255,100,50,0.16) 0%, rgba(255,100,50,0) 42%), ${bg}`,
-    buildQuality: (bg) =>
-      `radial-gradient(in oklab ellipse at 85% 85%, ` +
-      `rgba(255,100,50,0.26) 0%, rgba(255,100,50,0.20) 12%, rgba(255,100,50,0.12) 25%, ` +
-      `rgba(255,100,50,0.05) 42%, rgba(255,100,50,0) 60%),` +
-      `radial-gradient(in oklab ellipse at 15% 15%, ` +
-      `rgba(245,158,11,0.16) 0%, rgba(245,158,11,0.10) 12%, rgba(245,158,11,0.05) 25%, ` +
-      `rgba(245,158,11,0) 42%), ${bg}`,
-  },
-  {
-    id: 'rose',
-    label: 'Rose',
-    build: (bg) =>
-      `radial-gradient(in oklab ellipse at 25% 25%, rgba(236,72,153,0.24) 0%, rgba(236,72,153,0) 55%),` +
-      `radial-gradient(in oklab ellipse at 75% 80%, rgba(139,92,246,0.18) 0%, rgba(139,92,246,0) 50%), ${bg}`,
-    buildLite: (bg) =>
-      `radial-gradient(in oklab ellipse at 25% 25%, rgba(236,72,153,0.16) 0%, rgba(236,72,153,0) 42%), ${bg}`,
-    buildQuality: (bg) =>
-      `radial-gradient(in oklab ellipse at 25% 25%, ` +
-      `rgba(236,72,153,0.24) 0%, rgba(236,72,153,0.18) 12%, rgba(236,72,153,0.10) 25%, ` +
-      `rgba(236,72,153,0.04) 42%, rgba(236,72,153,0) 58%),` +
-      `radial-gradient(in oklab ellipse at 75% 80%, ` +
-      `rgba(139,92,246,0.18) 0%, rgba(139,92,246,0.11) 12%, rgba(139,92,246,0.05) 25%, ` +
-      `rgba(139,92,246,0) 42%), ${bg}`,
-  },
-  // ── Pattern ───────────────────────────────────────────────────────────────
-  {
-    id: 'diamond',
-    label: 'Diamond',
-    build: (bg) =>
-      `linear-gradient(45deg, rgba(255,255,255,0.07) 1px, transparent 1px),` +
-      `linear-gradient(-45deg, rgba(255,255,255,0.07) 1px, transparent 1px), ${bg}`,
-    size: '20px 20px',
-    previewSize: '8px 8px',
-  },
-]
+const LIGHT_THEMES = new Set(['light'])
 
-function getBgColor(): string {
-  const rgb = getComputedStyle(document.documentElement).getPropertyValue('--app-bg').trim()
-  return `rgb(${rgb})`
+// ── Color helpers ───────────────────────────────────────────
+interface RGB { r: number; g: number; b: number }
+
+function parseHex(hex: string): RGB {
+  let h = hex.replace('#', '').trim()
+  if (h.length === 3) h = h.split('').map(c => c + c).join('')
+  const n = parseInt(h, 16)
+  return { r: (n >> 16) & 255, g: (n >> 8) & 255, b: n & 255 }
 }
 
-// Scale rgba alpha values by opacity for background intensity control
-function scaleAlpha(css: string, opacity: number): string {
-  if (opacity >= 1) return css
-  return css.replace(/rgba\((\d+),(\d+),(\d+),([\d.]+)\)/g, (_, r, g, b, a) =>
-    `rgba(${r},${g},${b},${(parseFloat(a as string) * opacity).toFixed(3)})`
-  )
-}
+const clamp = (n: number) => Math.max(0, Math.min(255, Math.round(n)))
+const mixWhite = ({ r, g, b }: RGB, t: number): RGB =>
+  ({ r: clamp(r + (255 - r) * t), g: clamp(g + (255 - g) * t), b: clamp(b + (255 - b) * t) })
+const mixBlack = ({ r, g, b }: RGB, t: number): RGB =>
+  ({ r: clamp(r * (1 - t)), g: clamp(g * (1 - t)), b: clamp(b * (1 - t)) })
+const channels = ({ r, g, b }: RGB) => `${r} ${g} ${b}`
 
+// ── Appliers ────────────────────────────────────────────────
 function applyTheme(id: string): void {
   document.documentElement.setAttribute('data-theme', id)
+}
+
+// Accent is theme-independent, but its derived shades flip direction by theme:
+// on dark backgrounds the bright/hover variants lighten; on light they darken.
+function applyAccent(hex: string, isLight: boolean): void {
+  const base = parseHex(hex)
+  const hover  = isLight ? mixBlack(base, 0.08) : mixWhite(base, 0.12)
+  const bright = isLight ? mixBlack(base, 0.18) : mixWhite(base, 0.42)
+  const root = document.documentElement
+  root.style.setProperty('--app-accent', channels(base))
+  root.style.setProperty('--app-accent-hover', channels(hover))
+  root.style.setProperty('--app-accent-bright', channels(bright))
 }
 
 function applyScale(value: number): void {
@@ -157,75 +90,21 @@ function applyScale(value: number): void {
   }
 }
 
-// Applies background to the dedicated GPU-composited layer div (#app-bg-layer).
-// The layer sits at z-index: -1 — above the body's background-color but below
-// all non-positioned content, with no stacking-context changes needed in the app.
-// quality: 'lite' | 'normal' | 'quality'
-//   lite    — single-stop buildLite, lightest on GPU
-//   normal  — standard 2-stop build
-//   quality — 5-stop eased buildQuality + extra noise via .bg-quality CSS class
-function applyBackground(id: string, opacity: number, quality: GradientQuality = 'normal'): void {
-  const layer = document.getElementById('app-bg-layer')
-  if (!layer) return
-
-  const preset = BACKGROUNDS.find(b => b.id === id)
-
-  if (!preset?.build) {
-    // Plain — no overlay, release any GPU memory
-    layer.style.background = ''
-    layer.style.backgroundSize = ''
-    layer.style.willChange = 'auto'
-    layer.style.transform = ''
-    document.documentElement.style.removeProperty('--app-noise-opacity')
-    return
-  }
-
-  // Pick build function based on quality level
-  const buildFn =
-    quality === 'lite'    && preset.buildLite    ? preset.buildLite :
-    quality === 'quality' && preset.buildQuality ? preset.buildQuality :
-    preset.build
-
-  // Gradient/pattern — promote to its own GPU compositor layer so it's rasterized
-  // once and composited without repainting when page content changes.
-  layer.style.background = scaleAlpha(buildFn(getBgColor()), opacity)
-  layer.style.backgroundSize = preset.size || 'auto'
-  layer.style.willChange = 'transform'
-  layer.style.transform = 'translateZ(0)'
-
-  // Nudge noise opacity for quality mode — single layer, no tiling artifacts
-  document.documentElement.style.setProperty(
-    '--app-noise-opacity',
-    quality === 'quality' ? '0.075' : quality === 'lite' ? '0.04' : '0.055'
-  )
-}
-
-function migrateGradientQuality(): GradientQuality {
-  const stored = localStorage.getItem('app-gradient-quality')
-  if (stored === 'lite' || stored === 'normal' || stored === 'quality') return stored
-  return 'normal'
-}
-
 interface ThemeProviderProps {
   children: ReactNode
 }
 
 export function ThemeProvider({ children }: ThemeProviderProps) {
-  const [theme,           setThemeState]          = useState(() => localStorage.getItem('app-theme')      || 'dim')
-  const [scale,           setScaleState]          = useState(() => Number(localStorage.getItem('app-scale') || 110))
-  const [background,      setBackgroundState]     = useState(() => localStorage.getItem('app-background') || 'plain')
-  const [bgOpacity,       setBgOpacityState]      = useState<number>(() => {
-    const s = localStorage.getItem('app-bg-opacity')
-    return s !== null ? Number(s) : 1
-  })
-  const [gradientQuality, setGradientQualityState] = useState<GradientQuality>(() => migrateGradientQuality())
+  const [theme,  setThemeState]  = useState(() => localStorage.getItem('app-theme') || 'dark')
+  const [scale,  setScaleState]  = useState(() => Number(localStorage.getItem('app-scale') || 100))
+  const [accent, setAccentState] = useState(() => localStorage.getItem('app-accent') || DEFAULT_ACCENT)
 
   function setTheme(id: string): void {
     setThemeState(id)
     localStorage.setItem('app-theme', id)
     applyTheme(id)
-    // Rebuild gradient with updated --app-bg color
-    applyBackground(background, bgOpacity, gradientQuality)
+    // Re-derive accent shades for the new light/dark context.
+    applyAccent(accent, LIGHT_THEMES.has(id))
   }
 
   function setScale(value: number): void {
@@ -234,47 +113,21 @@ export function ThemeProvider({ children }: ThemeProviderProps) {
     applyScale(value)
   }
 
-  function setBackground(id: string): void {
-    setBackgroundState(id)
-    localStorage.setItem('app-background', id)
-    applyBackground(id, bgOpacity, gradientQuality)
-  }
-
-  function setBgOpacity(value: number): void {
-    setBgOpacityState(value)
-    localStorage.setItem('app-bg-opacity', String(value))
-    applyBackground(background, value, gradientQuality)
-  }
-
-  function setGradientQuality(value: GradientQuality): void {
-    setGradientQualityState(value)
-    localStorage.setItem('app-gradient-quality', value)
-    applyBackground(background, bgOpacity, value)
+  function setAccent(hex: string): void {
+    setAccentState(hex)
+    localStorage.setItem('app-accent', hex)
+    applyAccent(hex, LIGHT_THEMES.has(theme))
   }
 
   useEffect(() => {
     applyTheme(theme)
     applyScale(scale)
-    applyBackground(background, bgOpacity, gradientQuality)
+    applyAccent(accent, LIGHT_THEMES.has(theme))
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
   return (
-    <ThemeContext.Provider value={{
-      theme, setTheme,
-      scale, setScale,
-      background, setBackground,
-      bgOpacity, setBgOpacity,
-      gradientQuality, setGradientQuality,
-    }}>
-      {/*
-        GPU-composited background layer.
-        z-index: -1 places it above the body's background-color (painted on the canvas
-        at stacking level 1) but below all non-positioned block content (level 5+).
-        will-change: transform is set dynamically — only when a gradient is active —
-        to avoid consuming GPU VRAM when not needed.
-      */}
-      <div id="app-bg-layer" aria-hidden="true" style={{ position: 'fixed', inset: 0, zIndex: -1, pointerEvents: 'none' }} />
+    <ThemeContext.Provider value={{ theme, setTheme, scale, setScale, accent, setAccent }}>
       {children}
     </ThemeContext.Provider>
   )

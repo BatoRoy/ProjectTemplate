@@ -2,76 +2,95 @@
 @tailwind components;
 @tailwind utilities;
 
-/* ── Dark theme (default) ─────────────────────────────────── */
+/* ─────────────────────────────────────────────────────────────
+   Theme tokens. Colors are space-separated RGB channels so Tailwind
+   can apply alpha: rgb(var(--app-card) / <alpha-value>) → bg-app-card/50.
+   Theme palettes are set here by [data-theme]; the accent trio
+   (--app-accent / -hover / -bright) is set at runtime by applyAccent()
+   in lib/theme.tsx (the values below are just a no-flash default).
+   ───────────────────────────────────────────────────────────── */
+
+:root {
+  /* Default accent (Violet) — overwritten by applyAccent on load. */
+  --app-accent:        124 58 237;
+  --app-accent-hover:  140 82 239;
+  --app-accent-bright: 179 141 245;
+}
+
+/* ── Dark theme (default) — TheWatcher's lifted zinc ──────────── */
 :root, [data-theme="dark"] {
-  --app-bg:      21 24 32;
-  --app-surface: 28 31 42;
-  --app-card:    35 39 53;
-  --app-border:  45 51 68;
-  --app-accent:  79 142 247;
-  --app-accent2: 124 58 237;
-  --app-green:   34 197 94;
-  --app-red:     239 68 68;
-  --app-yellow:  245 158 11;
-  --app-muted:   107 114 128;
-  --app-text:    226 232 240;
-  --app-subtext: 148 163 184;
-  --scrollbar-track: rgb(28 31 42);
-  --scrollbar-thumb: rgb(45 51 68);
-  --scrollbar-thumb-hover: #3d4560;
+  --app-bg:      22 22 25;
+  --app-surface: 29 29 33;
+  --app-card:    33 33 38;
+  --app-border:  54 54 60;
+  --app-text:    250 250 250;
+  --app-subtext: 161 161 170;
+  --app-muted:   113 113 122;
+  --app-green:   52 211 153;
+  --app-red:     248 113 113;
+  --app-yellow:  251 191 36;
 }
 
-/* ── Dim theme (comfortable dark) ───────────────────────────*/
+/* ── Dim theme (lifted one more step) ───────────────────────── */
 [data-theme="dim"] {
-  --app-bg:      34 39 46;
-  --app-surface: 45 51 59;
-  --app-card:    55 62 71;
-  --app-border:  68 76 86;
-  --app-accent:  79 142 247;
-  --app-accent2: 124 58 237;
-  --app-green:   63 185 80;
-  --app-red:     248 81 73;
-  --app-yellow:  210 153 34;
-  --app-muted:   118 131 144;
-  --app-text:    205 217 229;
-  --app-subtext: 144 157 171;
-  --scrollbar-track: rgb(45 51 59);
-  --scrollbar-thumb: rgb(68 76 86);
-  --scrollbar-thumb-hover: #55606c;
+  --app-bg:      29 29 33;
+  --app-surface: 36 36 41;
+  --app-card:    40 40 46;
+  --app-border:  63 63 70;
+  --app-text:    250 250 250;
+  --app-subtext: 168 168 176;
+  --app-muted:   122 122 131;
+  --app-green:   52 211 153;
+  --app-red:     248 113 113;
+  --app-yellow:  251 191 36;
 }
 
-/* ── Light theme ─────────────────────────────────────────── */
+/* ── Light theme (zinc light scale) ─────────────────────────── */
 [data-theme="light"] {
-  --app-bg:      246 248 250;
+  --app-bg:      250 250 250;
   --app-surface: 255 255 255;
   --app-card:    255 255 255;
-  --app-border:  208 215 222;
-  --app-accent:  9 105 218;
-  --app-accent2: 130 80 223;
-  --app-green:   26 127 55;
-  --app-red:     207 34 46;
-  --app-yellow:  154 103 0;
-  --app-muted:   110 119 129;
-  --app-text:    31 35 40;
-  --app-subtext: 87 96 106;
-  --scrollbar-track: rgb(246 248 250);
-  --scrollbar-thumb: rgb(208 215 222);
-  --scrollbar-thumb-hover: #b0b8c1;
+  --app-border:  228 228 231;
+  --app-text:    24 24 27;
+  --app-subtext: 82 82 91;
+  --app-muted:   161 161 170;
+  --app-green:   5 150 105;
+  --app-red:     220 38 38;
+  --app-yellow:  217 119 6;
 }
 
-/* Noise grain overlay — breaks up gradient banding via dithering.
-   Opacity is a CSS variable so quality mode can nudge it up without a second layer. */
-body::after {
-  content: '';
-  position: fixed;
-  inset: 0;
-  pointer-events: none;
-  z-index: 9999;
-  opacity: var(--app-noise-opacity, 0.055);
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='512' height='512'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.75' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='512' height='512' filter='url(%23n)'/%3E%3C/svg%3E");
-  background-size: 512px 512px;
+* {
+  box-sizing: border-box;
 }
 
+body {
+  background-color: rgb(var(--app-bg));
+  color: rgb(var(--app-text));
+  font-family: 'Inter Variable', Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  margin: 0;
+  overflow: hidden;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+/* Thin scrollbars (matches TheWatcher). */
+::-webkit-scrollbar {
+  width: 5px;
+  height: 5px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: rgb(var(--app-border));
+  border-radius: 99px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: rgb(var(--app-muted));
+}
+
+/* Range inputs — accent-colored thumb. */
 input[type='range'] {
   -webkit-appearance: none;
   appearance: none;
@@ -93,35 +112,6 @@ input[type='range']::-webkit-slider-thumb {
 }
 input[type='range']::-webkit-slider-thumb:hover {
   transform: scale(1.2);
-}
-
-* {
-  box-sizing: border-box;
-}
-
-body {
-  background-color: rgb(var(--app-bg));
-  color: rgb(var(--app-text));
-  font-family: 'DM Sans', system-ui, sans-serif;
-  margin: 0;
-  overflow: hidden;
-  user-select: none;
-  -webkit-user-select: none;
-}
-
-::-webkit-scrollbar {
-  width: 6px;
-  height: 6px;
-}
-::-webkit-scrollbar-track {
-  background: var(--scrollbar-track);
-}
-::-webkit-scrollbar-thumb {
-  background: var(--scrollbar-thumb);
-  border-radius: 3px;
-}
-::-webkit-scrollbar-thumb:hover {
-  background: var(--scrollbar-thumb-hover);
 }
 
 .mono-text {

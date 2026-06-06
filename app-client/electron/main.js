@@ -16,9 +16,10 @@ function createWindow() {
   const win = new BrowserWindow({
     width: 1280,
     height: 800,
-    minWidth: 1024,
+    minWidth: 900,
     minHeight: 600,
     title: 'App',
+    backgroundColor: '#161619',  // matches the dark theme bg — avoids white flash on load
     webPreferences: {
       preload: join(__dirname, 'preload.js'),
       contextIsolation: true,
