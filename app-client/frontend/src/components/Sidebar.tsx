@@ -22,7 +22,7 @@ interface SidebarProps {
 
 export function Sidebar({ view, onNavigate, onOpenOptions }: SidebarProps) {
   return (
-    <aside className="w-52 flex-shrink-0 flex flex-col bg-app-surface border-r border-app-border">
+    <aside className="w-52 flex-shrink-0 flex flex-col bg-app-bg border-r border-app-border">
       {/* Header / logo */}
       <div className="px-5 py-5 border-b border-app-border">
         <div className="flex items-center gap-2.5">
