@@ -29,7 +29,9 @@ function createWindow() {
   win.setMenu(null)
 
   if (isDev) {
-    win.loadURL('http://localhost:5173')
+    // Keep in sync with frontend/vite.config.ts and the dev script's wait-on.
+    const devPort = process.env.VITE_DEV_PORT || 5311
+    win.loadURL(`http://localhost:${devPort}`)
     win.webContents.openDevTools()
   } else {
     win.loadFile(join(__dirname, '../frontend/dist/index.html'))

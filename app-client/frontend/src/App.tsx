@@ -2,8 +2,10 @@ import { useState } from 'react'
 import { ThemeProvider } from './lib/theme'
 import { Sidebar } from './components/Sidebar'
 import { HomePage } from './components/HomePage'
+import { ShowcasePage } from './components/ShowcasePage'
 import { AppOptionsModal } from './components/AppOptionsModal'
 import { ToastContainer } from './components/Toast'
+import { ErrorBoundary } from './components/ErrorBoundary'
 import { useToast } from './hooks/useToast'
 
 export default function App() {
@@ -13,20 +15,23 @@ export default function App() {
 
   return (
     <ThemeProvider>
-      <div className="flex h-screen text-app-text">
-        <Sidebar
-          view={view}
-          onNavigate={setView}
-          onOpenOptions={() => setShowOptions(true)}
-        />
+      <ErrorBoundary>
+        <div className="flex h-screen text-app-text">
+          <Sidebar
+            view={view}
+            onNavigate={setView}
+            onOpenOptions={() => setShowOptions(true)}
+          />
 
-        <main className="flex-1 overflow-y-auto">
-          {view === 'home' && <HomePage toast={toast} />}
-        </main>
-      </div>
+          <main className="flex-1 overflow-y-auto">
+            {view === 'home' && <HomePage toast={toast} />}
+            {view === 'examples' && <ShowcasePage toast={toast} />}
+          </main>
+        </div>
 
-      {showOptions && <AppOptionsModal onClose={() => setShowOptions(false)} />}
-      <ToastContainer toasts={toasts} dismiss={dismiss} />
+        {showOptions && <AppOptionsModal onClose={() => setShowOptions(false)} />}
+        <ToastContainer toasts={toasts} dismiss={dismiss} />
+      </ErrorBoundary>
     </ThemeProvider>
   )
 }

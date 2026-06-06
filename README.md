@@ -73,6 +73,44 @@ Pushing a `v*.*.*` tag triggers `.github/workflows/release.yml`, which builds th
 - **Backend** uses a plain `http.ServeMux` with a CORS middleware
   (`app-server/internal/api/server.go`). Add routes in `registerRoutes`.
 
+## Component kit
+
+A set of theme-aware React components lives in `app-client/frontend/src/components`. Every one is
+styled purely with the `--app-*` tokens, so they recolor automatically across the Dark / Dim / Light
+themes. The **Examples** page in the sidebar (`ShowcasePage.tsx`) renders them all live — use it as a
+reference, then delete it and its `Sidebar.tsx` NAV entry once your real pages exist.
+
+| Component | File | Notes |
+|-----------|------|-------|
+| `Modal`, `Input`, `Button` | `Modal.tsx` | Base overlay + form atoms |
+| `ContextMenu` + `useContextMenu` | `ContextMenu.tsx`, `hooks/useContextMenu.ts` | Right-click menu, viewport-clamped |
+| `Dropdown`, `Select` | `Dropdown.tsx` | Anchored action menu / value picker |
+| `ConfirmDialog` | `ConfirmDialog.tsx` | Confirm destructive actions (Enter / Esc) |
+| `Tooltip` | `Tooltip.tsx` | Hover/focus bubble |
+| `Switch`, `Checkbox`, `RadioGroup`, `Textarea` | `Form.tsx` | Form controls |
+| `Card`, `Badge`, `Spinner`, `Skeleton`, `EmptyState` | `Feedback.tsx` | Layout & feedback atoms |
+| `Tabs` | `Tabs.tsx` | Segmented tab bar |
+| `ErrorBoundary` | `ErrorBoundary.tsx` | Themed crash fallback; wraps the app |
+| `Toast` + `useToast` | `Toast.tsx`, `hooks/useToast.ts` | Transient notifications |
+| `useHotkeys` | `hooks/useHotkeys.ts` | Keyboard shortcuts (`mod+k`, …) |
+
+`ContextMenu` and `Dropdown` share their list rendering, positioning, and keyboard-nav helpers via
+`Menu.tsx`. The right-click menu is purely a React overlay — the native Electron menu stays disabled
+(`electron/main.js` → `win.setMenu(null)`).
+
+```tsx
+const menu = useContextMenu()
+
+<div onContextMenu={menu.onContextMenu}>…</div>
+{menu.isOpen && (
+  <ContextMenu position={menu.position} onClose={menu.close} items={[
+    { label: 'Copy', icon: Copy, shortcut: '⌘C', onClick: handleCopy },
+    { type: 'separator' },
+    { label: 'Delete', icon: Trash2, danger: true, onClick: handleDelete },
+  ]} />
+)}
+```
+
 ## Starting a new project from this template
 
 1. Copy the directory, then re-init git: `rm -rf .git && git init`.

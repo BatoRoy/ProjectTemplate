@@ -6,7 +6,7 @@
   "private": true,
   "main": "electron/main.js",
   "scripts": {
-    "dev": "concurrently -k -n vite,electron -c blue,yellow \"npm run dev:renderer\" \"wait-on http://localhost:5173 && electron .\"",
+    "dev": "concurrently -k -n vite,electron -c blue,yellow \"npm run dev:renderer\" \"wait-on http://localhost:5311 && electron .\"",
     "dev:renderer": "npm run dev --prefix frontend",
     "build:renderer": "npm run build --prefix frontend",
     "package:linux": "npm run build:renderer && electron-builder --linux AppImage --publish=never",
