@@ -45,6 +45,7 @@ export function controlClasses(error?: boolean): string {
   return clsx(
     'w-full bg-app-surface border rounded-lg text-app-text placeholder:text-app-muted',
     'focus:outline-none transition-colors',
+    'disabled:cursor-not-allowed disabled:opacity-60 disabled:bg-app-card',
     error ? 'border-app-red focus:border-app-red' : 'border-app-border focus:border-app-accent',
   )
 }

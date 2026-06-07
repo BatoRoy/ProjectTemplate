@@ -103,6 +103,7 @@ function InputsSection({ toast }: ShowcasePageProps) {
           <TextField label="With error" value="bad value" error="That doesn't look right" onChange={() => {}} />
           <TextField label="Char count" showCount maxLength={20} placeholder="Max 20" />
           <TextField label="Prefix / suffix" prefix="$" suffix="USD" placeholder="0.00" />
+          <TextField label="Disabled" leftIcon={Mail} value="you@example.com" disabled />
         </div>
       </Card>
 
@@ -200,6 +201,20 @@ function InputsSection({ toast }: ShowcasePageProps) {
           <Switch checked={sw} onChange={setSw} label="Enable notifications" />
           <Checkbox checked={cb} onChange={setCb} label="I agree to the terms" />
           <RadioGroup value={radio} onChange={setRadio} options={[{ value: 'a', label: 'Option A' }, { value: 'b', label: 'Option B' }, { value: 'c', label: 'Option C' }]} />
+
+          <Divider label="disabled" />
+          <div className="flex flex-wrap gap-x-10 gap-y-4">
+            <div className="space-y-3">
+              <Switch checked disabled onChange={() => {}} label="On, disabled" />
+              <Switch checked={false} disabled onChange={() => {}} label="Off, disabled" />
+            </div>
+            <div className="space-y-3">
+              <Checkbox checked disabled onChange={() => {}} label="Checked, disabled" />
+              <Checkbox checked={false} disabled onChange={() => {}} label="Unchecked, disabled" />
+            </div>
+            <RadioGroup value="b" onChange={() => {}} disabled options={[{ value: 'a', label: 'Option A' }, { value: 'b', label: 'Option B' }]} />
+          </div>
+
           <FileDropzone hint="PNG, JPG up to 10MB" onFiles={f => toast(`${f.length} file(s) selected`, 'success')} onPaths={p => toast(`${p.length} path(s) selected`, 'success')} />
         </div>
       </Card>
