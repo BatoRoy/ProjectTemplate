@@ -71,7 +71,7 @@ Pushing a `v*.*.*` tag triggers `.github/workflows/release.yml`, which builds th
   `bg-app-accent` (+ `hover:bg-app-accentHover`) for solid actions and `bg-app-accent/15
   text-app-accentBright` for active/soft states. Surfaces are flat — there is no background engine.
 - **Frontend ↔ backend** goes over HTTP via `src/lib/bridge.ts` (default `http://localhost:8080`).
-- **Frontend ↔ OS** (file dialogs, settings store, file I/O) goes through the Electron preload
+- **Frontend ↔ OS** (file dialogs, settings store, file I/O, native notifications) goes through the Electron preload
   bridge, typed in `src/lib/electron.d.ts` and implemented in `electron/main.js`.
 - **Backend** uses a plain `http.ServeMux` with a CORS middleware
   (`app-server/internal/api/server.go`). Add routes in `registerRoutes`.

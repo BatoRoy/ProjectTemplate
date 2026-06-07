@@ -34,6 +34,13 @@ export interface SaveFileOpts {
   filters?: FileFilter[]
 }
 
+export interface NotifyOpts {
+  title: string
+  body?: string
+  /** Suppress the notification sound. */
+  silent?: boolean
+}
+
 // ── Theme system ────────────────────────────────────────────
 export interface ThemePreset {
   id: string

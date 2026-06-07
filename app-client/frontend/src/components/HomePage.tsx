@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react'
-import { RefreshCw } from 'lucide-react'
+import { RefreshCw, Bell } from 'lucide-react'
 import clsx from 'clsx'
 import { Button, Input } from './Modal'
 import { Card, Badge } from './Feedback'
@@ -34,6 +34,14 @@ export function HomePage({ toast }: HomePageProps) {
 
   useEffect(() => { pingBackend() }, [pingBackend])
 
+  const sendNotification = useCallback(async () => {
+    const ok = await bridge.native.notify({
+      title: 'Hello from the template',
+      body: name ? `Notifying you, ${name}.` : 'This is a native OS notification.',
+    })
+    if (!ok) toast('Notifications are blocked or unsupported', 'error')
+  }, [name, toast])
+
   const statusTone = { online: 'success', offline: 'error', checking: 'warning' } as const
   const statusLabel: Record<ServerStatus, string> = {
     online: 'Backend online', offline: 'Backend offline', checking: 'Checking…',
@@ -67,6 +75,20 @@ export function HomePage({ toast }: HomePageProps) {
           Start the backend with <span className="mono-text">make dev-server</span> (defaults to
           <span className="mono-text"> http://localhost:8080</span>), then press Ping.
         </p>
+      </Card>
+
+      {/* Native OS notification */}
+      <Card>
+        <div className="flex items-center justify-between gap-4">
+          <p className="text-xs text-app-muted">
+            Send a native OS notification via the Electron main process. Falls back to the
+            web <span className="mono-text">Notification</span> API in a plain browser.
+          </p>
+          <Button variant="ghost" onClick={sendNotification}>
+            <Bell size={14} />
+            Notify
+          </Button>
+        </div>
       </Card>
 
       {/* Component showcase */}

@@ -1,6 +1,6 @@
 'use strict'
 
-const { app, BrowserWindow, ipcMain, dialog } = require('electron')
+const { app, BrowserWindow, ipcMain, dialog, Notification } = require('electron')
 const {
   readFileSync, writeFileSync, mkdirSync, existsSync,
 } = require('fs')
@@ -40,6 +40,10 @@ function createWindow() {
 }
 
 app.whenReady().then(() => {
+  // Required on Windows for notifications to show the app's name/icon instead of
+  // "electron.app.…". Keep in sync with build.appId in package.json.
+  if (process.platform === 'win32') app.setAppUserModelId('com.example.app')
+
   createWindow()
   app.on('activate', () => {
     if (BrowserWindow.getAllWindows().length === 0) createWindow()
@@ -86,6 +90,25 @@ ipcMain.handle('dialog:saveFile', async (_, opts = {}) => {
   const { defaultPath = '', filters = [] } = opts
   const result = await dialog.showSaveDialog({ defaultPath, filters })
   return result.canceled ? null : result.filePath
+})
+
+// ─── Notifications ─────────────────────────────────────────────────────────────
+
+// Fire an OS notification from the main process. Returns false if the platform
+// can't show notifications. Clicking it focuses the app window.
+ipcMain.handle('notify', (_, opts = {}) => {
+  if (!Notification.isSupported()) return false
+  const { title = 'Notification', body = '', silent = false } = opts
+  const n = new Notification({ title, body, silent })
+  n.on('click', () => {
+    const win = BrowserWindow.getAllWindows()[0]
+    if (win) {
+      if (win.isMinimized()) win.restore()
+      win.focus()
+    }
+  })
+  n.show()
+  return true
 })
 
 // ─── File I/O ────────────────────────────────────────────────────────────────

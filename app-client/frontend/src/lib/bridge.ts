@@ -2,7 +2,7 @@
 // HTTP calls go directly to the backend via fetch().
 // Native OS operations (dialogs, settings, file I/O) go via window.electronAPI (see preload.js).
 
-import type { ServerInfo } from '../types'
+import type { ServerInfo, NotifyOpts } from '../types'
 
 // Default backend address — override per environment as needed.
 export const DEFAULT_BACKEND = 'http://localhost:8080'
@@ -14,6 +14,17 @@ async function apiFetch<T = unknown>(baseUrl: string, path: string, opts?: Reque
     throw new Error(err.error || `Request failed: ${r.status}`)
   }
   return r.json().catch(() => null) as T
+}
+
+// Fallback for non-Electron contexts (e.g. `vite preview` in a browser): use the
+// web Notification API, requesting permission on first use.
+async function webNotify(opts: NotifyOpts): Promise<boolean> {
+  if (typeof Notification === 'undefined') return false
+  let perm = Notification.permission
+  if (perm === 'default') perm = await Notification.requestPermission()
+  if (perm !== 'granted') return false
+  new Notification(opts.title, { body: opts.body, silent: opts.silent })
+  return true
 }
 
 export const bridge = {
@@ -38,5 +49,6 @@ export const bridge = {
     readTextFile: (path: string) => window.electronAPI?.readTextFile(path) ?? Promise.resolve(''),
     writeTextFile: (path: string, content: string) =>
       window.electronAPI?.writeTextFile(path, content) ?? Promise.resolve(),
+    notify: (opts: NotifyOpts) => window.electronAPI?.notify(opts) ?? webNotify(opts),
   },
 }

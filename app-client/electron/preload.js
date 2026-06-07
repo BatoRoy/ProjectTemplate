@@ -16,6 +16,9 @@ contextBridge.exposeInMainWorld('electronAPI', {
   readTextFile: (path) => ipcRenderer.invoke('fs:readText', path),
   writeTextFile: (path, content) => ipcRenderer.invoke('fs:writeText', path, content),
 
+  // Notifications
+  notify: (opts) => ipcRenderer.invoke('notify', opts ?? {}),
+
   // Zoom
   setZoom: (factor) => webFrame.setZoomFactor(factor),
 })
