@@ -1,43 +1,51 @@
-import { useRef, useState, useCallback } from 'react'
+import { useLayoutEffect, useRef, useState, useCallback } from 'react'
 import type { ReactNode } from 'react'
 import { createPortal } from 'react-dom'
-import { clampToViewport } from './Menu'
+import { computePosition } from '../lib/floating'
+import type { Placement } from '../lib/floating'
 
 interface TooltipProps {
   content: ReactNode
   children: ReactNode
-  side?: 'top' | 'bottom'
+  /** Preferred side; flips to the opposite side when there isn't room. Default 'top'. */
+  side?: Placement
   delay?: number
 }
 
 // Shows a small themed bubble on hover/focus of its child, after `delay` ms.
 // The child is wrapped in an inline-flex span (which carries the ref + handlers),
 // so it works with any child — including components that don't forward refs.
+// Positioning goes through computePosition (lib/floating), so the bubble flips to
+// the opposite side when cramped and is clamped to stay fully on-screen.
 export function Tooltip({ content, children, side = 'top', delay = 400 }: TooltipProps) {
-  const ref = useRef<HTMLSpanElement>(null)
+  const anchorRef = useRef<HTMLSpanElement>(null)
+  const tipRef = useRef<HTMLDivElement>(null)
   const timer = useRef<number>()
-  const [pos, setPos] = useState<{ x: number; y: number } | null>(null)
+  const [open, setOpen] = useState(false)
+  const [coords, setCoords] = useState({ x: 0, y: 0 })
 
   const show = useCallback(() => {
-    timer.current = window.setTimeout(() => {
-      const el = ref.current
-      if (!el) return
-      const r = el.getBoundingClientRect()
-      const gap = 8
-      const y = side === 'top' ? r.top - gap : r.bottom + gap
-      setPos(clampToViewport(r.left + r.width / 2, y, 0, 0, 8))
-    }, delay)
-  }, [side, delay])
+    timer.current = window.setTimeout(() => setOpen(true), delay)
+  }, [delay])
 
   const hide = useCallback(() => {
     window.clearTimeout(timer.current)
-    setPos(null)
+    setOpen(false)
   }, [])
+
+  // Measure the bubble after it renders, then place + clamp it (runs before paint,
+  // so there's no flash at the initial 0,0).
+  useLayoutEffect(() => {
+    if (!open || !anchorRef.current || !tipRef.current) return
+    const anchor = anchorRef.current.getBoundingClientRect()
+    const rect = tipRef.current.getBoundingClientRect()
+    setCoords(computePosition(anchor, { width: rect.width, height: rect.height }, { placement: side, align: 'center', offset: 8 }))
+  }, [open, side, content])
 
   return (
     <>
       <span
-        ref={ref}
+        ref={anchorRef}
         className="inline-flex"
         onMouseEnter={show}
         onMouseLeave={hide}
@@ -46,16 +54,13 @@ export function Tooltip({ content, children, side = 'top', delay = 400 }: Toolti
       >
         {children}
       </span>
-      {pos && createPortal(
+      {open && createPortal(
         <div
+          ref={tipRef}
           role="tooltip"
           className="fixed z-50 px-2 py-1 rounded-md bg-app-surface border border-app-border
                      shadow-lg text-xs text-app-text whitespace-nowrap pointer-events-none animate-fade-in"
-          style={{
-            left: pos.x,
-            top: pos.y,
-            transform: `translate(-50%, ${side === 'top' ? '-100%' : '0'})`,
-          }}
+          style={{ left: coords.x, top: coords.y }}
         >
           {content}
         </div>,

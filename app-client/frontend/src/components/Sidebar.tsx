@@ -49,7 +49,7 @@ export function Sidebar({ view, onNavigate, onOpenOptions }: SidebarProps) {
         {!collapsed && <span className="truncate">{label}</span>}
       </button>
     )
-    return collapsed ? <Tooltip content={label} side="bottom">{btn}</Tooltip> : btn
+    return collapsed ? <Tooltip content={label} side="right">{btn}</Tooltip> : btn
   }
 
   return (
@@ -80,7 +80,7 @@ export function Sidebar({ view, onNavigate, onOpenOptions }: SidebarProps) {
       {/* Footer */}
       <div className="p-2 border-t border-app-border flex flex-col gap-0.5">
         <Row icon={Settings} label="App Options" active={false} onClick={onOpenOptions} />
-        <Tooltip content={collapsed ? 'Expand' : 'Collapse'} side="bottom">
+        <Tooltip content={collapsed ? 'Expand' : 'Collapse'} side={collapsed ? 'right' : 'top'}>
           <button
             onClick={toggle}
             className={clsx(
