@@ -12,6 +12,8 @@ export interface CodeEditorProps {
   language?: CodeLanguage
   /** Show the line-number gutter. Default true. */
   lineNumbers?: boolean
+  /** Enable Vim keybindings (modal editing + a status bar). Default false. */
+  vim?: boolean
   readOnly?: boolean
   height?: string
   placeholder?: string

@@ -122,6 +122,37 @@ input[type='range']::-webkit-slider-thumb:hover {
   -webkit-user-select: text;
 }
 
+/* CodeMirror panels (vim status bar, search) default to z-index 300, which sits
+   above the app's overlay layer (Modal z-40, Dropdown z-50). Bring it below so
+   anchored menus/modals render over the editor. */
+.cm-panels {
+  z-index: 10 !important;
+}
+
+/* ── CodeMirror Vim mode (CodeEditor `vim` option) ──────────── */
+/* Status bar shown at the bottom in vim mode (mode indicator + : commands). */
+.cm-vim-panel {
+  background: rgb(var(--app-surface));
+  color: rgb(var(--app-subtext));
+  padding: 1px 8px;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 12px;
+  border-top: 1px solid rgb(var(--app-border));
+}
+.cm-vim-panel input {
+  color: rgb(var(--app-text));
+  font-family: 'JetBrains Mono', monospace;
+}
+/* Block cursor in normal/visual mode — themed to the accent. */
+.cm-fat-cursor {
+  background: rgb(var(--app-accent)) !important;
+  color: rgb(var(--app-bg)) !important;
+}
+.cm-editor:not(.cm-focused) .cm-fat-cursor {
+  background: none !important;
+  outline: 1px solid rgb(var(--app-accent)) !important;
+}
+
 /* ── @xyflow/react theming (NodeGraph) ─────────────────────── */
 .react-flow__controls-button {
   background: rgb(var(--app-card));

@@ -1,6 +1,7 @@
 import { useMemo } from 'react'
 import CodeMirror from '@uiw/react-codemirror'
 import type { Extension } from '@codemirror/state'
+import { vim } from '@replit/codemirror-vim'
 import { javascript } from '@codemirror/lang-javascript'
 import { json } from '@codemirror/lang-json'
 import { html } from '@codemirror/lang-html'
@@ -27,15 +28,19 @@ const languages: Record<CodeLanguage, Extension | null> = {
 }
 
 export default function CodeEditorInner({
-  value, onChange, language = 'text', lineNumbers = true, readOnly, height = '16rem', placeholder,
+  value, onChange, language = 'text', lineNumbers = true, vim: vimMode, readOnly, height = '16rem', placeholder,
 }: CodeEditorProps) {
   const { theme, accent } = useTheme()
   // eslint-disable-next-line react-hooks/exhaustive-deps
   const cmTheme = useMemo(() => buildCmTheme(theme === 'light'), [theme, accent])
   const extensions = useMemo(() => {
     const lang = languages[language]
-    return lang ? [lang] : []
-  }, [language])
+    // vim() must come first so its keymap takes precedence over the defaults.
+    return [
+      ...(vimMode ? [vim({ status: true })] : []),
+      ...(lang ? [lang] : []),
+    ]
+  }, [language, vimMode])
 
   return (
     <CodeMirror

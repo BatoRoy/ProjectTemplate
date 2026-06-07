@@ -91,6 +91,7 @@ function InputsSection({ toast }: ShowcasePageProps) {
   const [code, setCode] = useState("function greet(name) {\n  // say hello\n  return `Hello, ${name}!`\n}\n\ngreet('world')")
   const [lang, setLang] = useState<CodeLanguage>('javascript')
   const [lineNums, setLineNums] = useState(true)
+  const [vimMode, setVimMode] = useState(false)
 
   return (
     <div className="space-y-6">
@@ -189,8 +190,9 @@ function InputsSection({ toast }: ShowcasePageProps) {
             ]}
           />
           <Switch checked={lineNums} onChange={setLineNums} label="Line numbers" />
+          <Switch checked={vimMode} onChange={setVimMode} label="Vim mode" />
         </div>
-        <CodeEditor value={code} onChange={setCode} language={lang} lineNumbers={lineNums} height="14rem" />
+        <CodeEditor value={code} onChange={setCode} language={lang} lineNumbers={lineNums} vim={vimMode} height="14rem" />
       </Card>
 
       <Card title="Toggles & file upload">
