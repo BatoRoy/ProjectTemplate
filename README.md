@@ -114,6 +114,7 @@ import { Button, DatePicker, KanbanBoard, useToast } from '../components'
 | `SearchInput` | Search with suggestions dropdown + inline autocomplete (each toggleable); static or async source |
 | `CodeEditor` | Syntax-highlighted editor (CodeMirror 6), optional line numbers, optional Vim mode, token-themed |
 | `Slider`, `RangeSlider` | Single & dual-thumb |
+| `VolumeControl` | Speaker mute toggle + slider; icon tracks level, mute restores prior volume |
 | `TimeInput` | Typeable H:M:S segments — ↑/↓ (hold) with carry, 24h-cap toggle, wrap/clamp (vs the scroll-based `TimePicker`) |
 | `ColorPicker` | HSV picker + swatches + hex |
 | `FileDropzone` | Drag-drop + click (Electron dialog aware) |

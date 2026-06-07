@@ -7,7 +7,7 @@ import {
   Button, Card, Badge, Spinner, Skeleton, Tabs,
   ContextMenu, Dropdown, Select, Tooltip, ConfirmDialog, Drawer, Popover, CommandPalette,
   Switch, Checkbox, RadioGroup, TextField, NumberInput, TextArea, TagsInput, OtpInput,
-  MaskedInput, CurrencyInput, Combobox, MultiSelect, Slider, RangeSlider, ColorPicker, FileDropzone, TimeInput,
+  MaskedInput, CurrencyInput, Combobox, MultiSelect, Slider, RangeSlider, VolumeControl, ColorPicker, FileDropzone, TimeInput,
   SearchInput, CodeEditor,
   Accordion, Stepper, Breadcrumbs, Avatar, AvatarGroup, Progress, CircularProgress, SegmentedControl, Alert,
   Stack, HStack, Grid as GridBox, Container, Center, AspectRatio, Divider, AutoGrid, Masonry, AppShell, Scrollable,
@@ -76,6 +76,7 @@ function InputsSection({ toast }: ShowcasePageProps) {
   const [fruit, setFruit] = useState<string | null>('apple')
   const [multi, setMulti] = useState<string[]>(['apple', 'cherry'])
   const [vol, setVol] = useState(60)
+  const [mediaVol, setMediaVol] = useState(40)
   const [range, setRange] = useState<[number, number]>([20, 80])
   const [color, setColor] = useState('#7c3aed')
   const [sw, setSw] = useState(true)
@@ -136,6 +137,7 @@ function InputsSection({ toast }: ShowcasePageProps) {
         <div className="space-y-5">
           <div><div className="text-xs text-app-subtext mb-2">Volume: {vol}</div><Slider value={vol} onChange={setVol} /></div>
           <div><div className="text-xs text-app-subtext mb-2">Range: {range[0]}–{range[1]}</div><RangeSlider value={range} onChange={setRange} /></div>
+          <div><div className="text-xs text-app-subtext mb-2">Volume control</div><VolumeControl value={mediaVol} onChange={setMediaVol} showValue /></div>
           <ColorPicker label="Color" value={color} onChange={setColor} />
         </div>
       </Card>
