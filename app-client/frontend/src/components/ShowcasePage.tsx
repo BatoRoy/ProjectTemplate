@@ -8,8 +8,9 @@ import {
   ContextMenu, Dropdown, Select, Tooltip, ConfirmDialog, Drawer, Popover, CommandPalette,
   Switch, Checkbox, RadioGroup, TextField, NumberInput, TextArea, TagsInput, OtpInput,
   MaskedInput, CurrencyInput, Combobox, MultiSelect, Slider, RangeSlider, ColorPicker, FileDropzone, TimeInput,
+  SearchInput, CodeEditor,
   Accordion, Stepper, Breadcrumbs, Avatar, AvatarGroup, Progress, CircularProgress, SegmentedControl, Alert,
-  Stack, HStack, Grid as GridBox, Container, Center, AspectRatio, Divider, AutoGrid, Masonry, AppShell,
+  Stack, HStack, Grid as GridBox, Container, Center, AspectRatio, Divider, AutoGrid, Masonry, AppShell, Scrollable,
   PanelGroup, Panel, EditorTabs, Dashboard,
   Calendar, TimePicker, DatePicker, DateRangePicker, DateTimePicker, CalendarView,
   DataTable, Pagination, Timeline, LineChart, AreaChart, BarChart, Sparkline, SortableList, KanbanBoard, NodeGraph,
@@ -19,6 +20,7 @@ import clsx from 'clsx'
 import { useContextMenu } from '../hooks/useContextMenu'
 import { useTheme } from '../lib/theme'
 import type { ToastType, SelectOption, DateRange, ColumnDef, CalendarEvent, TimelineItem, KanbanColumn, TimeValue, EditorTab, DashboardWidgetType, DashboardItem } from '../types'
+import type { CodeLanguage } from '.'
 
 interface ShowcasePageProps {
   toast: (message: string, type?: ToastType) => void
@@ -83,6 +85,12 @@ function InputsSection({ toast }: ShowcasePageProps) {
   const [tSeconds, setTSeconds] = useState(true)
   const [tCap, setTCap] = useState(true)
   const [tWrap, setTWrap] = useState(true)
+  const [searchVal, setSearchVal] = useState('')
+  const [withSugg, setWithSugg] = useState(true)
+  const [withAuto, setWithAuto] = useState(false)
+  const [code, setCode] = useState("function greet(name) {\n  // say hello\n  return `Hello, ${name}!`\n}\n\ngreet('world')")
+  const [lang, setLang] = useState<CodeLanguage>('javascript')
+  const [lineNums, setLineNums] = useState(true)
 
   return (
     <div className="space-y-6">
@@ -152,6 +160,37 @@ function InputsSection({ toast }: ShowcasePageProps) {
         <p className="text-xs text-app-muted mt-3">
           ←/→ switch boxes · ↑/↓ step (hold to repeat) · 59m + 1 carries to the hour.
         </p>
+      </Card>
+
+      <Card title="Search (suggestions + autocomplete)">
+        <SearchInput
+          value={searchVal}
+          onChange={setSearchVal}
+          suggestions={['React', 'Redux', 'Recoil', 'Remix', 'Svelte', 'Solid', 'Vue', 'Vite', 'Vitest', 'Angular', 'Astro', 'Next.js']}
+          showSuggestions={withSugg}
+          autoComplete={withAuto}
+          placeholder="Search frameworks…"
+        />
+        <div className="flex flex-wrap gap-4 mt-3">
+          <Switch checked={withSugg} onChange={setWithSugg} label="Suggestions dropdown" />
+          <Switch checked={withAuto} onChange={setWithAuto} label="Inline autocomplete" />
+        </div>
+      </Card>
+
+      <Card title="Code editor">
+        <div className="flex items-center gap-3 mb-3">
+          <Select
+            value={lang}
+            onChange={v => setLang(v as CodeLanguage)}
+            options={[
+              { value: 'javascript', label: 'JavaScript' }, { value: 'typescript', label: 'TypeScript' },
+              { value: 'json', label: 'JSON' }, { value: 'python', label: 'Python' },
+              { value: 'html', label: 'HTML' }, { value: 'css', label: 'CSS' }, { value: 'markdown', label: 'Markdown' },
+            ]}
+          />
+          <Switch checked={lineNums} onChange={setLineNums} label="Line numbers" />
+        </div>
+        <CodeEditor value={code} onChange={setCode} language={lang} lineNumbers={lineNums} height="14rem" />
       </Card>
 
       <Card title="Toggles & file upload">
@@ -308,6 +347,16 @@ function LayoutSection({ toast }: ShowcasePageProps) {
             ))}
           </Masonry>
         </div>
+      </Card>
+
+      <Card title="Scrollable">
+        <Scrollable maxHeight={150} fade className="rounded-lg border border-app-border">
+          <div className="p-3 space-y-2">
+            {Array.from({ length: 14 }, (_, i) => (
+              <div key={i} className="text-sm text-app-subtext px-2 py-1 rounded bg-app-bg">Scrollable row {i + 1}</div>
+            ))}
+          </div>
+        </Scrollable>
       </Card>
 
       <Card title="Editor tabs (drag to reorder, close, add)">
@@ -480,6 +529,7 @@ function DataSection({ toast }: ShowcasePageProps) {
     { id: 'done', title: 'Done', cards: [{ id: 'c4', title: 'Setup repo' }] },
   ])
   const [page, setPage] = useState(3)
+  const [tlScroll, setTlScroll] = useState(true)
 
   const series = [{ name: 'Visits', data: Array.from({ length: 14 }, (_, i) => ({ x: i, y: 20 + Math.round(30 * Math.sin(i / 2) + i * 2) })) }]
   const bars = [{ label: 'Mon', value: 12 }, { label: 'Tue', value: 19 }, { label: 'Wed', value: 7 }, { label: 'Thu', value: 22 }, { label: 'Fri', value: 15 }]
@@ -521,7 +571,9 @@ function DataSection({ toast }: ShowcasePageProps) {
         </Card>
       </div>
 
-      <Card title="Timeline"><Timeline items={timelineItems} /></Card>
+      <Card title="Timeline" action={<Switch checked={tlScroll} onChange={setTlScroll} label="Horizontal scroll" />}>
+        <Timeline items={timelineItems} scrollable={tlScroll} minWidth={1100} />
+      </Card>
 
       <Card title="Sortable list (drag to reorder)">
         <SortableList items={items} getId={x => x} onReorder={setItems} renderItem={x => <span className="text-sm text-app-text">{x}</span>} />

@@ -54,9 +54,9 @@ export function Button({ children, variant = 'primary', disabled, loading, class
   const base = 'flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg text-sm font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed'
   const variants: Record<ButtonVariant, string> = {
     primary: 'bg-app-accent text-white hover:bg-app-accentHover',
-    danger:  'bg-app-red text-white hover:opacity-90',
+    danger:  'bg-app-red/15 text-app-red border border-app-red/30 hover:bg-app-red/25',
     ghost:   'border border-app-border text-app-subtext hover:text-app-text hover:border-app-accent/50',
-    success: 'bg-app-green text-white hover:opacity-90',
+    success: 'bg-app-green/15 text-app-green border border-app-green/30 hover:bg-app-green/25',
   }
   return (
     <button className={`${base} ${variants[variant]} ${className}`} disabled={disabled || loading} {...props}>

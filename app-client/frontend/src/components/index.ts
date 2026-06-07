@@ -35,6 +35,9 @@ export { Slider, RangeSlider } from './inputs/Slider'
 export { ColorPicker } from './inputs/ColorPicker'
 export { FileDropzone } from './inputs/FileDropzone'
 export { TimeInput } from './inputs/TimeInput'
+export { SearchInput } from './inputs/SearchInput'
+export { CodeEditor } from './inputs/CodeEditor'
+export type { CodeLanguage } from './inputs/CodeEditor'
 
 // ── Feedback & layout ───────────────────────────────────────
 export { Card, Badge, Spinner, Skeleton, EmptyState } from './Feedback'
@@ -49,6 +52,7 @@ export { Alert } from './layout/Alert'
 // Structural layout
 export { Stack, HStack, VStack, Grid, Container, Center, AspectRatio, Divider, Spacer } from './layout/Primitives'
 export { AutoGrid, Masonry } from './layout/Responsive'
+export { Scrollable } from './layout/Scrollable'
 export { AppShell } from './layout/AppShell'
 export { PanelGroup, Panel } from './layout/PanelGroup'
 export { EditorTabs } from './layout/EditorTabs'

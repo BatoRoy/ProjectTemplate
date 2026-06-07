@@ -111,6 +111,8 @@ import { Button, DatePicker, KanbanBoard, useToast } from '../components'
 | `TextArea` | Autosize + counter |
 | `TagsInput` | Chip tokens |
 | `Combobox`, `MultiSelect` | Searchable single / multi select |
+| `SearchInput` | Search with suggestions dropdown + inline autocomplete (each toggleable); static or async source |
+| `CodeEditor` | Syntax-highlighted editor (CodeMirror 6), optional line numbers, token-themed |
 | `Slider`, `RangeSlider` | Single & dual-thumb |
 | `TimeInput` | Typeable H:M:S segments — ↑/↓ (hold) with carry, 24h-cap toggle, wrap/clamp (vs the scroll-based `TimePicker`) |
 | `ColorPicker` | HSV picker + swatches + hex |
@@ -132,6 +134,7 @@ import { Button, DatePicker, KanbanBoard, useToast } from '../components'
 |-----------|-------|
 | `Stack`/`HStack`/`VStack`, `Grid`, `Container`, `Center`, `AspectRatio`, `Divider`, `Spacer` | Composable layout primitives |
 | `AutoGrid`, `Masonry` | Responsive grids that reflow by width |
+| `Scrollable` | Constrained scroll container (axis, maxHeight, optional edge fade) |
 | `AppShell` | Page scaffold: header + sidebar + footer + scrollable content |
 | `PanelGroup` + `Panel` | N-panel, nestable, resizable splits (persisted) |
 | `EditorTabs` | VS Code–style tabs: closable, drag-to-reorder, dirty dot, add |
@@ -153,16 +156,17 @@ import { Button, DatePicker, KanbanBoard, useToast } from '../components'
 | `DataTable` | Sort, filter, select, paginate; sticky header |
 | `Pagination` | Page controls (standalone too) |
 | `LineChart`, `AreaChart`, `BarChart`, `Sparkline` | Hand-rolled SVG, responsive, hover tooltip |
-| `Timeline` | Events / Gantt over a time axis |
+| `Timeline` | Events / Gantt over a time axis (optional horizontal scroll with pinned lane labels) |
 | `SortableList`, `KanbanBoard` | Drag & drop (`@dnd-kit`) |
 | `NodeGraph` | Node/flow editor (`@xyflow/react`), themed |
 
 **Hooks** (`hooks/`): `useToast`, `useContextMenu`, `useHotkeys`, `useDismiss`, `useControllableState`.
 
-Three libraries are used for the genuinely hard parts (everything else is hand-rolled and
-zero-dependency): **`@dnd-kit`** (drag & drop), **`@xyflow/react`** (node graph), and **`date-fns`**
-(date math). They're restyled to the `--app-*` tokens. The dashboard grid is hand-rolled on pointer
-events (snap mode compacts; free mode allows overlap). Anchored overlays share positioning
+Libraries are used only for the genuinely hard parts (everything else is hand-rolled and
+zero-dependency): **`@dnd-kit`** (drag & drop), **`@xyflow/react`** (node graph), **`date-fns`**
+(date math), and **CodeMirror 6** (`@uiw/react-codemirror` for the `CodeEditor`). They're restyled to
+the `--app-*` tokens. The dashboard grid is hand-rolled on pointer events (snap mode compacts; free
+mode allows overlap). Anchored overlays share positioning
 (`lib/floating.ts`) and dismissal (`hooks/useDismiss.ts`) logic. The right-click menu is purely a
 React overlay — the native Electron menu stays disabled (`electron/main.js` → `win.setMenu(null)`).
 

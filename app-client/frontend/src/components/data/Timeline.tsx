@@ -10,12 +10,18 @@ interface TimelineProps {
   onItemClick?: (item: TimelineItem) => void
   /** Date label format for the axis. */
   axisFormat?: string
+  /** Allow horizontal scrolling (gives the timeline a min width). Default true. */
+  scrollable?: boolean
+  /** Min content width in px when scrollable. Default 720. */
+  minWidth?: number
   className?: string
 }
 
 // Events/Gantt timeline: items grouped into lanes, positioned and sized along a
-// shared horizontal time axis. Range defaults to the span of the items.
-export function Timeline({ items, start, end, onItemClick, axisFormat = 'MMM d', className }: TimelineProps) {
+// shared horizontal time axis. Range defaults to the span of the items. When
+// `scrollable`, the timeline gets a min width and scrolls horizontally with the
+// lane labels pinned to the left.
+export function Timeline({ items, start, end, onItemClick, axisFormat = 'MMM d', scrollable = true, minWidth = 720, className }: TimelineProps) {
   const { rangeStart, total, lanes, ticks } = useMemo(() => {
     const starts = items.map(i => i.start.getTime())
     const ends = items.map(i => i.end.getTime())
@@ -40,49 +46,53 @@ export function Timeline({ items, start, end, onItemClick, axisFormat = 'MMM d',
 
   return (
     <div className={clsx('border border-app-border rounded-xl overflow-hidden', className)}>
-      {/* Axis */}
-      <div className="flex border-b border-app-border bg-app-surface">
-        <div className="w-32 flex-shrink-0 border-r border-app-border" />
-        <div className="relative flex-1 h-8">
-          {ticks.map((t, i) => (
-            <span key={i} className="absolute top-1/2 -translate-y-1/2 text-xs text-app-muted" style={{ left: `${(i / (ticks.length - 1)) * 100}%`, transform: 'translateX(-50%)' }}>
-              {format(t, axisFormat)}
-            </span>
-          ))}
-        </div>
-      </div>
-
-      {/* Lanes */}
-      <div className="relative">
-        {nowPct >= 0 && nowPct <= 100 && (
-          // Overlay constrained to the content area (after the 8rem lane-label gutter).
-          <div className="absolute top-0 bottom-0 right-0 z-10 pointer-events-none" style={{ left: '8rem' }}>
-            <div className="absolute top-0 bottom-0 w-px bg-app-red/60" style={{ left: `${nowPct}%` }} />
-          </div>
-        )}
-        {lanes.map(([lane, laneItems]) => (
-          <div key={lane} className="flex border-b border-app-border last:border-0 min-h-[3rem]">
-            <div className="w-32 flex-shrink-0 border-r border-app-border px-3 py-2 text-sm text-app-subtext flex items-center">{lane}</div>
-            <div className="relative flex-1 py-2">
-              {laneItems.map(it => (
-                <button
-                  key={it.id}
-                  onClick={() => onItemClick?.(it)}
-                  title={`${it.label} · ${format(it.start, 'PP')} → ${format(it.end, 'PP')}`}
-                  className="absolute h-7 rounded-md px-2 flex items-center text-xs font-medium truncate text-white hover:brightness-110 transition-all"
-                  style={{
-                    left: `${pct(it.start.getTime())}%`,
-                    width: `${Math.max(2, pct(it.end.getTime()) - pct(it.start.getTime()))}%`,
-                    background: it.color ?? 'rgb(var(--app-accent))',
-                    top: '0.5rem',
-                  }}
-                >
-                  {it.label}
-                </button>
+      <div className={clsx(scrollable && 'overflow-x-auto')}>
+        <div style={scrollable ? { minWidth } : undefined}>
+          {/* Axis */}
+          <div className="flex border-b border-app-border bg-app-surface">
+            <div className="w-32 flex-shrink-0 border-r border-app-border sticky left-0 z-20 bg-app-surface" />
+            <div className="relative flex-1 h-8">
+              {ticks.map((t, i) => (
+                <span key={i} className="absolute top-1/2 -translate-y-1/2 text-xs text-app-muted whitespace-nowrap" style={{ left: `${(i / (ticks.length - 1)) * 100}%`, transform: 'translateX(-50%)' }}>
+                  {format(t, axisFormat)}
+                </span>
               ))}
             </div>
           </div>
-        ))}
+
+          {/* Lanes */}
+          <div className="relative">
+            {nowPct >= 0 && nowPct <= 100 && (
+              // Overlay constrained to the content area (after the 8rem lane-label gutter).
+              <div className="absolute top-0 bottom-0 right-0 z-10 pointer-events-none" style={{ left: '8rem' }}>
+                <div className="absolute top-0 bottom-0 w-px bg-app-red/60" style={{ left: `${nowPct}%` }} />
+              </div>
+            )}
+            {lanes.map(([lane, laneItems]) => (
+              <div key={lane} className="flex border-b border-app-border last:border-0 min-h-[3rem]">
+                <div className="w-32 flex-shrink-0 border-r border-app-border px-3 py-2 text-sm text-app-subtext flex items-center sticky left-0 z-20 bg-app-bg">{lane}</div>
+                <div className="relative flex-1 py-2">
+                  {laneItems.map(it => (
+                    <button
+                      key={it.id}
+                      onClick={() => onItemClick?.(it)}
+                      title={`${it.label} · ${format(it.start, 'PP')} → ${format(it.end, 'PP')}`}
+                      className="absolute h-7 rounded-md px-2 flex items-center text-xs font-medium truncate text-white hover:brightness-110 transition-all"
+                      style={{
+                        left: `${pct(it.start.getTime())}%`,
+                        width: `${Math.max(2, pct(it.end.getTime()) - pct(it.start.getTime()))}%`,
+                        background: it.color ?? 'rgb(var(--app-accent))',
+                        top: '0.5rem',
+                      }}
+                    >
+                      {it.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
       </div>
     </div>
   )
