@@ -1,4 +1,4 @@
-import { useState, useRef } from 'react'
+import { useState } from 'react'
 import { Pencil, Check, Plus, X } from 'lucide-react'
 import clsx from 'clsx'
 import { Button } from '../Modal'

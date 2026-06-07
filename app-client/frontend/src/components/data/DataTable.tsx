@@ -30,8 +30,6 @@ export function DataTable<T>({
   const [query, setQuery] = useState('')
   const [page, setPage] = useState(1)
 
-  const accessorFor = (key: string) => columns.find(c => c.key === key)?.accessor
-
   const filtered = useMemo(() => {
     if (!query.trim()) return data
     const q = query.toLowerCase()
@@ -43,7 +41,7 @@ export function DataTable<T>({
 
   const sorted = useMemo(() => {
     if (!sort) return filtered
-    const acc = accessorFor(sort.key)
+    const acc = columns.find(c => c.key === sort.key)?.accessor
     if (!acc) return filtered
     return [...filtered].sort((a, b) => {
       const av = acc(a), bv = acc(b)
@@ -51,7 +49,7 @@ export function DataTable<T>({
       if (av > bv) return sort.dir === 'asc' ? 1 : -1
       return 0
     })
-  }, [filtered, sort])
+  }, [filtered, sort, columns])
 
   const pageCount = Math.ceil(sorted.length / pageSize)
   const clampedPage = Math.min(page, Math.max(1, pageCount))

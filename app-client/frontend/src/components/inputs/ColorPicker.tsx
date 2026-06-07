@@ -68,8 +68,8 @@ export function ColorPicker({ value, onChange, presets = DEFAULT_PRESETS, label,
       onChange(hsvToHex({ h: hsv.h, s, v }))
     }
     move(e)
-    const up = () => { window.removeEventListener('pointermove', move as any); window.removeEventListener('pointerup', up) }
-    window.addEventListener('pointermove', move as any)
+    const up = () => { window.removeEventListener('pointermove', move); window.removeEventListener('pointerup', up) }
+    window.addEventListener('pointermove', move)
     window.addEventListener('pointerup', up)
   }
 

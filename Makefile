@@ -1,4 +1,4 @@
-.PHONY: all server client-linux client-windows dev-setup dev-server dev-client clean
+.PHONY: all server client-linux client-windows dev-setup dev-server dev-client lint test clean
 
 VERSION := $(shell cat VERSION)
 
@@ -42,6 +42,18 @@ dev-server:
 dev-client:
 	@echo "→ Starting Electron dev client (Vite + Electron)..."
 	cd app-client && npm run dev
+
+# ─── Quality ─────────────────────────────────────────────────────────────────
+
+# Lint + typecheck the frontend
+lint:
+	npm run lint --prefix app-client/frontend
+	npm run typecheck --prefix app-client/frontend
+
+# Run frontend (Vitest) + backend (go test) test suites
+test:
+	npm run test --prefix app-client/frontend
+	cd app-server && go test ./...
 
 # ─── Cleanup ─────────────────────────────────────────────────────────────────
 

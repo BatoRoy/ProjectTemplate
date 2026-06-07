@@ -192,7 +192,7 @@ const menu = useContextMenu()
    |------------------------|---------------------------------------------------------|
    | `App` (product name)   | `app-client/package.json`, `index.html`, `electron/main.js`, `Sidebar.tsx` |
    | `com.example.app`      | `app-client/package.json` (`build.appId`)               |
-   | `Your Name` / copyright| `app-client/package.json`                               |
+   | `BatoRoy` / copyright  | `app-client/package.json`, `LICENSE`                    |
    | `app-server` (Go module)| `app-server/go.mod` + imports in `main.go`, `api/server.go` |
    | `.config/app`          | `electron/main.js`, `app-server/internal/config/config.go` |
 

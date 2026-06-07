@@ -59,7 +59,6 @@ export function Dropdown({ trigger, items, align = 'left', className }: Dropdown
       window.removeEventListener('scroll', close, true)
       window.removeEventListener('resize', close)
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open, items, activeIndex])
 
   function select(item: MenuAction) {

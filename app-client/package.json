@@ -2,7 +2,8 @@
   "name": "app-client",
   "version": "0.1.0",
   "description": "Desktop client",
-  "author": "Your Name",
+  "author": "BatoRoy",
+  "license": "MIT",
   "private": true,
   "main": "electron/main.js",
   "scripts": {
@@ -16,7 +17,7 @@
   "build": {
     "appId": "com.example.app",
     "productName": "App",
-    "copyright": "Copyright © 2026 Your Name",
+    "copyright": "Copyright © 2026 BatoRoy",
     "asar": true,
     "directories": {
       "buildResources": "build",

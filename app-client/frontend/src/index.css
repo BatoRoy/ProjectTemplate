@@ -17,7 +17,7 @@
   --app-accent-bright: 179 141 245;
 }
 
-/* ── Dark theme (default) — TheWatcher's lifted zinc ──────────── */
+/* ── Dark theme (default) — lifted zinc ──────────────────────── */
 :root, [data-theme="dark"] {
   --app-bg:      22 22 25;
   --app-surface: 29 29 33;
@@ -74,7 +74,7 @@ body {
   -webkit-user-select: none;
 }
 
-/* Thin scrollbars (matches TheWatcher). */
+/* Thin scrollbars. */
 ::-webkit-scrollbar {
   width: 5px;
   height: 5px;

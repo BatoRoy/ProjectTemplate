@@ -20,6 +20,8 @@ export interface ElectronAPI {
 
 declare global {
   interface Window {
-    electronAPI: ElectronAPI
+    // Optional: only injected by the Electron preload. Undefined in a plain
+    // browser (e.g. `vite preview`), so callers must guard with `?.`.
+    electronAPI?: ElectronAPI
   }
 }

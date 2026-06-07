@@ -27,7 +27,7 @@ export function TagsInput({
 
   const add = (raw: string) => {
     const parts = raw.split(/[,\n]/).map(s => s.trim()).filter(Boolean)
-    let next = [...value]
+    const next = [...value]
     for (const p of parts) {
       if (unique && next.includes(p)) continue
       if (max != null && next.length >= max) break
