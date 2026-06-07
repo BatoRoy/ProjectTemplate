@@ -1,6 +1,6 @@
-import { useState, useRef } from 'react'
+import { useState, useRef, useMemo } from 'react'
 import {
-  Copy, Scissors, Clipboard, Trash2, Pencil, Search, Mail, Plus, Settings, Home, FileText,
+  Copy, Scissors, Clipboard, Trash2, Pencil, Eye, Search, Mail, Plus, Settings, Home, FileText,
 } from 'lucide-react'
 import type { Node, Edge } from '@xyflow/react'
 import {
@@ -523,6 +523,11 @@ const personCols: ColumnDef<Person>[] = [
   { key: 'age', header: 'Age', accessor: r => r.age, sortable: true, align: 'right' },
 ]
 
+// Filter-tab label with a dimmed count, composed into SegmentedControl's ReactNode label.
+const tabLabel = (label: string, count: number) => (
+  <span className="flex items-center gap-1.5">{label}<span className="text-app-muted">{count}</span></span>
+)
+
 function DataSection({ toast }: ShowcasePageProps) {
   const [items, setItems] = useState(['First item', 'Second item', 'Third item', 'Fourth item'])
   const [board, setBoard] = useState<KanbanColumn[]>([
@@ -532,6 +537,17 @@ function DataSection({ toast }: ShowcasePageProps) {
   ])
   const [page, setPage] = useState(3)
   const [tlScroll, setTlScroll] = useState(true)
+  const [roleFilter, setRoleFilter] = useState('all')
+
+  const roleCounts = useMemo(() => {
+    const c: Record<string, number> = { all: people.length }
+    for (const p of people) c[p.role] = (c[p.role] ?? 0) + 1
+    return c
+  }, [])
+  const filteredPeople = useMemo(
+    () => (roleFilter === 'all' ? people : people.filter(p => p.role === roleFilter)),
+    [roleFilter],
+  )
 
   const series = [{ name: 'Visits', data: Array.from({ length: 14 }, (_, i) => ({ x: i, y: 20 + Math.round(30 * Math.sin(i / 2) + i * 2) })) }]
   const bars = [{ label: 'Mon', value: 12 }, { label: 'Tue', value: 19 }, { label: 'Wed', value: 7 }, { label: 'Thu', value: 22 }, { label: 'Fri', value: 15 }]
@@ -557,7 +573,35 @@ function DataSection({ toast }: ShowcasePageProps) {
 
   return (
     <div className="space-y-6">
-      <Card title="Data table"><DataTable data={people} columns={personCols} rowKey={r => r.id} filterable selectable pageSize={6} /></Card>
+      <Card title="Data table">
+        <div className="space-y-3">
+          <SegmentedControl
+            value={roleFilter}
+            onChange={setRoleFilter}
+            size="sm"
+            options={[
+              { value: 'all', label: tabLabel('All', roleCounts.all) },
+              { value: 'Engineer', label: tabLabel('Engineers', roleCounts.Engineer) },
+              { value: 'Designer', label: tabLabel('Designers', roleCounts.Designer) },
+              { value: 'PM', label: tabLabel('PMs', roleCounts.PM) },
+              { value: 'QA', label: tabLabel('QA', roleCounts.QA) },
+            ]}
+          />
+          <DataTable
+            data={filteredPeople}
+            columns={personCols}
+            rowKey={r => r.id}
+            filterable
+            selectable
+            pageSize={6}
+            rowActions={r => [
+              { icon: Eye, label: 'View', tone: 'accent', onClick: () => toast(`View ${r.name}`, 'info') },
+              { icon: Pencil, title: 'Edit', onClick: () => toast(`Edit ${r.name}`, 'info') },
+              { icon: Trash2, tone: 'danger', title: 'Delete', onClick: () => toast(`Deleted ${r.name}`, 'error') },
+            ]}
+          />
+        </div>
+      </Card>
 
       <Card title="Pagination (standalone)"><Pagination page={page} pageCount={12} onChange={setPage} siblings={1} /></Card>
 

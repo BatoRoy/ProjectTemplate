@@ -120,6 +120,18 @@ export interface MenuPosition {
 }
 
 // ── Data & viz ──────────────────────────────────────────────
+// A per-row action rendered in the DataTable's trailing actions cell.
+export interface RowAction {
+  icon: LucideIcon
+  /** Present → labeled "large" button; absent → icon-only (hover-revealed by default). */
+  label?: string
+  onClick: () => void
+  tone?: 'accent' | 'default' | 'danger'   // default 'default'
+  /** Override hover-reveal. Defaults: false for labeled, true for icon-only. */
+  showOnHover?: boolean
+  title?: string
+}
+
 export interface ColumnDef<T> {
   key: string
   header: ReactNode

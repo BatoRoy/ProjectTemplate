@@ -153,7 +153,7 @@ import { Button, DatePicker, KanbanBoard, useToast } from '../components'
 
 | Component | Notes |
 |-----------|-------|
-| `DataTable` | Sort, filter, select, paginate; sticky header |
+| `DataTable` | Sort, filter, select, paginate; sticky header; row actions (labeled + hover icon buttons) |
 | `Pagination` | Page controls (standalone too) |
 | `LineChart`, `AreaChart`, `BarChart`, `Sparkline` | Hand-rolled SVG, responsive, hover tooltip |
 | `Timeline` | Events / Gantt over a time axis (optional horizontal scroll with pinned lane labels) |

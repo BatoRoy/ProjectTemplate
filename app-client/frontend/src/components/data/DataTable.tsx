@@ -3,7 +3,8 @@ import { ChevronUp, ChevronDown, ChevronsUpDown, Search } from 'lucide-react'
 import clsx from 'clsx'
 import { Pagination } from './Pagination'
 import { EmptyState } from '../Feedback'
-import type { ColumnDef } from '../../types'
+import { Checkbox } from '../Form'
+import type { ColumnDef, RowAction } from '../../types'
 
 interface DataTableProps<T> {
   data: T[]
@@ -16,15 +17,54 @@ interface DataTableProps<T> {
   selected?: string[]
   onSelectedChange?: (keys: string[]) => void
   onRowClick?: (row: T) => void
+  /** Per-row actions rendered in a trailing cell (labeled buttons + hover icons). */
+  rowActions?: (row: T) => RowAction[]
   emptyMessage?: string
   className?: string
+}
+
+const ACTION_TONES = {
+  labeled: {
+    accent:  'text-app-accentBright bg-app-accent/10 hover:bg-app-accent/20 border-app-accent/20',
+    default: 'text-app-subtext bg-app-card hover:bg-app-border/40 border-app-border',
+    danger:  'text-app-red bg-app-red/10 hover:bg-app-red/20 border-app-red/20',
+  },
+  icon: {
+    accent:  'text-app-accentBright hover:text-app-accent',
+    default: 'text-app-muted hover:text-app-text',
+    danger:  'text-app-muted hover:text-app-red hover:bg-app-red/10',
+  },
+} as const
+
+function ActionButton({ action }: { action: RowAction }) {
+  const tone = action.tone ?? 'default'
+  const labeled = action.label != null
+  const Icon = action.icon
+  const hoverReveal = action.showOnHover ?? !labeled
+  return (
+    <button
+      type="button"
+      title={action.title}
+      onClick={e => { e.stopPropagation(); action.onClick() }}
+      className={clsx(
+        'transition-all',
+        labeled
+          ? clsx('inline-flex items-center gap-1.5 px-2.5 py-1 text-xs font-medium rounded-lg border', ACTION_TONES.labeled[tone])
+          : clsx('p-1.5 rounded-lg', ACTION_TONES.icon[tone]),
+        hoverReveal && 'opacity-0 group-hover:opacity-100 focus:opacity-100',
+      )}
+    >
+      <Icon size={labeled ? 12 : 15} />
+      {action.label}
+    </button>
+  )
 }
 
 // Client-side data table: sortable columns, optional global filter, row selection,
 // sticky header, and built-in pagination.
 export function DataTable<T>({
   data, columns, rowKey, filterable, pageSize = 10, selectable,
-  selected = [], onSelectedChange, onRowClick, emptyMessage = 'No data', className,
+  selected = [], onSelectedChange, onRowClick, rowActions, emptyMessage = 'No data', className,
 }: DataTableProps<T>) {
   const [sort, setSort] = useState<{ key: string; dir: 'asc' | 'desc' } | null>(null)
   const [query, setQuery] = useState('')
@@ -86,26 +126,33 @@ export function DataTable<T>({
           <thead>
             <tr className="bg-app-surface border-b border-app-border">
               {selectable && (
-                <th className="w-10 px-3 py-2.5">
-                  <input type="checkbox" checked={allOnPageSelected} onChange={toggleAll} className="accent-app-accent" />
+                <th className="w-10 px-3 py-3">
+                  <Checkbox checked={allOnPageSelected} onChange={toggleAll} />
                 </th>
               )}
-              {columns.map(col => (
-                <th
-                  key={col.key}
-                  style={{ width: col.width, textAlign: col.align ?? 'left' }}
-                  className="px-4 py-2.5 font-medium text-app-subtext"
-                >
-                  {col.sortable ? (
-                    <button onClick={() => toggleSort(col.key)} className="inline-flex items-center gap-1 hover:text-app-text">
-                      {col.header}
-                      {sort?.key === col.key
-                        ? (sort.dir === 'asc' ? <ChevronUp size={13} /> : <ChevronDown size={13} />)
-                        : <ChevronsUpDown size={13} className="opacity-40" />}
-                    </button>
-                  ) : col.header}
-                </th>
-              ))}
+              {columns.map(col => {
+                const active = sort?.key === col.key
+                return (
+                  <th
+                    key={col.key}
+                    style={{ width: col.width, textAlign: col.align ?? 'left' }}
+                    className="px-4 py-3 text-xs font-medium uppercase tracking-wider text-app-muted"
+                  >
+                    {col.sortable ? (
+                      <button
+                        onClick={() => toggleSort(col.key)}
+                        className={clsx('inline-flex items-center gap-1 transition-colors', active ? 'text-app-accentBright' : 'hover:text-app-text')}
+                      >
+                        {col.header}
+                        {active
+                          ? (sort!.dir === 'asc' ? <ChevronUp size={13} /> : <ChevronDown size={13} />)
+                          : <ChevronsUpDown size={13} className="opacity-40" />}
+                      </button>
+                    ) : col.header}
+                  </th>
+                )
+              })}
+              {rowActions && <th className="px-4 py-3" />}
             </tr>
           </thead>
           <tbody>
@@ -115,18 +162,25 @@ export function DataTable<T>({
                 <tr
                   key={key}
                   onClick={() => onRowClick?.(row)}
-                  className={clsx('border-b border-app-border last:border-0 hover:bg-app-card/50 transition-colors', onRowClick && 'cursor-pointer')}
+                  className={clsx('group border-b border-app-border last:border-0 hover:bg-app-card/50 transition-colors', onRowClick && 'cursor-pointer')}
                 >
                   {selectable && (
-                    <td className="px-3 py-2.5" onClick={e => e.stopPropagation()}>
-                      <input type="checkbox" checked={selected.includes(key)} onChange={() => toggleRow(key)} className="accent-app-accent" />
+                    <td className="px-3 py-3" onClick={e => e.stopPropagation()}>
+                      <Checkbox checked={selected.includes(key)} onChange={() => toggleRow(key)} />
                     </td>
                   )}
                   {columns.map(col => (
-                    <td key={col.key} style={{ textAlign: col.align ?? 'left' }} className="px-4 py-2.5 text-app-text">
+                    <td key={col.key} style={{ textAlign: col.align ?? 'left' }} className="px-4 py-3 text-app-text">
                       {col.render ? col.render(row) : String(col.accessor?.(row) ?? '')}
                     </td>
                   ))}
+                  {rowActions && (
+                    <td className="px-4 py-3" onClick={e => e.stopPropagation()}>
+                      <div className="flex items-center justify-end gap-1">
+                        {rowActions(row).map((action, i) => <ActionButton key={i} action={action} />)}
+                      </div>
+                    </td>
+                  )}
                 </tr>
               )
             })}
@@ -135,10 +189,10 @@ export function DataTable<T>({
         {rows.length === 0 && <EmptyState title={emptyMessage} />}
       </div>
 
-      {pageCount > 1 && (
+      {sorted.length > 0 && (
         <div className="flex items-center justify-between">
-          <span className="text-xs text-app-muted">{sorted.length} rows</span>
-          <Pagination page={clampedPage} pageCount={pageCount} onChange={setPage} siblings={1} />
+          <span className="text-xs text-app-muted">{sorted.length} {sorted.length === 1 ? 'row' : 'rows'}</span>
+          {pageCount > 1 && <Pagination page={clampedPage} pageCount={pageCount} onChange={setPage} siblings={1} />}
         </div>
       )}
     </div>
