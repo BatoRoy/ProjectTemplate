@@ -98,6 +98,7 @@ export function ThemeProvider({ children }: ThemeProviderProps) {
   const [theme,  setThemeState]  = useState(() => localStorage.getItem('app-theme') || 'dark')
   const [scale,  setScaleState]  = useState(() => Number(localStorage.getItem('app-scale') || 100))
   const [accent, setAccentState] = useState(() => localStorage.getItem('app-accent') || DEFAULT_ACCENT)
+  const [wide,   setWideState]   = useState(() => localStorage.getItem('app-content-wide') === '1')
 
   function setTheme(id: string): void {
     setThemeState(id)
@@ -119,6 +120,11 @@ export function ThemeProvider({ children }: ThemeProviderProps) {
     applyAccent(hex, LIGHT_THEMES.has(theme))
   }
 
+  function setWide(value: boolean): void {
+    setWideState(value)
+    localStorage.setItem('app-content-wide', value ? '1' : '0')
+  }
+
   useEffect(() => {
     applyTheme(theme)
     applyScale(scale)
@@ -127,7 +133,7 @@ export function ThemeProvider({ children }: ThemeProviderProps) {
   }, [])
 
   return (
-    <ThemeContext.Provider value={{ theme, setTheme, scale, setScale, accent, setAccent }}>
+    <ThemeContext.Provider value={{ theme, setTheme, scale, setScale, accent, setAccent, wide, setWide }}>
       {children}
     </ThemeContext.Provider>
   )

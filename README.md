@@ -83,23 +83,88 @@ styled purely with the `--app-*` tokens, so they recolor automatically across th
 themes. The **Examples** page in the sidebar (`ShowcasePage.tsx`) renders them all live — use it as a
 reference, then delete it and its `Sidebar.tsx` NAV entry once your real pages exist.
 
-| Component | File | Notes |
-|-----------|------|-------|
-| `Modal`, `Input`, `Button` | `Modal.tsx` | Base overlay + form atoms |
-| `ContextMenu` + `useContextMenu` | `ContextMenu.tsx`, `hooks/useContextMenu.ts` | Right-click menu, viewport-clamped |
-| `Dropdown`, `Select` | `Dropdown.tsx` | Anchored action menu / value picker |
-| `ConfirmDialog` | `ConfirmDialog.tsx` | Confirm destructive actions (Enter / Esc) |
-| `Tooltip` | `Tooltip.tsx` | Hover/focus bubble |
-| `Switch`, `Checkbox`, `RadioGroup`, `Textarea` | `Form.tsx` | Form controls |
-| `Card`, `Badge`, `Spinner`, `Skeleton`, `EmptyState` | `Feedback.tsx` | Layout & feedback atoms |
-| `Tabs` | `Tabs.tsx` | Segmented tab bar |
-| `ErrorBoundary` | `ErrorBoundary.tsx` | Themed crash fallback; wraps the app |
-| `Toast` + `useToast` | `Toast.tsx`, `hooks/useToast.ts` | Transient notifications |
-| `useHotkeys` | `hooks/useHotkeys.ts` | Keyboard shortcuts (`mod+k`, …) |
+Everything is re-exported from a single barrel, so import from one place:
 
-`ContextMenu` and `Dropdown` share their list rendering, positioning, and keyboard-nav helpers via
-`Menu.tsx`. The right-click menu is purely a React overlay — the native Electron menu stays disabled
-(`electron/main.js` → `win.setMenu(null)`).
+```tsx
+import { Button, DatePicker, KanbanBoard, useToast } from '../components'
+```
+
+**Core / overlays** (`components/`, `components/overlay/`)
+
+| Component | Notes |
+|-----------|-------|
+| `Modal`, `Input`, `Button` | Base overlay + form atoms |
+| `ContextMenu` + `useContextMenu` | Right-click menu, viewport-clamped |
+| `Dropdown`, `Select` | Anchored action menu / value picker |
+| `Popover` | Anchored portal panel (base for pickers/menus) |
+| `Drawer` | Slide-in sheet from any edge |
+| `CommandPalette` | Cmd/Ctrl+K launcher with fuzzy filter |
+| `Tooltip`, `ConfirmDialog`, `Tabs`, `ErrorBoundary`, `Toast` | Bubble / confirm / tabs / crash fallback / notifications |
+
+**Inputs & forms** (`components/inputs/`, `components/Form.tsx`)
+
+| Component | Notes |
+|-----------|-------|
+| `Field` | Label / hint / error scaffold for all inputs |
+| `TextField` | Icons, password reveal, clearable, prefix/suffix, char count |
+| `NumberInput`, `MaskedInput`, `CurrencyInput`, `OtpInput` | Stepper / pattern / money / one-time-code |
+| `TextArea` | Autosize + counter |
+| `TagsInput` | Chip tokens |
+| `Combobox`, `MultiSelect` | Searchable single / multi select |
+| `Slider`, `RangeSlider` | Single & dual-thumb |
+| `TimeInput` | Typeable H:M:S segments — ↑/↓ (hold) with carry, 24h-cap toggle, wrap/clamp (vs the scroll-based `TimePicker`) |
+| `ColorPicker` | HSV picker + swatches + hex |
+| `FileDropzone` | Drag-drop + click (Electron dialog aware) |
+| `Switch`, `Checkbox`, `RadioGroup` | Toggles |
+
+**Layout & feedback** (`components/layout/`, `components/Feedback.tsx`)
+
+| Component | Notes |
+|-----------|-------|
+| `Card`, `Badge`, `Spinner`, `Skeleton`, `EmptyState`, `Alert` | Atoms + callouts |
+| `Accordion`, `Collapsible`, `Stepper`, `SegmentedControl` | Disclosure & step/segment controls |
+| `ResizablePanels` | Draggable split panes (persisted) |
+| `Breadcrumbs`, `Avatar` (+ `AvatarGroup`), `Progress`, `CircularProgress` | Navigation & status |
+
+**Structure & layout** (`components/layout/`)
+
+| Component | Notes |
+|-----------|-------|
+| `Stack`/`HStack`/`VStack`, `Grid`, `Container`, `Center`, `AspectRatio`, `Divider`, `Spacer` | Composable layout primitives |
+| `AutoGrid`, `Masonry` | Responsive grids that reflow by width |
+| `AppShell` | Page scaffold: header + sidebar + footer + scrollable content |
+| `PanelGroup` + `Panel` | N-panel, nestable, resizable splits (persisted) |
+| `EditorTabs` | VS Code–style tabs: closable, drag-to-reorder, dirty dot, add |
+| `Dashboard` | Hand-rolled drag-and-drop widget builder: snap/free, edit mode, add/remove palette, pointer drag + resize, persisted serializable layout |
+
+**Date & calendar** (`components/date/`, uses `date-fns`)
+
+| Component | Notes |
+|-----------|-------|
+| `Calendar` | Month grid: single / range, min/max, event dots |
+| `TimePicker` | 24h / 12h, seconds, step |
+| `DatePicker`, `DateRangePicker`, `DateTimePicker` | Inputs + calendar/time popovers |
+| `CalendarView` | Full month + week event calendar |
+
+**Data & viz** (`components/data/`)
+
+| Component | Notes |
+|-----------|-------|
+| `DataTable` | Sort, filter, select, paginate; sticky header |
+| `Pagination` | Page controls (standalone too) |
+| `LineChart`, `AreaChart`, `BarChart`, `Sparkline` | Hand-rolled SVG, responsive, hover tooltip |
+| `Timeline` | Events / Gantt over a time axis |
+| `SortableList`, `KanbanBoard` | Drag & drop (`@dnd-kit`) |
+| `NodeGraph` | Node/flow editor (`@xyflow/react`), themed |
+
+**Hooks** (`hooks/`): `useToast`, `useContextMenu`, `useHotkeys`, `useDismiss`, `useControllableState`.
+
+Three libraries are used for the genuinely hard parts (everything else is hand-rolled and
+zero-dependency): **`@dnd-kit`** (drag & drop), **`@xyflow/react`** (node graph), and **`date-fns`**
+(date math). They're restyled to the `--app-*` tokens. The dashboard grid is hand-rolled on pointer
+events (snap mode compacts; free mode allows overlap). Anchored overlays share positioning
+(`lib/floating.ts`) and dismissal (`hooks/useDismiss.ts`) logic. The right-click menu is purely a
+React overlay — the native Electron menu stays disabled (`electron/main.js` → `win.setMenu(null)`).
 
 ```tsx
 const menu = useContextMenu()

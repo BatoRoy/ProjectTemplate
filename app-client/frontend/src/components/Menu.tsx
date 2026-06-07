@@ -1,6 +1,8 @@
 import { forwardRef } from 'react'
 import clsx from 'clsx'
 import type { MenuEntry, MenuAction } from '../types'
+// Re-exported for back-compat: callers historically imported clampToViewport from './Menu'.
+export { clampToViewport } from '../lib/floating'
 
 // Shared presentational menu list used by both <ContextMenu> (right-click) and
 // <Dropdown> (anchored). It is purely visual — open/close, positioning, dismissal
@@ -60,25 +62,6 @@ export const MenuList = forwardRef<HTMLDivElement, MenuListProps>(function MenuL
     </div>
   )
 })
-
-// Keep a floating element fully on-screen. Given a desired top-left (x, y) and the
-// element's measured size, nudge it back inside the viewport (flipping past the
-// anchor when there isn't room below/right). `margin` keeps a small gap from edges.
-export function clampToViewport(
-  x: number,
-  y: number,
-  width: number,
-  height: number,
-  margin = 8,
-): { x: number; y: number } {
-  const vw = window.innerWidth
-  const vh = window.innerHeight
-  let nx = x
-  let ny = y
-  if (x + width > vw - margin) nx = Math.max(margin, vw - width - margin)
-  if (y + height > vh - margin) ny = Math.max(margin, vh - height - margin)
-  return { x: Math.max(margin, nx), y: Math.max(margin, ny) }
-}
 
 // Index of the next selectable (non-separator, non-disabled) action, wrapping
 // around. `dir` is +1 (down) or -1 (up). Used by ContextMenu/Dropdown for ↑/↓ nav.

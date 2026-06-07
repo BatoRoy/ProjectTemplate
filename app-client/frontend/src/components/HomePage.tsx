@@ -1,7 +1,9 @@
 import { useState, useEffect, useCallback } from 'react'
 import { RefreshCw } from 'lucide-react'
+import clsx from 'clsx'
 import { Button, Input } from './Modal'
 import { Card, Badge } from './Feedback'
+import { useTheme } from '../lib/theme'
 import { bridge } from '../lib/bridge'
 import { VERSION } from '../lib/version'
 import type { ServerStatus, ToastType } from '../types'
@@ -13,6 +15,7 @@ interface HomePageProps {
 // Demo / showcase page. Use it as a reference for the design system, then replace
 // it with your app's real pages (add them to NAV in Sidebar.tsx + a view in App.tsx).
 export function HomePage({ toast }: HomePageProps) {
+  const { wide } = useTheme()
   const [status, setStatus] = useState<ServerStatus>('checking')
   const [backendVersion, setBackendVersion] = useState<string | null>(null)
   const [name, setName] = useState('')
@@ -37,7 +40,7 @@ export function HomePage({ toast }: HomePageProps) {
   }
 
   return (
-    <div className="max-w-2xl mx-auto p-6 space-y-6">
+    <div className={clsx('mx-auto p-6 space-y-6', wide ? 'max-w-none' : 'max-w-2xl')}>
       {/* Heading */}
       <div>
         <h1 className="text-xl font-semibold text-app-text">Welcome</h1>

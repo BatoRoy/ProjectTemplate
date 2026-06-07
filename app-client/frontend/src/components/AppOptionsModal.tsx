@@ -6,7 +6,7 @@ interface AppOptionsModalProps {
 }
 
 export function AppOptionsModal({ onClose }: AppOptionsModalProps) {
-  const { theme, setTheme, accent, setAccent, scale, setScale } = useTheme()
+  const { theme, setTheme, accent, setAccent, scale, setScale, wide, setWide } = useTheme()
   const accentLc = accent.toLowerCase()
 
   return (
@@ -116,6 +116,30 @@ export function AppOptionsModal({ onClose }: AppOptionsModalProps) {
               ))}
             </div>
             <p className="text-xs text-app-muted mt-2">Scales all UI elements. Takes effect immediately.</p>
+          </div>
+
+          {/* Content width */}
+          <div>
+            <h3 className="text-xs font-semibold text-app-subtext uppercase tracking-wider mb-3">Content width</h3>
+            <div className="flex gap-1.5">
+              {([
+                { val: false, label: 'Comfortable' },
+                { val: true, label: 'Full width' },
+              ] as const).map(o => (
+                <button
+                  key={o.label}
+                  onClick={() => setWide(o.val)}
+                  className={`flex-1 py-2 rounded-lg border text-xs font-medium transition-colors ${
+                    wide === o.val
+                      ? 'border-app-accent/40 bg-app-accent/15 text-app-accentBright'
+                      : 'border-app-border text-app-muted hover:border-app-accent/40 hover:text-app-text'
+                  }`}
+                >
+                  {o.label}
+                </button>
+              ))}
+            </div>
+            <p className="text-xs text-app-muted mt-2">Full width lets pages use the whole window — handy for responsive layouts.</p>
           </div>
 
         </div>

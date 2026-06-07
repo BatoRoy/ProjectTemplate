@@ -121,3 +121,29 @@ input[type='range']::-webkit-slider-thumb:hover {
   user-select: text;
   -webkit-user-select: text;
 }
+
+/* ── @xyflow/react theming (NodeGraph) ─────────────────────── */
+.react-flow__controls-button {
+  background: rgb(var(--app-card));
+  border-color: rgb(var(--app-border));
+  color: rgb(var(--app-text));
+}
+.react-flow__controls-button:hover {
+  background: rgb(var(--app-border));
+}
+.react-flow__controls-button svg {
+  fill: currentColor;
+}
+.react-flow__edge-path {
+  stroke: rgb(var(--app-muted));
+}
+.react-flow__edge.selected .react-flow__edge-path,
+.react-flow__connection-path {
+  stroke: rgb(var(--app-accent));
+}
+.react-flow__minimap {
+  background: rgb(var(--app-card));
+}
+.react-flow__attribution {
+  display: none;
+}
