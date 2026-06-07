@@ -74,6 +74,14 @@ body {
   -webkit-user-select: none;
 }
 
+/* Text selection is opt-in (App Options → Text selection); off by default for a
+   native desktop feel. The data-select attribute is set by applyTextSelect() in
+   lib/theme.tsx. `.mono-text` stays selectable regardless. */
+[data-select="on"] body {
+  user-select: text;
+  -webkit-user-select: text;
+}
+
 /* Thin scrollbars. */
 ::-webkit-scrollbar {
   width: 5px;

@@ -81,6 +81,11 @@ function applyAccent(hex: string, isLight: boolean): void {
   root.style.setProperty('--app-accent-bright', channels(bright))
 }
 
+// Toggles global text selection (see [data-select="on"] body in index.css).
+function applyTextSelect(enabled: boolean): void {
+  document.documentElement.setAttribute('data-select', enabled ? 'on' : 'off')
+}
+
 function applyScale(value: number): void {
   if (window.electronAPI?.setZoom) {
     window.electronAPI.setZoom(value / 100)
@@ -99,6 +104,9 @@ export function ThemeProvider({ children }: ThemeProviderProps) {
   const [scale,  setScaleState]  = useState(() => Number(localStorage.getItem('app-scale') || 100))
   const [accent, setAccentState] = useState(() => localStorage.getItem('app-accent') || DEFAULT_ACCENT)
   const [wide,   setWideState]   = useState(() => localStorage.getItem('app-content-wide') === '1')
+  // Text selection off by default (native desktop feel). Flip the default here, or
+  // ship localStorage 'app-text-select' = '1', to make new installs selectable.
+  const [textSelect, setTextSelectState] = useState(() => localStorage.getItem('app-text-select') === '1')
 
   function setTheme(id: string): void {
     setThemeState(id)
@@ -125,15 +133,22 @@ export function ThemeProvider({ children }: ThemeProviderProps) {
     localStorage.setItem('app-content-wide', value ? '1' : '0')
   }
 
+  function setTextSelect(value: boolean): void {
+    setTextSelectState(value)
+    localStorage.setItem('app-text-select', value ? '1' : '0')
+    applyTextSelect(value)
+  }
+
   useEffect(() => {
     applyTheme(theme)
     applyScale(scale)
     applyAccent(accent, LIGHT_THEMES.has(theme))
+    applyTextSelect(textSelect)
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
   return (
-    <ThemeContext.Provider value={{ theme, setTheme, scale, setScale, accent, setAccent, wide, setWide }}>
+    <ThemeContext.Provider value={{ theme, setTheme, scale, setScale, accent, setAccent, wide, setWide, textSelect, setTextSelect }}>
       {children}
     </ThemeContext.Provider>
   )

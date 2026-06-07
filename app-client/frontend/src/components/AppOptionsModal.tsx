@@ -6,7 +6,7 @@ interface AppOptionsModalProps {
 }
 
 export function AppOptionsModal({ onClose }: AppOptionsModalProps) {
-  const { theme, setTheme, accent, setAccent, scale, setScale, wide, setWide } = useTheme()
+  const { theme, setTheme, accent, setAccent, scale, setScale, wide, setWide, textSelect, setTextSelect } = useTheme()
   const accentLc = accent.toLowerCase()
 
   return (
@@ -140,6 +140,30 @@ export function AppOptionsModal({ onClose }: AppOptionsModalProps) {
               ))}
             </div>
             <p className="text-xs text-app-muted mt-2">Full width lets pages use the whole window — handy for responsive layouts.</p>
+          </div>
+
+          {/* Text selection */}
+          <div>
+            <h3 className="text-xs font-semibold text-app-subtext uppercase tracking-wider mb-3">Text selection</h3>
+            <div className="flex gap-1.5">
+              {([
+                { val: false, label: 'Off' },
+                { val: true, label: 'On' },
+              ] as const).map(o => (
+                <button
+                  key={o.label}
+                  onClick={() => setTextSelect(o.val)}
+                  className={`flex-1 py-2 rounded-lg border text-xs font-medium transition-colors ${
+                    textSelect === o.val
+                      ? 'border-app-accent/40 bg-app-accent/15 text-app-accentBright'
+                      : 'border-app-border text-app-muted hover:border-app-accent/40 hover:text-app-text'
+                  }`}
+                >
+                  {o.label}
+                </button>
+              ))}
+            </div>
+            <p className="text-xs text-app-muted mt-2">Lets you select and copy UI text. Off gives a more native desktop feel.</p>
           </div>
 
         </div>

@@ -214,4 +214,6 @@ export interface ThemeContextValue {
   setAccent: (hex: string) => void
   wide: boolean             // full-width content vs comfortable max-width
   setWide: (value: boolean) => void
+  textSelect: boolean       // allow selecting/copying UI text
+  setTextSelect: (value: boolean) => void
 }
