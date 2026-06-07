@@ -112,7 +112,7 @@ import { Button, DatePicker, KanbanBoard, useToast } from '../components'
 | `TagsInput` | Chip tokens |
 | `Combobox`, `MultiSelect` | Searchable single / multi select |
 | `SearchInput` | Search with suggestions dropdown + inline autocomplete (each toggleable); static or async source |
-| `CodeEditor` | Syntax-highlighted editor (CodeMirror 6), optional line numbers, token-themed |
+| `CodeEditor` | Syntax-highlighted editor (CodeMirror 6), optional line numbers, optional Vim mode, token-themed |
 | `Slider`, `RangeSlider` | Single & dual-thumb |
 | `TimeInput` | Typeable H:M:S segments — ↑/↓ (hold) with carry, 24h-cap toggle, wrap/clamp (vs the scroll-based `TimePicker`) |
 | `ColorPicker` | HSV picker + swatches + hex |
