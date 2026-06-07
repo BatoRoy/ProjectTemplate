@@ -69,15 +69,16 @@ export function Sidebar({ view, onNavigate, onOpenOptions }: SidebarProps) {
         </div>
       </div>
 
-      {/* Nav */}
-      <nav className="flex-1 p-2 space-y-0.5">
+      {/* Nav — flex column so rows stack vertically even when collapsed (each
+          collapsed row is wrapped in a Tooltip's inline-flex span). */}
+      <nav className="flex-1 p-2 flex flex-col gap-0.5">
         {NAV.map(item => (
           <Row key={item.id} icon={item.icon} label={item.label} active={view === item.id} onClick={() => onNavigate(item.id)} />
         ))}
       </nav>
 
       {/* Footer */}
-      <div className="p-2 border-t border-app-border space-y-0.5">
+      <div className="p-2 border-t border-app-border flex flex-col gap-0.5">
         <Row icon={Settings} label="App Options" active={false} onClick={onOpenOptions} />
         <Tooltip content={collapsed ? 'Expand' : 'Collapse'} side="bottom">
           <button
