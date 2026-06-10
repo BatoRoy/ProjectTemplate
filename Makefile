@@ -1,4 +1,4 @@
-.PHONY: all server client-linux client-windows dev-setup dev-server dev-client lint test clean
+.PHONY: all server client-linux client-windows publish-client dev-setup dev-server dev-client lint test clean
 
 VERSION := $(shell cat VERSION)
 
@@ -25,6 +25,15 @@ client-windows:
 	npm install --prefix app-client
 	cd app-client && npm run package:win
 	@echo "✓ app-client → dist/electron/"
+
+# Build the renderer, package the AppImage, and publish it to your bato (MinIO).
+# Requires the `bato` CLI on PATH and BATO_* env vars set (see bato/README.md).
+publish-client:
+	@echo "→ Publishing app-client to bato..."
+	npm install --prefix app-client/frontend
+	npm install --prefix app-client
+	cd app-client && bato publish
+	@echo "✓ published to bato"
 
 # ─── Development ─────────────────────────────────────────────────────────────
 

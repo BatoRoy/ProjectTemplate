@@ -5,6 +5,7 @@ const {
   readFileSync, writeFileSync, mkdirSync, existsSync,
 } = require('fs')
 const { join, dirname } = require('path')
+const { setupAutoUpdates } = require('./updater')
 
 const isDev = !app.isPackaged
 const configDir = join(app.getPath('home'), '.config', 'app')
@@ -37,6 +38,8 @@ function createWindow() {
   } else {
     win.loadFile(join(__dirname, '../frontend/dist/index.html'))
   }
+
+  return win
 }
 
 app.whenReady().then(() => {
@@ -44,7 +47,10 @@ app.whenReady().then(() => {
   // "electron.app.…". Keep in sync with build.appId in package.json.
   if (process.platform === 'win32') app.setAppUserModelId('com.example.app')
 
-  createWindow()
+  const win = createWindow()
+  // Self-update from the bato. No-op in dev (only packaged AppImages update).
+  if (!isDev) setupAutoUpdates(win)
+
   app.on('activate', () => {
     if (BrowserWindow.getAllWindows().length === 0) createWindow()
   })
