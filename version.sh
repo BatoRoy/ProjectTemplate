@@ -14,12 +14,22 @@ current_version() {
   tr -d '[:space:]' < "$VERSION_FILE"
 }
 
+# Not every app has every part (e.g. serverless apps have no app-server),
+# so each synced file is skipped when missing.
 sync_files() {
   local ver="$1"
-  sed -i "s/export const VERSION = '[0-9]*\.[0-9]*\.[0-9]*'/export const VERSION = '$ver'/" "$JS_VERSION_FILE"
-  sed -i "s/var Version = \"[0-9]*\.[0-9]*\.[0-9]*\"/var Version = \"$ver\"/" "$GO_VERSION_FILE"
-  npm version "$ver" --no-git-tag-version --prefix app-client > /dev/null
-  npm version "$ver" --no-git-tag-version --prefix app-client/frontend > /dev/null
+  if [[ -f "$JS_VERSION_FILE" ]]; then
+    sed -i "s/export const VERSION = '[0-9]*\.[0-9]*\.[0-9]*'/export const VERSION = '$ver'/" "$JS_VERSION_FILE"
+  fi
+  if [[ -f "$GO_VERSION_FILE" ]]; then
+    sed -i "s/var Version = \"[0-9]*\.[0-9]*\.[0-9]*\"/var Version = \"$ver\"/" "$GO_VERSION_FILE"
+  fi
+  if [[ -f "$PACKAGE_JSON" ]]; then
+    npm version "$ver" --no-git-tag-version --prefix app-client > /dev/null
+  fi
+  if [[ -f "$FRONTEND_PACKAGE_JSON" ]]; then
+    npm version "$ver" --no-git-tag-version --prefix app-client/frontend > /dev/null
+  fi
 }
 
 usage() {
@@ -106,10 +116,14 @@ sync_files "$new_version"
 
 echo "Version set to $new_version"
 
-# Stage version files plus the lockfiles npm version rewrites
-git add "$VERSION_FILE" "$JS_VERSION_FILE" "$GO_VERSION_FILE" \
-        "$PACKAGE_JSON" "$FRONTEND_PACKAGE_JSON" \
-        "$PACKAGE_LOCK" "$FRONTEND_PACKAGE_LOCK"
+# Stage version files plus the lockfiles npm version rewrites (existing only)
+stage_files=("$VERSION_FILE")
+for f in "$JS_VERSION_FILE" "$GO_VERSION_FILE" \
+         "$PACKAGE_JSON" "$FRONTEND_PACKAGE_JSON" \
+         "$PACKAGE_LOCK" "$FRONTEND_PACKAGE_LOCK"; do
+  [[ -f "$f" ]] && stage_files+=("$f")
+done
+git add "${stage_files[@]}"
 
 # Commit
 git commit -m "chore: bump version to $new_version"
