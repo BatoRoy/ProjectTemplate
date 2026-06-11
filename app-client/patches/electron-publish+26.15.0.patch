@@ -1,0 +1,14 @@
+diff --git a/node_modules/electron-publish/out/s3/s3UploadHelper.js b/node_modules/electron-publish/out/s3/s3UploadHelper.js
+index 684adee..eed8db7 100644
+--- a/node_modules/electron-publish/out/s3/s3UploadHelper.js
++++ b/node_modules/electron-publish/out/s3/s3UploadHelper.js
+@@ -40,6 +40,9 @@ function startS3PutObject(params) {
+     const headers = {
+         "Content-Type": params.contentType,
+         "Content-Length": String(stat.size),
++        // The body is streamed, so aws4 cannot hash it; without this it signs
++        // an empty-payload hash and S3/MinIO rejects with XAmzContentSHA256Mismatch.
++        "X-Amz-Content-Sha256": "UNSIGNED-PAYLOAD",
+     };
+     if (params.acl != null)
+         headers["x-amz-acl"] = params.acl;
