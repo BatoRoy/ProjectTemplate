@@ -71,7 +71,7 @@
     "yauzl": "^3.3.1"
   },
   "devDependencies": {
-    "concurrently": "^9.0.0",
+    "concurrently": "^10.0.3",
     "electron": "^42.0.0",
     "electron-builder": "^26.8.1",
     "wait-on": "^8.0.0"
