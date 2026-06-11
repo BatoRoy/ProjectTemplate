@@ -21,4 +21,13 @@ contextBridge.exposeInMainWorld('electronAPI', {
 
   // Zoom
   setZoom: (factor) => webFrame.setZoomFactor(factor),
+
+  // Auto-update (see electron/updater.js). onUpdateStatus returns an unsubscribe.
+  onUpdateStatus: (callback) => {
+    const listener = (_event, status) => callback(status)
+    ipcRenderer.on('update:status', listener)
+    return () => ipcRenderer.removeListener('update:status', listener)
+  },
+  checkForUpdates: () => ipcRenderer.invoke('update:check'),
+  restartToUpdate: () => ipcRenderer.invoke('update:restart'),
 })

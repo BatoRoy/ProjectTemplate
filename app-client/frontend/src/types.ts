@@ -4,6 +4,16 @@ import type { ReactNode } from 'react'
 // ── App / backend ───────────────────────────────────────────
 export type ServerStatus = 'online' | 'offline' | 'checking'
 
+// ── Auto-update (see electron/updater.js) ───────────────────
+export type UpdateStatus =
+  | { phase: 'idle' }
+  | { phase: 'checking' }
+  | { phase: 'available'; version: string }
+  | { phase: 'none' }
+  | { phase: 'downloading'; percent: number }
+  | { phase: 'downloaded'; version: string }
+  | { phase: 'error'; message: string }
+
 export interface ServerInfo {
   version: string
   name: string

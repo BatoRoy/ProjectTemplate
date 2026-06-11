@@ -19,6 +19,7 @@ import { FileCode, BarChart3, ListChecks, Activity } from 'lucide-react'
 import clsx from 'clsx'
 import { useContextMenu } from '../hooks/useContextMenu'
 import { useTheme } from '../lib/theme'
+import { storageKey } from '../brand'
 import type { ToastType, SelectOption, DateRange, ColumnDef, CalendarEvent, TimelineItem, KanbanColumn, TimeValue, EditorTab, DashboardWidgetType, DashboardItem } from '../types'
 import type { CodeLanguage } from '.'
 
@@ -394,10 +395,10 @@ function LayoutSection({ toast }: ShowcasePageProps) {
 
       <Card title="Resizable panels (nested)">
         <div className="h-64 border border-app-border rounded-lg overflow-hidden">
-          <PanelGroup direction="horizontal" storageKey="demo-panels-h">
+          <PanelGroup direction="horizontal" storageKey={storageKey('demo-panels-h')}>
             <Panel defaultSize={28} min={15}><div className="h-full bg-app-surface p-3 text-sm text-app-subtext">Sidebar</div></Panel>
             <Panel>
-              <PanelGroup direction="vertical" storageKey="demo-panels-v">
+              <PanelGroup direction="vertical" storageKey={storageKey('demo-panels-v')}>
                 <Panel><div className="h-full p-3 text-sm text-app-subtext">Editor</div></Panel>
                 <Panel defaultSize={32} min={15}><div className="h-full bg-app-surface p-3 text-sm text-app-subtext">Terminal</div></Panel>
               </PanelGroup>
@@ -448,7 +449,7 @@ function DashboardSection() {
   return (
     <div className="space-y-3">
       <p className="text-sm text-app-subtext">Toggle <span className="text-app-text font-medium">Edit</span> to drag, resize, add and remove widgets. Switch <span className="text-app-text font-medium">Snap</span>/<span className="text-app-text font-medium">Free</span> placement. Layout persists.</p>
-      <Dashboard widgetTypes={widgetTypes} defaultItems={defaultItems} storageKey="demo-dashboard" rowHeight={56} />
+      <Dashboard widgetTypes={widgetTypes} defaultItems={defaultItems} storageKey={storageKey('demo-dashboard')} rowHeight={56} />
     </div>
   )
 }

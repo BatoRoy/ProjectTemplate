@@ -5,6 +5,7 @@ import { Button, Input } from './Modal'
 import { Card, Badge } from './Feedback'
 import { useTheme } from '../lib/theme'
 import { bridge } from '../lib/bridge'
+import { brand } from '../brand'
 import { VERSION } from '../lib/version'
 import type { ServerStatus, ToastType } from '../types'
 
@@ -51,9 +52,12 @@ export function HomePage({ toast }: HomePageProps) {
     <div className={clsx('mx-auto p-6 space-y-6', wide ? 'max-w-none' : 'max-w-2xl')}>
       {/* Heading */}
       <div>
-        <h1 className="text-xl font-semibold text-app-text">Welcome</h1>
+        <h1 className="text-xl font-semibold text-app-text">{brand.appName}</h1>
         <p className="text-sm text-app-subtext mt-1">
-          A starting template — Electron + React + TypeScript + Go. Frontend v{VERSION}.
+          {brand.tagline} Frontend v{VERSION}.
+        </p>
+        <p className="text-xs text-app-muted mt-2">
+          Press <kbd className="px-1.5 py-0.5 rounded border border-app-border bg-app-surface mono-text text-[10px]">Ctrl K</kbd> for the command palette.
         </p>
       </div>
 

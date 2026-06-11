@@ -1,4 +1,4 @@
-import type { OpenFilesOpts, SaveFileOpts, NotifyOpts } from '../types'
+import type { OpenFilesOpts, SaveFileOpts, NotifyOpts, UpdateStatus } from '../types'
 
 export interface ElectronAPI {
   // Settings store (persisted to ~/.config/app/settings.json)
@@ -19,6 +19,12 @@ export interface ElectronAPI {
 
   // Zoom
   setZoom: (factor: number) => void
+
+  // Auto-update. onUpdateStatus returns an unsubscribe function. checkForUpdates
+  // resolves { supported: false } in dev (updates only apply to packaged builds).
+  onUpdateStatus: (callback: (status: UpdateStatus) => void) => () => void
+  checkForUpdates: () => Promise<{ supported: boolean }>
+  restartToUpdate: () => Promise<boolean>
 }
 
 declare global {

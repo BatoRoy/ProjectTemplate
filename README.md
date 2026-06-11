@@ -34,7 +34,36 @@ make dev-client
 ```
 
 The app opens to a demo HomePage. Use the **App Options** button in the sidebar to switch
-theme / accent color / scale. The "Ping" card calls the Go backend's `/api/health`.
+theme / accent color / scale, or press **Ctrl+K** for the command palette. The "Ping" card
+calls the Go backend's `/api/health`.
+
+`make dev-client` self-heals: if dependencies or the Electron binary are missing it runs
+`dev-setup` first.
+
+> **Troubleshooting — `ENOENT: ... electron/path.txt`:** Electron ≥42 downloads its binary
+> on first run, and under Node ≥24.16/≥26.1 a zip-extraction bug
+> ([electron#51619](https://github.com/electron/electron/issues/51619)) makes that fail
+> *silently*. This template pins `"overrides": { "yauzl": "^3.3.1" }` in
+> `app-client/package.json` to fix it — keep that override (it's also worth porting to any
+> app already cloned from an older copy of this template). If you still hit it:
+> `rm -rf app-client/node_modules && make dev-setup`.
+
+## Branding — make it yours in one file
+
+Each app built from this template gets its own identity so it stands out in bato-hub and
+the store. Edit **`app-client/frontend/src/brand.ts`**:
+
+| Field       | What it controls                                                        |
+|-------------|-------------------------------------------------------------------------|
+| `appName`   | Sidebar header, home hero, window title, About dialog                   |
+| `tagline`   | Home hero subtitle + About dialog                                       |
+| `slug`      | localStorage namespace (`<slug>:theme`, …) — **must be unique per app** so apps don't clobber each other's settings inside bato-hub |
+| `accentHex` | Default accent color (sidebar strip, active nav, buttons; users can still change it in App Options) |
+| `icon`      | Sidebar / About badge (any `lucide-react` icon)                          |
+
+The Electron/packaging side reads `app-client/package.json` → `build` (`appId`,
+`productName`, `publish.path`, `linux.executableName` — the latter also names the
+`~/.config/<name>` settings dir) plus the icons in `app-client/build/`.
 
 ## Building
 
@@ -186,18 +215,49 @@ const menu = useContextMenu()
 
 ## Starting a new project from this template
 
-1. Copy the directory, then re-init git: `rm -rf .git && git init`.
-2. Find-and-replace the generic identifiers with your app's name:
+Clone the template repo — **keep its git history** so you can pull template updates later:
+
+```bash
+git clone https://github.com/BatoRoy/ProjectTemplate.git myapp
+cd myapp
+git remote rename origin template          # template updates come from here
+git remote add origin <your-repo-url>      # your app's own repo (optional, add anytime)
+```
+
+1. Brand it (see "Branding" above):
 
    | Identifier             | Where                                                   |
    |------------------------|---------------------------------------------------------|
-   | `App` (product name)   | `app-client/package.json`, `index.html`, `electron/main.js`, `Sidebar.tsx` |
+   | name / tagline / slug / accent / icon | `app-client/frontend/src/brand.ts` (window title, sidebar, hero, About all follow) |
+   | `App` (product name)   | `app-client/package.json` (`build.productName`), `index.html` |
    | `com.example.app`      | `app-client/package.json` (`build.appId`)               |
+   | `apps/app` (publish path) | `app-client/package.json` (`build.publish.path`)     |
+   | `app` (executable / config dir) | `app-client/package.json` (`build.linux.executableName` → `~/.config/<name>`) |
    | `BatoRoy` / copyright  | `app-client/package.json`, `LICENSE`                    |
    | `app-server` (Go module)| `app-server/go.mod` + imports in `main.go`, `api/server.go` |
-   | `.config/app`          | `electron/main.js`, `app-server/internal/config/config.go` |
+   | `.config/app` (backend)| `app-server/internal/config/config.go`                  |
 
-   The `--app-*` CSS vars, `app.*` Tailwind tokens, `app-*` localStorage keys, and the
-   `app-client` / `app-server` directory names can stay as-is, or be renamed if you prefer.
-3. Set your starting version: `./version.sh set 0.1.0`.
-4. Add a GitHub remote and push.
+   The `--app-*` CSS vars, `app.*` Tailwind tokens, and the `app-client` / `app-server`
+   directory names can stay as-is. localStorage keys are namespaced by `brand.slug`
+   automatically.
+2. Set your starting version: `./version.sh set 0.1.0`.
+3. Commit, then push to *your* remote: `git push origin main`.
+
+## Pulling template updates into your app
+
+When the template gains fixes or new components, every app cloned from it can merge them in:
+
+```bash
+make template-update      # git fetch template && git merge template/main
+```
+
+Because your app shares git history with the template, git auto-merges everything you
+didn't touch (the component kit, hooks, electron plumbing, Makefile). Conflicts — when
+they happen at all — are concentrated in the files you deliberately customized:
+`brand.ts`, `package.json` identity fields, your own pages, and `Sidebar.tsx` NAV.
+Resolve those (keep your side for identity, take the template's side for mechanics),
+then `git add -A && git commit` and run `make dev-setup && make lint && make test`.
+
+If you deleted the demo pages (`HomePage.tsx`, `ShowcasePage.tsx`) and the template later
+changes them, git reports a modify/delete conflict — keep them deleted with
+`git rm <file>` and commit.

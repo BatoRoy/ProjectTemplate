@@ -1,6 +1,7 @@
 import { createContext, useContext, useState, useEffect } from 'react'
 import type { ReactNode } from 'react'
 import type { ThemeContextValue, ThemePreset, ScaleOption, AccentPreset } from '../types'
+import { brand, storageKey } from '../brand'
 
 const ThemeContext = createContext<ThemeContextValue | null>(null)
 
@@ -35,7 +36,7 @@ export const ACCENTS: AccentPreset[] = [
   { id: 'pink',    label: 'Pink',    hex: '#db2777' },
 ]
 
-export const DEFAULT_ACCENT = ACCENTS[0].hex
+export const DEFAULT_ACCENT = brand.accentHex
 
 export const SCALES: ScaleOption[] = [
   { value: 85,  label: '85%' },
@@ -100,17 +101,17 @@ interface ThemeProviderProps {
 }
 
 export function ThemeProvider({ children }: ThemeProviderProps) {
-  const [theme,  setThemeState]  = useState(() => localStorage.getItem('app-theme') || 'dark')
-  const [scale,  setScaleState]  = useState(() => Number(localStorage.getItem('app-scale') || 100))
-  const [accent, setAccentState] = useState(() => localStorage.getItem('app-accent') || DEFAULT_ACCENT)
-  const [wide,   setWideState]   = useState(() => localStorage.getItem('app-content-wide') === '1')
+  const [theme,  setThemeState]  = useState(() => localStorage.getItem(storageKey('theme')) || 'dark')
+  const [scale,  setScaleState]  = useState(() => Number(localStorage.getItem(storageKey('scale')) || 100))
+  const [accent, setAccentState] = useState(() => localStorage.getItem(storageKey('accent')) || DEFAULT_ACCENT)
+  const [wide,   setWideState]   = useState(() => localStorage.getItem(storageKey('content-wide')) === '1')
   // Text selection off by default (native desktop feel). Flip the default here, or
-  // ship localStorage 'app-text-select' = '1', to make new installs selectable.
-  const [textSelect, setTextSelectState] = useState(() => localStorage.getItem('app-text-select') === '1')
+  // ship localStorage '<slug>:text-select' = '1', to make new installs selectable.
+  const [textSelect, setTextSelectState] = useState(() => localStorage.getItem(storageKey('text-select')) === '1')
 
   function setTheme(id: string): void {
     setThemeState(id)
-    localStorage.setItem('app-theme', id)
+    localStorage.setItem(storageKey('theme'), id)
     applyTheme(id)
     // Re-derive accent shades for the new light/dark context.
     applyAccent(accent, LIGHT_THEMES.has(id))
@@ -118,24 +119,24 @@ export function ThemeProvider({ children }: ThemeProviderProps) {
 
   function setScale(value: number): void {
     setScaleState(value)
-    localStorage.setItem('app-scale', String(value))
+    localStorage.setItem(storageKey('scale'), String(value))
     applyScale(value)
   }
 
   function setAccent(hex: string): void {
     setAccentState(hex)
-    localStorage.setItem('app-accent', hex)
+    localStorage.setItem(storageKey('accent'), hex)
     applyAccent(hex, LIGHT_THEMES.has(theme))
   }
 
   function setWide(value: boolean): void {
     setWideState(value)
-    localStorage.setItem('app-content-wide', value ? '1' : '0')
+    localStorage.setItem(storageKey('content-wide'), value ? '1' : '0')
   }
 
   function setTextSelect(value: boolean): void {
     setTextSelectState(value)
-    localStorage.setItem('app-text-select', value ? '1' : '0')
+    localStorage.setItem(storageKey('text-select'), value ? '1' : '0')
     applyTextSelect(value)
   }
 

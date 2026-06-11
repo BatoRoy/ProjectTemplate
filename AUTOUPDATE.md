@@ -6,9 +6,21 @@ inherits this — you only adjust a few identifiers per app.
 
 ## What's wired in
 
-- `app-client/electron/updater.js` — electron-updater with a "Restart now / Later"
-  prompt when a new version finishes downloading. Called from `main.js`, and only
-  when the app is packaged (dev runs are never updated).
+- `app-client/electron/updater.js` — electron-updater streaming status to the
+  renderer over IPC (`update:status` events with phases `checking` / `available` /
+  `none` / `downloading {percent}` / `downloaded {version}` / `error`, plus
+  `update:check` and `update:restart` invokes). Called from `main.js`; the IPC
+  surface exists in dev too, but updates only actually run when packaged.
+- In-app UI: the sidebar footer shows download progress and a
+  "Restart to update vX" button when ready (`hooks/useUpdateStatus.ts` +
+  `components/Sidebar.tsx`), and the About dialog has a "Check for updates"
+  button. A downloaded update also installs automatically on quit. To preview
+  the UI in dev, fire the mock event from DevTools:
+
+  ```js
+  window.dispatchEvent(new CustomEvent('mock:update-status', { detail: { phase: 'downloading', percent: 40 } }))
+  window.dispatchEvent(new CustomEvent('mock:update-status', { detail: { phase: 'downloaded', version: '9.9.9' } }))
+  ```
 - `app-client/package.json` →
   - `dependencies.electron-updater`
   - `build.publish` — an S3 provider pointing at your MinIO server. electron-builder
@@ -45,6 +57,6 @@ export BATO_BUCKET=releases BATO_REGISTRY_URL=http://<server>:8080
 make publish-client            # builds + uploads the AppImage to apps/<name>
 ```
 
-Installed copies pick it up on next launch and prompt to restart. The GitHub
+Installed copies pick it up on next launch and show the in-app restart button. The GitHub
 Actions release workflow is still present if you also want public GitHub releases;
 it's independent of the bato path.

@@ -12,6 +12,7 @@ export { Tabs } from './Tabs'
 export { ErrorBoundary } from './ErrorBoundary'
 export { Sidebar } from './Sidebar'
 export { AppOptionsModal } from './AppOptionsModal'
+export { AboutDialog } from './AboutDialog'
 export { MenuList } from './Menu'
 
 export { Popover } from './overlay/Popover'
