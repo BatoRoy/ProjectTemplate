@@ -4,8 +4,17 @@
 
 import type { ServerInfo, NotifyOpts } from '../types'
 
-// Default backend address — override per environment as needed.
-export const DEFAULT_BACKEND = 'http://localhost:8080'
+declare global {
+  interface Window {
+    // Injected by bato-hub's preload when this app runs embedded, so the hub
+    // can point each app at its own backend. Absent standalone / in a browser.
+    BATO_BACKEND_URL?: string
+  }
+}
+
+// Default backend address — the hub overrides it at runtime; standalone keeps
+// the local default.
+export const DEFAULT_BACKEND = window.BATO_BACKEND_URL || 'http://localhost:8080'
 
 async function apiFetch<T = unknown>(baseUrl: string, path: string, opts?: RequestInit): Promise<T> {
   const r = await fetch(`${baseUrl}${path}`, opts)

@@ -4,5 +4,6 @@
   "description": "Desktop client built from BatoTemplate",
   "s3Path": "apps/app",
   "outDir": "../dist/electron",
-  "build": "npm run publish:linux"
+  "build": "npm run publish:linux",
+  "webBundle": "frontend/dist"
 }
