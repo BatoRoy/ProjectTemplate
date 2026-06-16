@@ -122,6 +122,18 @@ ipcMain.handle('notify', (_, opts = {}) => {
   return true
 })
 
+// ─── Backend HTTP proxy ──────────────────────────────────────────────────────
+
+// Perform an HTTP request from the main process (Node) on the renderer's behalf.
+// Runs outside Chromium, so it isn't subject to the renderer's CORS / Private
+// Network Access rules — which otherwise block a packaged (file://) app from
+// reaching a backend on a private LAN IP. See bridge.ts apiFetch.
+ipcMain.handle('net:request', async (_, opts = {}) => {
+  const { url, method = 'GET', headers, body } = opts
+  const res = await fetch(url, { method, headers, body })
+  return { ok: res.ok, status: res.status, body: await res.text() }
+})
+
 // ─── File I/O ────────────────────────────────────────────────────────────────
 
 ipcMain.handle('fs:readText', (_, filePath) => readFileSync(filePath, 'utf8'))

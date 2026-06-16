@@ -12,6 +12,10 @@ contextBridge.exposeInMainWorld('electronAPI', {
   openDirectory: () => ipcRenderer.invoke('dialog:openDirectory'),
   saveFile: (opts) => ipcRenderer.invoke('dialog:saveFile', opts ?? {}),
 
+  // Backend HTTP proxy — runs the request in the main process to avoid the
+  // renderer's CORS / Private-Network-Access limits (see bridge.ts).
+  apiRequest: (opts) => ipcRenderer.invoke('net:request', opts),
+
   // File I/O
   readTextFile: (path) => ipcRenderer.invoke('fs:readText', path),
   writeTextFile: (path, content) => ipcRenderer.invoke('fs:writeText', path, content),

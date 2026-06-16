@@ -10,6 +10,16 @@ export interface ElectronAPI {
   openDirectory: () => Promise<string | null>
   saveFile: (opts?: SaveFileOpts) => Promise<string | null>
 
+  // Backend HTTP proxy — performs the request in the main process (Node), so it
+  // isn't blocked by the renderer's CORS / Private-Network-Access rules. `body`
+  // is returned as text for the caller to parse. See bridge.ts apiFetch.
+  apiRequest: (opts: {
+    url: string
+    method?: string
+    headers?: Record<string, string>
+    body?: string
+  }) => Promise<{ ok: boolean; status: number; body: string }>
+
   // File I/O
   readTextFile: (path: string) => Promise<string>
   writeTextFile: (path: string, content: string) => Promise<void>

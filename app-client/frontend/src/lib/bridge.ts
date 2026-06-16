@@ -16,8 +16,29 @@ declare global {
 // the local default.
 export const DEFAULT_BACKEND = window.BATO_BACKEND_URL || 'http://localhost:8080'
 
+function parseError(body: string, status: number): string {
+  try { return (JSON.parse(body) as { error?: string }).error || `Request failed: ${status}` }
+  catch { return `Request failed: ${status}` }
+}
+
 async function apiFetch<T = unknown>(baseUrl: string, path: string, opts?: RequestInit): Promise<T> {
-  const r = await fetch(`${baseUrl}${path}`, opts)
+  const url = `${baseUrl}${path}`
+  // In the desktop app, route through the main process (Node) so requests aren't
+  // subject to the renderer's CORS / Private-Network-Access rules — needed to
+  // reach a backend on a private LAN IP from a packaged (file://) build. In a
+  // plain browser (vite preview / hub web view) electronAPI is absent, so fetch.
+  const api = window.electronAPI
+  if (api?.apiRequest) {
+    const res = await api.apiRequest({
+      url,
+      method: opts?.method,
+      headers: opts?.headers as Record<string, string> | undefined,
+      body: opts?.body as string | undefined,
+    })
+    if (!res.ok) throw new Error(parseError(res.body, res.status))
+    try { return JSON.parse(res.body) as T } catch { return null as T }
+  }
+  const r = await fetch(url, opts)
   if (!r.ok) {
     const err = await r.json().catch(() => ({})) as { error?: string }
     throw new Error(err.error || `Request failed: ${r.status}`)
