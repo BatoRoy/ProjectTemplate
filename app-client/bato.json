@@ -1,6 +1,7 @@
 {
   "name": "app",
   "type": "electron",
+  "executableName": "App",
   "description": "Desktop client built from BatoTemplate",
   "s3Path": "apps/app",
   "outDir": "../dist/electron",

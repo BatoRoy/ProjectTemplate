@@ -6,13 +6,13 @@ const {
 } = require('fs')
 const { join, dirname } = require('path')
 const { setupAutoUpdates } = require('./updater')
-const pkg = require('../package.json')
+const identity = require('./identity')
 
 const isDev = !app.isPackaged
-// Per-app config dir — keyed by the executable name so template-derived apps
-// don't share settings. Keep build.linux.executableName unique per app.
-const appSlug = (pkg.build && pkg.build.linux && pkg.build.linux.executableName) || 'app'
-const configDir = join(app.getPath('home'), '.config', appSlug)
+// Per-app config dir — keyed by identity.slug so template-derived apps don't
+// share settings. (Can't use package.json `build` here: electron-builder strips
+// it from the asar, so it's undefined at runtime in packaged builds.)
+const configDir = join(app.getPath('home'), '.config', identity.slug)
 const settingsPath = join(configDir, 'settings.json')
 
 // ─── Window ──────────────────────────────────────────────────────────────────
@@ -23,7 +23,7 @@ function createWindow() {
     height: 800,
     minWidth: 900,
     minHeight: 600,
-    title: pkg.build.productName,
+    title: identity.productName,
     backgroundColor: '#161619',  // matches the dark theme bg — avoids white flash on load
     webPreferences: {
       preload: join(__dirname, 'preload.js'),
@@ -49,7 +49,7 @@ function createWindow() {
 app.whenReady().then(() => {
   // Required on Windows for notifications to show the app's name/icon instead of
   // "electron.app.…".
-  if (process.platform === 'win32') app.setAppUserModelId(pkg.build.appId)
+  if (process.platform === 'win32') app.setAppUserModelId(identity.appId)
 
   const win = createWindow()
   // Self-update from the bato. Registers update:* IPC in dev too, but only

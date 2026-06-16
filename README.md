@@ -48,10 +48,10 @@ calls the Go backend's `/api/health`.
 > app already cloned from an older copy of this template). If you still hit it:
 > `rm -rf app-client/node_modules && make dev-setup`.
 
-## Branding — make it yours in one file
+## Branding — make it yours
 
 Each app built from this template gets its own identity so it stands out in bato-hub and
-the store. Edit **`app-client/frontend/src/brand.ts`**:
+the store. Start with the renderer-side identity in **`app-client/frontend/src/brand.ts`**:
 
 | Field       | What it controls                                                        |
 |-------------|-------------------------------------------------------------------------|
@@ -61,9 +61,16 @@ the store. Edit **`app-client/frontend/src/brand.ts`**:
 | `accentHex` | Default accent color (sidebar strip, active nav, buttons; users can still change it in App Options) |
 | `icon`      | Sidebar / About badge (any `lucide-react` icon)                          |
 
-The Electron/packaging side reads `app-client/package.json` → `build` (`appId`,
-`productName`, `publish.path`, `linux.executableName` — the latter also names the
-`~/.config/<name>` settings dir) plus the icons in `app-client/build/`.
+The Electron side needs its identity in two places:
+
+- **`app-client/electron/identity.js`** — `appId`, `productName`, and `slug` read by
+  the main process **at runtime** (window title, Windows AppUserModelId, and the
+  `~/.config/<slug>` settings dir). This file exists because electron-builder strips
+  the `build` field from the `package.json` baked into the asar, so `pkg.build` is
+  `undefined` in packaged builds. Keep `identity.slug` equal to `brand.slug` above.
+- **`app-client/package.json` → `build`** — `appId`, `productName`, `publish.path`,
+  and `linux.executableName`, read by electron-builder **at package time**, plus the
+  icons in `app-client/build/`.
 
 ## Building
 
@@ -228,11 +235,13 @@ git remote add origin <your-repo-url>      # your app's own repo (optional, add 
 
    | Identifier             | Where                                                   |
    |------------------------|---------------------------------------------------------|
-   | name / tagline / slug / accent / icon | `app-client/frontend/src/brand.ts` (window title, sidebar, hero, About all follow) |
-   | `App` (product name)   | `app-client/package.json` (`build.productName`), `index.html` |
-   | `com.example.app`      | `app-client/package.json` (`build.appId`)               |
+   | name / tagline / slug / accent / icon | `app-client/frontend/src/brand.ts` (sidebar, hero, About all follow) |
+   | `App` (product name)   | `app-client/electron/identity.js` (`productName` → window title), `app-client/package.json` (`build.productName`), `index.html` |
+   | `com.example.app`      | `app-client/electron/identity.js` (`appId`), `app-client/package.json` (`build.appId`) |
+   | `app` (config dir slug) | `app-client/electron/identity.js` (`slug` → `~/.config/<slug>`) — keep equal to `brand.slug` |
    | `apps/app` (publish path) | `app-client/package.json` (`build.publish.path`)     |
-   | `app` (executable / config dir) | `app-client/package.json` (`build.linux.executableName` → `~/.config/<name>`) |
+   | `App` (installed binary + launcher name) | `app-client/bato.json` (`executableName`) — what `bato install` writes to `~/.local/bin/<executableName>.AppImage` and titles the app-menu entry; keep command-friendly (no spaces) |
+   | `app` (AppImage internal executable) | `app-client/package.json` (`build.linux.executableName`) |
    | `BatoRoy` / copyright  | `app-client/package.json`, `LICENSE`                    |
    | `app-server` (Go module)| `app-server/go.mod` + imports in `main.go`, `api/server.go` |
    | `.config/app` (backend)| `app-server/internal/config/config.go`                  |
@@ -254,7 +263,7 @@ make template-update      # git fetch template && git merge template/main
 Because your app shares git history with the template, git auto-merges everything you
 didn't touch (the component kit, hooks, electron plumbing, Makefile). Conflicts — when
 they happen at all — are concentrated in the files you deliberately customized:
-`brand.ts`, `package.json` identity fields, your own pages, and `Sidebar.tsx` NAV.
+`brand.ts`, `electron/identity.js`, `package.json` identity fields, your own pages, and `Sidebar.tsx` NAV.
 Resolve those (keep your side for identity, take the template's side for mechanics),
 then `git add -A && git commit` and run `make dev-setup && make lint && make test`.
 
