@@ -270,3 +270,48 @@ then `git add -A && git commit` and run `make dev-setup && make lint && make tes
 If you deleted the demo pages (`HomePage.tsx`, `ShowcasePage.tsx`) and the template later
 changes them, git reports a modify/delete conflict — keep them deleted with
 `git rm <file>` and commit.
+
+# Publishing a backend service to bato
+
+  Any project that produces a server binary can publish it to your bato (MinIO) registry. A backend is published with the same bato publish command as a
+  desktop app — it just dispatches on the type field — but with three differences to account for:
+
+  1. It needs its own bato.json. The CLI reads ./bato.json from the current directory and that file describes exactly one project. If the repo already has
+  an electron bato.json at the root, the server needs a separate one in its own directory.
+  2. The CLI does the upload itself. For a backend it tars your artifacts and pushes the tarball straight to MinIO — there's no electron-builder step. You
+  just point artifacts at the binary you already build.
+  3. You pass the version explicitly. Backends don't auto-read a version, so pass -v <version> (e.g. from a VERSION file or git describe).
+
+  Steps
+
+  1. Create a staging directory with a bato.json for the service, e.g. deploy/server/bato.json:
+
+  {
+    "name": "<service-name>",
+    "type": "backend",
+    "description": "<one-line description>",
+    "artifacts": ["<binary-filename>"]
+  }
+
+  - name is what you'll bato get later.
+  - Omit s3Path — it defaults to backends/<name>, so it never collides with electron apps under apps/.
+  - Keep artifacts as bare filenames (no ../); you'll stage the build output into this dir so the paths stay simple and the tarball is clean.
+
+  2. Add a publish target to your build system. The pattern is: build → copy the binary next to its bato.json → cd there → publish. In a Makefile:
+
+  publish-server: server          # reuse your existing build target
+        cp <build-output-path> deploy/server/
+        cd deploy/server && bato publish -v $(VERSION) -n "$(NOTES)"
+
+  The cd is what makes the CLI pick up the server's bato.json instead of the repo-root one, and tars relative to that directory.
+
+  3. Prerequisites (same as any bato publish): the bato CLI on PATH, and write credentials in the environment — BATO_S3_ENDPOINT, BATO_BUCKET,
+  BATO_ACCESS_KEY, BATO_SECRET_KEY.
+
+  Result
+
+  The binary lands in MinIO at backends/<name>/<version>/<name>-<version>.tar.gz with a meta.json recording the version and sha256. Pull it on any
+  configured machine with bato get <name> (latest) or bato get <name> -v <version>. Backends are manual-pull only — no auto-update.
+
+  This generalizes to any number of services in a repo: give each its own staging dir + bato.json and its own publish target.
+
