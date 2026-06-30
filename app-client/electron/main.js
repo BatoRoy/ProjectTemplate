@@ -19,6 +19,7 @@ const settingsPath = join(configDir, 'settings.json')
 
 function createWindow() {
   const win = new BrowserWindow({
+    icon: join(__dirname, '..', 'build', 'appicon.png'),
     width: 1280,
     height: 800,
     minWidth: 900,
