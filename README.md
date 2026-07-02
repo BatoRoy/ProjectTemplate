@@ -82,6 +82,14 @@ make all             # everything
 make clean
 ```
 
+### Bundling the service into the client
+
+Published apps usually ship the Go server **inside** the AppImage and spawn it on
+launch, so users install one self-contained app. See **[BUNDLED-SERVICES.md](BUNDLED-SERVICES.md)**
+for the full pattern (extraResources + a beforePack hook that fails the build if the
+binary is missing + an `electron/backend.js` supervisor) and live examples (BatoGit,
+BatoDeck, BatoSound, BatoCompose, BatoFetch).
+
 ## Versioning & releases
 
 A single `VERSION` file is the source of truth; `version.sh` syncs it into the frontend
