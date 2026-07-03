@@ -313,13 +313,26 @@ changes them, git reports a modify/delete conflict — keep them deleted with
 
   The cd is what makes the CLI pick up the server's bato.json instead of the repo-root one, and tars relative to that directory.
 
+  Make sure the build target the publish reuses stamps the binary with the same version it publishes under, or the two silently drift apart
+  (registry says 1.0.1, binary reports 1.1.0). The template's `server` target already does this:
+
+  go build -ldflags="-s -w -X main.Version=$(VERSION)" ...
+
+  Never hardcode a version in the publish target — always pass $(VERSION) so the VERSION file stays the single source of truth.
+
   3. Prerequisites (same as any bato publish): the bato CLI on PATH, and write credentials in the environment — BATO_S3_ENDPOINT, BATO_BUCKET,
   BATO_ACCESS_KEY, BATO_SECRET_KEY.
 
   Result
 
-  The binary lands in MinIO at backends/<name>/<version>/<name>-<version>.tar.gz with a meta.json recording the version and sha256. Pull it on any
-  configured machine with bato get <name> (latest) or bato get <name> -v <version>. Backends are manual-pull only — no auto-update.
+  The binary lands in MinIO at backends/<name>/<version>/<name>-<version>.tar.gz with a meta.json recording the version and sha256. Backends are
+  manual-pull only — no auto-update, and no `bato install`. On the host that runs the service:
+
+  bato get <service-name>                    # latest; add -v X.Y.Z for a specific version
+  tar xzf <service-name>-<version>.tar.gz    # the CLI prints this exact command after the download
+  ./<binary-filename>
+
+  The CLI verifies the tarball against the sha256 recorded at publish time before saving it.
 
   This generalizes to any number of services in a repo: give each its own staging dir + bato.json and its own publish target.
 

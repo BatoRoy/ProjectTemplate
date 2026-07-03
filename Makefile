@@ -10,7 +10,7 @@ all: server client-linux client-windows
 server:
 	@echo "→ Building app-server (linux amd64) v$(VERSION)..."
 	mkdir -p dist
-	cd app-server && GOOS=linux GOARCH=amd64 go build -ldflags="-s -w" -o ../dist/app-server-linux-amd64 .
+	cd app-server && GOOS=linux GOARCH=amd64 go build -ldflags="-s -w -X main.Version=$(VERSION)" -o ../dist/app-server-linux-amd64 .
 	@echo "✓ app-server → dist/app-server-linux-amd64"
 
 client-linux:
