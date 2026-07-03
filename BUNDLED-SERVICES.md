@@ -21,6 +21,22 @@ pattern with small variations.
 The renderer needs **no changes**: the template's `bridge.ts` already reads
 `window.BATO_BACKEND_URL` and falls back to `http://localhost:8080` in dev.
 
+## Ports: session-bound vs daemon (the rule)
+
+Decide which kind of server your app has — it determines the port policy
+(see `BatoApps/PORTS.md`):
+
+- **Session-bound** (this document's pattern): the server only lives while the
+  client runs and only talks to it on localhost. Use a **dynamic port** — the
+  supervisor picks a free one and passes `--port`. Do NOT claim a fixed port;
+  it would only add collision risk. Also remove the `ServerUrlCard` from App
+  Options — the supervisor's injected `BATO_BACKEND_URL` always wins anyway.
+- **Daemon-capable**: the server can run in the background, detached from the
+  client, possibly on another machine (published with `bato publish`). Claim
+  the next free **42xxx** port in `BatoApps/PORTS.md`, make it the server's
+  `--port` default, and keep the `ServerUrlCard` so the user can point the
+  client at the machine that runs it.
+
 ---
 
 ## 1. `extraResources` — ship the binary

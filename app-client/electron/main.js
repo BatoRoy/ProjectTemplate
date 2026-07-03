@@ -82,6 +82,17 @@ ipcMain.handle('settings:save', (_, settings) => {
   writeFileSync(settingsPath, JSON.stringify(settings, null, 2), 'utf8')
 })
 
+// Synchronous variant for the preload: window.env (the saved backend URL) must
+// be complete before the renderer's first line runs, since it decides where
+// every request goes.
+ipcMain.on('settings:get-sync', (event) => {
+  try {
+    event.returnValue = existsSync(settingsPath) ? JSON.parse(readFileSync(settingsPath, 'utf8')) : {}
+  } catch {
+    event.returnValue = {}
+  }
+})
+
 // ─── Dialogs ─────────────────────────────────────────────────────────────────
 
 ipcMain.handle('dialog:openFiles', async (_, opts = {}) => {

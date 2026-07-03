@@ -1,5 +1,6 @@
 import { Check, X } from 'lucide-react'
 import { useTheme, THEMES, ACCENTS, SCALES } from '../lib/theme'
+import { ServerUrlCard } from './ServerUrlCard'
 
 interface AppOptionsModalProps {
   onClose: () => void
@@ -20,6 +21,11 @@ export function AppOptionsModal({ onClose }: AppOptionsModalProps) {
         </div>
 
         <div className="p-5 space-y-6">
+
+          {/* Server address — keep for daemon-style backends (fixed PORTS.md
+              port, possibly on another machine); remove for apps with a
+              bundled session-bound server. */}
+          <ServerUrlCard />
 
           {/* Theme */}
           <div>

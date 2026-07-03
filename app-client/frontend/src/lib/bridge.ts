@@ -9,12 +9,48 @@ declare global {
     // Injected by bato-hub's preload when this app runs embedded, so the hub
     // can point each app at its own backend. Absent standalone / in a browser.
     BATO_BACKEND_URL?: string
+    // Saved app settings, exposed by the Electron preload (settings.json in
+    // ~/.config/<slug>/). Absent in a plain browser.
+    env?: { backendUrl?: string | null }
   }
 }
 
-// Default backend address — the hub overrides it at runtime; standalone keeps
-// the local default.
-export const DEFAULT_BACKEND = window.BATO_BACKEND_URL || 'http://localhost:8080'
+// Backend URL resolution — first match wins:
+//   1. BATO_BACKEND_URL: injected by bato-hub / a bundled-server supervisor
+//   2. backendUrl saved in this app's settings (Server section in App Options)
+//   3. the local default (dev: app-server started by hand)
+// The saved setting is for daemon-style backends that may run on another
+// machine (fixed port claimed in BatoApps PORTS.md); session-bound bundled
+// servers always come in through (1).
+export const DEFAULT_BACKEND = 'http://localhost:8080'
+let backend = normalize(window.BATO_BACKEND_URL || window.env?.backendUrl || DEFAULT_BACKEND)
+
+function normalize(url: string): string {
+  return url.trim().replace(/\/+$/, '')
+}
+
+export function getBackendUrl(): string {
+  return backend
+}
+
+// Persist a new backend URL and apply it immediately — no restart. Fires
+// 'backend-url-changed' so views can refetch against the new server.
+export async function setBackendUrl(url: string): Promise<void> {
+  backend = normalize(url)
+  const saved = await bridge.native.getSettings()
+  await bridge.native.saveSettings({ ...saved, backendUrl: backend })
+  window.dispatchEvent(new Event('backend-url-changed'))
+}
+
+// Probe a candidate URL (without saving it) via the health endpoint.
+export async function testConnection(url = backend): Promise<boolean> {
+  try {
+    await apiFetch<{ status: string }>(normalize(url), '/api/health')
+    return true
+  } catch {
+    return false
+  }
+}
 
 function parseError(body: string, status: number): string {
   try { return (JSON.parse(body) as { error?: string }).error || `Request failed: ${status}` }
@@ -59,10 +95,10 @@ async function webNotify(opts: NotifyOpts): Promise<boolean> {
 
 export const bridge = {
   // ── Backend (Go app-server) ──────────────────────────────
-  getHealth: (baseUrl = DEFAULT_BACKEND) =>
+  getHealth: (baseUrl = getBackendUrl()) =>
     apiFetch<{ status: string }>(baseUrl, '/api/health'),
 
-  getInfo: (baseUrl = DEFAULT_BACKEND) =>
+  getInfo: (baseUrl = getBackendUrl()) =>
     apiFetch<ServerInfo>(baseUrl, '/api/info'),
 
   // ── Native OS (Electron main process) ────────────────────

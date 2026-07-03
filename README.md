@@ -336,3 +336,22 @@ changes them, git reports a modify/delete conflict — keep them deleted with
 
   This generalizes to any number of services in a repo: give each its own staging dir + bato.json and its own publish target.
 
+# Ports, server URL, and secrets (suite standards)
+
+  Three suite-wide conventions every template-derived app follows — the reference is `BatoApps/STANDARDIZATION-PLAN.md`.
+
+  **Ports** (`BatoApps/PORTS.md`): session-bound bundled servers use a dynamic supervisor-assigned port; daemon-capable servers claim the next free
+  42xxx port in PORTS.md and use it as their `--port` default. The rule in full is in BUNDLED-SERVICES.md. Every server accepts `--port` to override.
+
+  **Server URL**: the client persists `backendUrl` in its settings.json (userData) and exposes it as `window.env.backendUrl` via the preload.
+  `lib/bridge.ts` resolves the URL as: hub/supervisor-injected `BATO_BACKEND_URL` > saved setting > `http://localhost:8080`, and offers
+  `getBackendUrl()` / `setBackendUrl()` / `testConnection()`. The `ServerUrlCard` component in App Options is the UI for it — keep it for daemon
+  backends, delete it for bundled ones. A backend being unreachable must never block the UI (show a banner, keep Settings reachable) — the user has
+  to be able to fix the URL from inside the app.
+
+  **Secrets**: servers take secrets three equal ways — CLI flags > environment variables > `.env` (cwd, then `~/.config/<app>/.env`). Call
+  `config.LoadEnvFiles("<app>")` at startup (see `internal/config/secrets.go`) and resolve each secret with `config.Secret(flagVal, "APP_MY_KEY")`.
+  Prefix env names with the app name to avoid collisions. Never crash at startup over a missing secret — warn and fail at call time. Store the
+  canonical copy in the central store (`bato secrets push <service> -f .env` from the publish target; `bato secrets pull <service>` on the host that
+  runs it).
+

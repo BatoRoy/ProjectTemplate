@@ -35,6 +35,10 @@ func main() {
 		return
 	}
 
+	// Fill the environment from optional .env files (precedence: flags > env >
+	// .env). Secrets belong there or in `bato secrets`, never in the JSON config.
+	config.LoadEnvFiles("app")
+
 	cfg, err := config.Load()
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "Error loading config: %v\nRun with --init to initialize.\n", err)

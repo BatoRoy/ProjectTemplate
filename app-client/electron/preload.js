@@ -2,6 +2,16 @@
 
 const { contextBridge, ipcRenderer, webFrame } = require('electron')
 
+// Saved settings, fetched synchronously so window.env is ready before the
+// renderer boots. backendUrl comes from the Server section in App Options —
+// only meaningful for apps whose backend runs as a standalone daemon; bundled
+// session-bound servers inject BATO_BACKEND_URL instead (see bridge.ts).
+const settings = ipcRenderer.sendSync('settings:get-sync')
+
+contextBridge.exposeInMainWorld('env', {
+  backendUrl: settings.backendUrl || null,
+})
+
 contextBridge.exposeInMainWorld('electronAPI', {
   // Settings store
   getSettings: () => ipcRenderer.invoke('settings:get'),
