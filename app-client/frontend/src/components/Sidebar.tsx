@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import appIcon from '../assets/app-icon.svg'
 import { Home, LayoutGrid, Settings, Info, Download, RefreshCw, PanelLeftClose, PanelLeftOpen } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
 import clsx from 'clsx'
@@ -65,9 +66,7 @@ export function Sidebar({ view, onNavigate, onOpenOptions, onOpenAbout }: Sideba
       {/* Header / logo */}
       <div className={clsx('border-b border-app-border', collapsed ? 'px-2 py-4 flex justify-center' : 'px-5 py-5')}>
         <div className="flex items-center gap-2.5">
-          <div className="w-7 h-7 rounded-lg bg-gradient-to-br from-app-accent to-app-accentHover shadow-sm flex items-center justify-center flex-shrink-0">
-            <brand.icon size={14} className="text-white" />
-          </div>
+          <img src={appIcon} alt={brand.appName} className="w-7 h-7 rounded-lg shadow-sm flex-shrink-0" />
           {!collapsed && (
             <div className="min-w-0">
               <h1 className="text-sm font-semibold text-app-text tracking-tight leading-none truncate">{brand.appName}</h1>
