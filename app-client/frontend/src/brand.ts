@@ -17,7 +17,7 @@ export const brand = {
   // so template-derived apps don't clobber each other's settings in bato-hub.
   slug: 'app',
   // Default accent color; users can still override it in App Options.
-  accentHex: '#7c3aed',
+  accentHex: '#8b5cf6',
   // Sidebar / About badge icon.
   icon: Box as LucideIcon,
 } as const

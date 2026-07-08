@@ -28,7 +28,6 @@ export const THEMES: ThemePreset[] = [
 export const ACCENTS: AccentPreset[] = [
   { id: 'violet',  label: 'Violet',  hex: '#7c3aed' },
   { id: 'blue',    label: 'Blue',    hex: '#2563eb' },
-  { id: 'indigo',  label: 'Indigo',  hex: '#4f46e5' },
   { id: 'cyan',    label: 'Cyan',    hex: '#0891b2' },
   { id: 'emerald', label: 'Emerald', hex: '#059669' },
   { id: 'amber',   label: 'Amber',   hex: '#d97706' },

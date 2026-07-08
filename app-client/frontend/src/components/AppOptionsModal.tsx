@@ -1,5 +1,6 @@
-import { Check, X } from 'lucide-react'
-import { useTheme, THEMES, ACCENTS, SCALES } from '../lib/theme'
+import { Check, Star, X } from 'lucide-react'
+import { useTheme, THEMES, ACCENTS, SCALES, DEFAULT_ACCENT } from '../lib/theme'
+import { brand } from '../brand'
 import { ServerUrlCard } from './ServerUrlCard'
 
 interface AppOptionsModalProps {
@@ -9,6 +10,7 @@ interface AppOptionsModalProps {
 export function AppOptionsModal({ onClose }: AppOptionsModalProps) {
   const { theme, setTheme, accent, setAccent, scale, setScale, wide, setWide, textSelect, setTextSelect } = useTheme()
   const accentLc = accent.toLowerCase()
+  const defaultLc = DEFAULT_ACCENT.toLowerCase()
 
   return (
     <div className="fixed inset-0 z-40 flex items-center justify-center bg-black/60 backdrop-blur-sm">
@@ -66,7 +68,20 @@ export function AppOptionsModal({ onClose }: AppOptionsModalProps) {
           <div>
             <h3 className="text-xs font-semibold text-app-subtext uppercase tracking-wider mb-3">Accent</h3>
             <div className="flex flex-wrap items-center gap-2.5">
-              {ACCENTS.map(a => {
+              {/* App default — the brand accent, marked with a star */}
+              <button
+                title={`Default — ${brand.appName}`}
+                onClick={() => setAccent(DEFAULT_ACCENT)}
+                style={{ background: DEFAULT_ACCENT }}
+                className={`w-7 h-7 rounded-full flex items-center justify-center transition-transform hover:scale-110 ${
+                  accentLc === defaultLc ? 'ring-2 ring-offset-2 ring-offset-app-card ring-app-text' : ''
+                }`}
+              >
+                {accentLc === defaultLc
+                  ? <Check size={14} className="text-white" />
+                  : <Star size={12} className="text-white/90" fill="currentColor" />}
+              </button>
+              {ACCENTS.filter(a => a.hex.toLowerCase() !== defaultLc).map(a => {
                 const active = a.hex.toLowerCase() === accentLc
                 return (
                   <button
