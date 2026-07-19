@@ -1,7 +1,6 @@
-.PHONY: all server client-linux client-windows publish-client dev-setup verify-electron dev-server dev-client template-update lint test clean
+.PHONY: all server client-linux client-windows publish-client dev-setup verify-electron dev-server dev-client new-app lint test clean
 
 VERSION := $(shell cat VERSION)
-TEMPLATE_REPO := https://github.com/BatoRoy/ProjectTemplate.git
 
 all: server client-linux client-windows
 
@@ -78,20 +77,13 @@ dev-client:
 	@echo "→ Starting Electron dev client (Vite + Electron)..."
 	cd app-client && npm run dev
 
-# ─── Template updates ────────────────────────────────────────────────────────
+# ─── New app ─────────────────────────────────────────────────────────────────
 
-# Pull the latest template changes into this app. Works in any app that was
-# cloned from the template repo (shared git history). Conflicts, if any, are
-# concentrated in the files you customized: brand.ts, package.json, your pages.
-template-update:
-	@git remote get-url template >/dev/null 2>&1 || git remote add template $(TEMPLATE_REPO)
-	git fetch template
-	@git merge template/main --no-edit || { \
-		echo "⚠ Merge conflicts — your app's customizations vs template changes."; \
-		echo "  Typically brand.ts / package.json / your own pages."; \
-		echo "  Resolve them, then: git add -A && git commit"; \
-		exit 1; }
-	@echo "✓ Template changes merged. Now run: make dev-setup && make lint && make test"
+# Scaffold a new app from this template with a fresh, single-commit git
+# history. Thin wrapper around new-app.sh — see it (or README) for details.
+new-app:
+	@test -n "$(NAME)" && test -n "$(DEST)" || { echo "Usage: make new-app NAME=MyApp DEST=../MyApp"; exit 1; }
+	./new-app.sh "$(NAME)" "$(DEST)"
 
 # ─── Quality ─────────────────────────────────────────────────────────────────
 

@@ -230,54 +230,59 @@ const menu = useContextMenu()
 
 ## Starting a new project from this template
 
-Clone the template repo — **keep its git history** so you can pull template updates later:
+From a checkout of the template, run the scaffold script (or its make wrapper):
 
 ```bash
-git clone https://github.com/BatoRoy/ProjectTemplate.git myapp
-cd myapp
-git remote rename origin template          # template updates come from here
-git remote add origin <your-repo-url>      # your app's own repo (optional, add anytime)
+./new-app.sh MyApp ../MyApp          # or: make new-app NAME=MyApp DEST=../MyApp
 ```
 
-1. Brand it (see "Branding" above):
+The new app starts with a **fresh, single-commit git history** — none of the template's
+commits come along. The script exports the template's committed HEAD (ignored files and
+build artifacts never leak in), stamps your app name/slug into the identity files, resets
+the version to `0.1.0`, and records provenance — the template version and commit SHA — in
+both the initial commit message and a one-line `.template` file, so you can always diff
+against the exact template state you started from (see "Porting template improvements").
 
-   | Identifier             | Where                                                   |
-   |------------------------|---------------------------------------------------------|
-   | name / tagline / slug / accent / icon | `app-client/frontend/src/brand.ts` (sidebar, hero, About all follow) |
-   | `App` (product name)   | `app-client/electron/identity.js` (`productName` → window title), `app-client/package.json` (`build.productName`), `index.html` |
-   | `com.example.app`      | `app-client/electron/identity.js` (`appId`), `app-client/package.json` (`build.appId`) |
-   | `app` (config dir slug) | `app-client/electron/identity.js` (`slug` → `~/.config/<slug>`) — keep equal to `brand.slug` |
-   | `apps/app` (publish path) | `app-client/package.json` (`build.publish.path`)     |
-   | `App` (installed binary + launcher name) | `app-client/bato.json` (`executableName`) — what `bato install` writes to `~/.local/bin/<executableName>.AppImage` and titles the app-menu entry; keep command-friendly (no spaces) |
-   | `app` (AppImage internal executable) | `app-client/package.json` (`build.linux.executableName`) |
-   | `BatoRoy` / copyright  | `app-client/package.json`, `LICENSE`                    |
-   | `app-server` (Go module)| `app-server/go.mod` + imports in `main.go`, `api/server.go` |
-   | `.config/app` (backend)| `app-server/internal/config/config.go`                  |
+1. Verify/finish the branding (see "Branding" above). The script pre-stamps the
+   mechanical name/slug fields; the rest is yours:
+
+   | Identifier             | Where                                                   | Script |
+   |------------------------|---------------------------------------------------------|--------|
+   | name / slug            | `app-client/frontend/src/brand.ts` (sidebar, hero, About all follow) | stamped |
+   | tagline / accent / icon | `app-client/frontend/src/brand.ts`                     | manual |
+   | `App` (product name)   | `app-client/electron/identity.js` (`productName` → window title), `app-client/package.json` (`build.productName`), `index.html` | stamped |
+   | `com.example.app`      | `app-client/electron/identity.js` (`appId`), `app-client/package.json` (`build.appId`) | stamped as `com.example.<slug>` — swap in your own domain |
+   | `app` (config dir slug) | `app-client/electron/identity.js` (`slug` → `~/.config/<slug>`) — keep equal to `brand.slug` | stamped |
+   | `apps/app` (publish path) | `app-client/package.json` (`build.publish.path`)     | stamped |
+   | `App` (installed binary + launcher name) | `app-client/bato.json` (`executableName`) — what `bato install` writes to `~/.local/bin/<executableName>.AppImage` and titles the app-menu entry; keep command-friendly (no spaces) | stamped |
+   | `app` (AppImage internal executable) | `app-client/package.json` (`build.linux.executableName`) | stamped |
+   | `BatoRoy` / copyright  | `app-client/package.json`, `LICENSE`                    | manual |
+   | `app-server` (Go module)| `app-server/go.mod` + imports in `main.go`, `api/server.go` | manual (optional) |
+   | `.config/app` (backend)| `app-server/internal/config/config.go`                  | stamped |
 
    The `--app-*` CSS vars, `app.*` Tailwind tokens, and the `app-client` / `app-server`
    directory names can stay as-is. localStorage keys are namespaced by `brand.slug`
    automatically.
-2. Set your starting version: `./version.sh set 0.1.0`.
-3. Commit, then push to *your* remote: `git push origin main`.
+2. Icons: replace `app-client/build/appicon.png` and `app-client/build/windows/icon.ico`.
+3. Add your remote and push: `git remote add origin <your-repo-url> && git push -u origin main`.
 
-## Pulling template updates into your app
+## Porting template improvements into your app
 
-When the template gains fixes or new components, every app cloned from it can merge them in:
+There is no automatic update mechanism — apps don't share git history with the template.
+Instead, your app records which template state it was created from (the `.template` file,
+and the initial commit message — `git log --reverse --oneline | head -1`). To see
+everything the template gained since then, diff from that SHA in a template checkout:
 
 ```bash
-make template-update      # git fetch template && git merge template/main
+cat .template                              # → ProjectTemplate v0.1.0 cf60a2e (created ...)
+cd ../ProjectTemplate
+git diff cf60a2e..HEAD                     # optionally: -- <path> to narrow it down
 ```
 
-Because your app shares git history with the template, git auto-merges everything you
-didn't touch (the component kit, hooks, electron plumbing, Makefile). Conflicts — when
-they happen at all — are concentrated in the files you deliberately customized:
-`brand.ts`, `electron/identity.js`, `package.json` identity fields, your own pages, and `Sidebar.tsx` NAV.
-Resolve those (keep your side for identity, take the template's side for mechanics),
-then `git add -A && git commit` and run `make dev-setup && make lint && make test`.
-
-If you deleted the demo pages (`HomePage.tsx`, `ShowcasePage.tsx`) and the template later
-changes them, git reports a modify/delete conflict — keep them deleted with
-`git rm <file>` and commit.
+Port the pieces you want by hand — or hand the diff to Claude and ask it to apply what's
+relevant, skipping your customized files (`brand.ts`, `identity.js`, identity fields in
+`package.json`, your own pages). Afterwards run `make dev-setup && make lint && make test`.
+If you port a large batch, update the SHA in `.template` so the next diff starts there.
 
 # Publishing a backend service to bato
 
