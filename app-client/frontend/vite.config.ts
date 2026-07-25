@@ -7,15 +7,26 @@ import react from '@vitejs/plugin-react'
 // only (apply: 'build'), so Vite's dev server + HMR are never constrained by it.
 //   - 'unsafe-inline' in style-src: React inline styles + CodeMirror's injected
 //     <style> tags need it. (Scripts stay locked to 'self' — no unsafe-inline.)
-//   - connect-src: add your backend origin(s) here. Defaults to the localhost
-//     app-server; update if you point bridge.ts at a different host.
+//   - connect-src: the loopback grants use a `:*` port WILDCARD on purpose. A
+//     bundled session server binds a *dynamic* port (electron/backend.js
+//     `srv.listen(0)`, see BUNDLED-SERVICES.md), so pinning one port here breaks
+//     the packaged app on every launch — while dev keeps working, because this
+//     CSP is build-only. Symptom: the window loads fine and every backend call
+//     dies with "Failed to fetch". Keep the wildcard unless your backend is a
+//     fixed-port daemon, in which case name that exact port.
+//     This governs fetch, EventSource and WebSocket. Note that bridge.ts routes
+//     JSON through the main process (net:request IPC), which is NOT subject to
+//     CSP — so a wrong policy here can look harmless right up until the first
+//     direct fetch, SSE stream or backend-served asset is added.
+//   - If the renderer loads images/video/audio from the backend by direct URL,
+//     add the same loopback grants to img-src / media-src (see BatoEdit).
 const CSP = [
   "default-src 'self'",
   "script-src 'self'",
   "style-src 'self' 'unsafe-inline'",
   "font-src 'self' data:",
   "img-src 'self' data: blob:",
-  "connect-src 'self' http://localhost:8080 http://127.0.0.1:8080",
+  "connect-src 'self' http://127.0.0.1:* http://localhost:*",
 ].join('; ')
 
 function cspPlugin(): Plugin {
