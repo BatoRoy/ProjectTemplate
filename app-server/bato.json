@@ -8,6 +8,7 @@
     "project": "Bato",
     "environment": "production",
     "targetPort": 8080,
-    "env": []
+    "env": [],
+    "volumes": [{ "name": "app-server-data", "path": "/data" }]
   }
 }

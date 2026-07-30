@@ -167,6 +167,7 @@ edit('app-server/bato.json', (p) => {
   p.description = `Backend for ${name}`
   p.deploy.app = `${execName}Server`
   p.deploy.image = `${slug}-server`
+  p.deploy.volumes = [{ name: `${slug}-server-data`, path: '/data' }]
 })
 EOF
 grep -qF "\"productName\": \"$NAME\"" "$DEST/app-client/package.json" || {

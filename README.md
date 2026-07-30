@@ -383,6 +383,14 @@ If you port a large batch, update the SHA in `.template` so the next diff starts
   idempotent, so running it twice changes nothing. Everything it needs is in
   `bato.json`, which is why a second service is the same one command.
 
+  **Storage.** `app-server/bato.json` ships a `volumes` entry mounting a named
+  Docker volume at `/data`, which is where the container should write anything it
+  expects to find later. The `VOLUME` line in the Dockerfile is *not* enough on
+  its own — that produces an anonymous volume, and Swarm gives each new task a
+  fresh one, so the service silently starts empty after every deploy. Add more
+  entries as needed; use `hostPath` instead of `name` for a bind mount when you
+  want to get at the files from the host.
+
   Listing a key in `deploy.env` makes it a **precondition**: the deploy refuses
   rather than starting a container that is missing it. That check exists because
   the alternative is worse than a failure — bato-home binds `127.0.0.1` without
