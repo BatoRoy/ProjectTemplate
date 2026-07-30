@@ -341,6 +341,57 @@ If you port a large batch, update the SHA in `.template` so the next diff starts
 
   This generalizes to any number of services in a repo: give each its own staging dir + bato.json and its own publish target.
 
+# Deploying the server as a container (Dokploy)
+
+  The section above publishes the server as a **tarball** you pull and run under
+  systemd (`bato get` / `bato install` / `bato service`). The other option is to run
+  it as a **container on the Dokploy host** — same binary, different delivery:
+
+  |            | tarball + systemd            | container on Dokploy        |
+  |------------|------------------------------|------------------------------|
+  | Command    | `bato publish` → `bato install` | `bato deploy build`       |
+  | Runs on    | whichever host you install it | the Dokploy host             |
+  | Config     | `.env` next to the binary     | Dokploy env vars, from the secrets store |
+
+  Only for **daemon** servers. A session-bound server — spawned and killed by the
+  Electron client — should never be containerised; see BUNDLED-SERVICES.md for
+  which kind you have.
+
+  The template ships `app-server/Dockerfile` and `app-server/bato.json` for this.
+  `new-app.sh` stamps the names; two things are left to you:
+
+  1. **Claim a port** in `BatoApps/PORTS.md` and add it as `port` in
+     `app-server/bato.json`. It is deliberately absent from the template — a
+     stamped-in default would make every generated app collide. `deploy.targetPort`
+     stays 8080 (what the container listens on); `port` is what gets published on
+     the host.
+  2. **Store the server's env** so deploys can sync it, and list anything it
+     cannot start without in `deploy.env`:
+
+  ```bash
+  bato secrets set <name>-server SOME_URL=https://…
+  ```
+
+  Then, from `app-server/`:
+
+  ```bash
+  bato deploy build          # build → push → provision → deploy
+  ```
+
+  `provision` reconciles Dokploy against `bato.json` — it creates the application
+  if it is missing, sets the image, env, port mapping and domain, and is
+  idempotent, so running it twice changes nothing. Everything it needs is in
+  `bato.json`, which is why a second service is the same one command.
+
+  Listing a key in `deploy.env` makes it a **precondition**: the deploy refuses
+  rather than starting a container that is missing it. That check exists because
+  the alternative is worse than a failure — bato-home binds `127.0.0.1` without
+  its `BATO_AUTH_URL` and reports itself healthy while being unreachable.
+
+  Prerequisites: `BATO_IMAGE_REGISTRY`, `BATO_DOKPLOY_URL` and `BATO_DOKPLOY_KEY`
+  in the environment, and the Dokploy project named in `deploy.project` must
+  already exist — `bato deploy` creates applications, not projects.
+
 # Ports, server URL, and secrets (suite standards)
 
   Three suite-wide conventions every template-derived app follows — the reference is `BatoApps/STANDARDIZATION-PLAN.md`.

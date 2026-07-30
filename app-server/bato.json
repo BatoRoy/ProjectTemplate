@@ -1,0 +1,13 @@
+{
+  "name": "app-server",
+  "type": "backend",
+  "description": "Backend for the app",
+  "deploy": {
+    "app": "AppServer",
+    "image": "app-server",
+    "project": "Bato",
+    "environment": "production",
+    "targetPort": 8080,
+    "env": []
+  }
+}

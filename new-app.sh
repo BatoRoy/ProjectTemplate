@@ -158,6 +158,16 @@ edit('app-client/bato.json', (p) => {
   p.executableName = execName
   p.s3Path = `apps/${slug}`
 })
+// The deployable-server identity. `port` is deliberately left unset: it has to
+// be claimed in BatoApps/PORTS.md by hand, and a stamped-in default would have
+// every generated app collide on the same one. `bato deploy` says so plainly
+// when it's missing rather than deploying something unreachable.
+edit('app-server/bato.json', (p) => {
+  p.name = `${slug}-server`
+  p.description = `Backend for ${name}`
+  p.deploy.app = `${execName}Server`
+  p.deploy.image = `${slug}-server`
+})
 EOF
 grep -qF "\"productName\": \"$NAME\"" "$DEST/app-client/package.json" || {
   echo "✗ Stamping failed for app-client/package.json — update new-app.sh." >&2
