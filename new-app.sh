@@ -162,11 +162,18 @@ edit('app-client/bato.json', (p) => {
 // be claimed in BatoApps/PORTS.md by hand, and a stamped-in default would have
 // every generated app collide on the same one. `bato deploy` says so plainly
 // when it's missing rather than deploying something unreachable.
+//
+// `domain`, by contrast, IS stamped: *.bato.lan is covered by wildcard DNS and
+// a wildcard certificate, so a new hostname costs no DNS, Traefik or cert work,
+// and nothing is created until `bato deploy provision` runs. Note it is the
+// bare slug, not `${slug}-server` — a hostname is public-facing, and
+// myapp-server.bato.lan reads like an implementation detail.
 edit('app-server/bato.json', (p) => {
   p.name = `${slug}-server`
   p.description = `Backend for ${name}`
   p.deploy.app = `${execName}Server`
   p.deploy.image = `${slug}-server`
+  p.deploy.domain = `${slug}.bato.lan`
   p.deploy.volumes = [{ name: `${slug}-server-data`, path: '/data' }]
 })
 EOF
@@ -200,6 +207,13 @@ Next steps:
   cd $DEST
   git remote add origin <your-repo-url>   # whenever you're ready
   make dev-setup && make dev-client
+
+Deploying the server (see README → "Deploying the server as a container"):
+  • Claim a 42xxx port in BatoApps/PORTS.md and set it as "port" in
+    app-server/bato.json — deploy.domain has nothing to route to without it
+  • Hostname stamped as $SLUG.bato.lan; change it in app-server/bato.json if
+    you want a shorter one. Wildcard DNS + cert already cover it
+  • bato secrets set $SLUG-server BATO_AUTH_URL=…   then:  make deploy
 
 Still yours to brand (see README → "Branding"):
   • brand.ts: tagline, accentHex, icon

@@ -24,9 +24,18 @@ export function HomePage({ toast }: HomePageProps) {
   const pingBackend = useCallback(async () => {
     setStatus('checking')
     try {
-      const info = await bridge.getInfo()
-      setBackendVersion(info.version)
+      // Liveness comes from /api/health, which is never gated. /api/info is
+      // behind the bato-auth "viewer" role, so it 401s against a deployed
+      // server until the client presents a token — that must not read as
+      // "offline", hence the two separate calls.
+      await bridge.getHealth()
       setStatus('online')
+      try {
+        const info = await bridge.getInfo()
+        setBackendVersion(info.version)
+      } catch {
+        setBackendVersion(null)
+      }
     } catch {
       setBackendVersion(null)
       setStatus('offline')

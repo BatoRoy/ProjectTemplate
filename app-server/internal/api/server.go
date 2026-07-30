@@ -12,22 +12,27 @@ import (
 	"syscall"
 	"time"
 
-	"app-server/internal/config"
+	"app-server/internal/batoauth"
 )
 
 type Server struct {
-	cfg     *config.Config
+	dataDir string
 	port    int
 	version string
 	mux     *http.ServeMux
+	// nil when BATO_AUTH_URL is unset — see auth.go and Run().
+	auth *batoauth.Client
 }
 
-func NewServer(cfg *config.Config, port int, version string) *Server {
+func NewServer(dataDir string, port int, version, authURL string) *Server {
 	s := &Server{
-		cfg:     cfg,
+		dataDir: dataDir,
 		port:    port,
 		version: version,
 		mux:     http.NewServeMux(),
+	}
+	if authURL != "" {
+		s.auth = batoauth.New(authURL)
 	}
 	s.registerRoutes()
 	return s
@@ -36,7 +41,15 @@ func NewServer(cfg *config.Config, port int, version string) *Server {
 // Run starts the HTTP server with sensible timeouts and blocks until an
 // interrupt (Ctrl-C / SIGTERM) arrives, then shuts down gracefully.
 func (s *Server) Run() error {
-	addr := fmt.Sprintf(":%d", s.port)
+	// Without bato-auth this server must not serve the network: bind loopback
+	// only. Deployed, BATO_AUTH_URL is always set (bato.json lists it in
+	// deploy.env, so `bato deploy` refuses without it) — a missing var breaks
+	// the published port loudly instead of serving unauthenticated.
+	host := ""
+	if s.auth == nil {
+		host = "127.0.0.1"
+	}
+	addr := fmt.Sprintf("%s:%d", host, s.port)
 	srv := &http.Server{
 		Addr:    addr,
 		Handler: corsMiddleware(s.mux),
@@ -78,6 +91,11 @@ func (s *Server) Run() error {
 // lets ANY origin call the backend — fine for a localhost-only desktop app, but
 // tighten it (echo back a known allowlist of origins) before exposing this
 // server beyond localhost.
+//
+// It also has to change if you ever put a browser UI behind the .bato.lan SSO
+// cookie: browsers refuse to send credentials to a wildcard origin, so "*" must
+// become an echoed allowlist plus Access-Control-Allow-Credentials. Bearer
+// tokens (what the Electron client uses) are unaffected.
 func corsMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Access-Control-Allow-Origin", "*")
@@ -92,10 +110,18 @@ func corsMiddleware(next http.Handler) http.Handler {
 }
 
 func (s *Server) registerRoutes() {
+	// Public. /api/health must stay ungated — the Dockerfile HEALTHCHECK calls
+	// it with no credentials, and a gated health endpoint marks every container
+	// unhealthy.
 	s.mux.HandleFunc("/api/health", s.handleHealth)
-	s.mux.HandleFunc("/api/info", s.handleInfo)
-	// Add your routes here, e.g.:
-	//   s.mux.HandleFunc("/api/items", s.handleItems)
+	s.mux.HandleFunc("/api/auth/me", s.handleMe)
+
+	// Authenticated. Identity comes from bato-auth (the .bato.lan SSO cookie or
+	// a Bearer token); roles are viewer < editor < admin. Add your routes here,
+	// e.g.:
+	//   s.mux.HandleFunc("GET /api/items", s.require("viewer", s.handleItems))
+	//   s.mux.HandleFunc("PUT /api/items", s.require("editor", s.handleSaveItems))
+	s.mux.HandleFunc("/api/info", s.require("viewer", s.handleInfo))
 }
 
 func (s *Server) handleHealth(w http.ResponseWriter, _ *http.Request) {

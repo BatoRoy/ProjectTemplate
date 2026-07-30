@@ -357,44 +357,106 @@ If you port a large batch, update the SHA in `.template` so the next diff starts
   Electron client — should never be containerised; see BUNDLED-SERVICES.md for
   which kind you have.
 
-  The template ships `app-server/Dockerfile` and `app-server/bato.json` for this.
-  `new-app.sh` stamps the names; two things are left to you:
+  The template ships `app-server/Dockerfile`, `app-server/docker-compose.yml` and
+  `app-server/bato.json` for this. `new-app.sh` stamps the names and the hostname;
+  **one** thing is left to you:
 
-  1. **Claim a port** in `BatoApps/PORTS.md` and add it as `port` in
-     `app-server/bato.json`. It is deliberately absent from the template — a
-     stamped-in default would make every generated app collide. `deploy.targetPort`
-     stays 8080 (what the container listens on); `port` is what gets published on
-     the host.
-  2. **Store the server's env** so deploys can sync it, and list anything it
-     cannot start without in `deploy.env`:
+  **Claim a port** in `BatoApps/PORTS.md` and add it as `port` in
+  `app-server/bato.json`. It is deliberately absent from the template — a
+  stamped-in default would make every generated app collide. `deploy.targetPort`
+  stays 8080 (what the container listens on); `port` is what gets published on
+  the host. Until you do, provisioning stops with:
 
-  ```bash
-  bato secrets set <name>-server SOME_URL=https://…
+  ```
+  ✗ deploy.domain needs a "port" in bato.json to route to
   ```
 
-  Then, from `app-server/`:
+  which is the intended failure, not a bug: a hostname with nothing behind it is
+  worse than no hostname.
+
+  Then, from the repo root:
 
   ```bash
-  bato deploy build          # build → push → provision → deploy
+  make deploy               # = cd app-server && bato deploy build
+                            #   build → push → provision → deploy
   ```
 
   `provision` reconciles Dokploy against `bato.json` — it creates the application
-  if it is missing, sets the image, env, port mapping and domain, and is
+  if it is missing, sets the image, env, port mapping, domain and volumes, and is
   idempotent, so running it twice changes nothing. Everything it needs is in
   `bato.json`, which is why a second service is the same one command.
 
-  **Storage.** `app-server/bato.json` ships a `volumes` entry mounting a named
-  Docker volume at `/data`, which is where the container should write anything it
-  expects to find later. The `VOLUME` line in the Dockerfile is *not* enough on
-  its own — that produces an anonymous volume, and Swarm gives each new task a
-  fresh one, so the service silently starts empty after every deploy. Add more
-  entries as needed; use `hostPath` instead of `name` for a bind mount when you
-  want to get at the files from the host.
+  Use `make docker` to run the same image locally first (`app-server/.env.example`
+  → `.env`, then `docker compose up -d --build`). That is a rehearsal, not the
+  deploy path.
 
-  Listing a key in `deploy.env` makes it a **precondition**: the deploy refuses
-  rather than starting a container that is missing it. That check exists because
-  the alternative is worse than a failure — bato-home binds `127.0.0.1` without
-  its `BATO_AUTH_URL` and reports itself healthy while being unreachable.
+  ## Hostname
+
+  `deploy.domain` is stamped as `<slug>.bato.lan` and is the whole of the routing
+  configuration. There is **no per-service DNS, Traefik or certificate work**:
+  `*.bato.lan` resolves through one dnsmasq entry and is covered by one wildcard
+  certificate (`BatoApps/DOKPLOY-SETUP.md` §4.5 and §5), and `provision` creates
+  the router through Dokploy's API. Do not hand-write a Traefik file router for a
+  new service — two routers matching the same `Host()` at equal priority resolve
+  nondeterministically.
+
+  Shorten it if the slug is clumsy (`bato-home` deploys at `home.bato.lan`), or
+  delete the key entirely for a service that should only be reachable by
+  `host:port`.
+
+  ## Data that has to survive a redeploy
+
+  Two halves, and both are required:
+
+  - `app-server/bato.json` ships a `volumes` entry mounting a **named** Docker
+    volume at `/data`. The `VOLUME` line in the Dockerfile is *not* enough on its
+    own — that produces an anonymous volume, and Swarm gives each new task a fresh
+    one, so the service silently starts empty after every deploy. Use `hostPath`
+    instead of `name` for a bind mount when you want to get at the files from the
+    host.
+  - The Dockerfile sets `APP_DATA_DIR=/data`, and the server resolves its data
+    directory as `--data-dir` > `$APP_DATA_DIR` > the `--init` config > `./data`.
+    A container must never depend on `--init`: there is no `~/.config/app/config.json`
+    in the image, and a server that insists on one crash-loops on
+    "Run with --init" while Dokploy reports the deploy as `done`.
+
+  ## Auth
+
+  `deploy.env` lists `BATO_AUTH_URL`, which makes it a **precondition**: the deploy
+  refuses rather than starting a container that is missing it. Store the value
+  first, or provisioning stops and tells you which key is absent:
+
+  ```bash
+  bato secrets set <name>-server BATO_AUTH_URL=http://<host>:42111
+  bato secrets set <name>-server BATO_AUTH_PUBLIC_URL=https://auth.bato.lan
+  ```
+
+  The check exists because the alternative is worse than a failure. Without
+  `BATO_AUTH_URL` the server binds `127.0.0.1` (`internal/api/server.go`, `Run`)
+  and every gated route additionally refuses non-local callers — so a
+  misconfigured deploy is a dead published port rather than an open one. That is
+  also exactly the right behaviour for local development and for a bundled
+  session-bound server, where every caller is local and trusted.
+
+  Routes are gated with `s.require(role, handler)` on the viewer < editor < admin
+  ladder (`internal/api/auth.go`). `/api/health` stays public — the Dockerfile
+  HEALTHCHECK calls it anonymously — and `/api/info` ships gated as the worked
+  example. `/api/auth/me` reports the caller's role so a UI can render
+  accordingly. The client is on its own for obtaining a token; a browser UI on a
+  `.bato.lan` host gets the SSO cookie for free, and `corsMiddleware` then has to
+  stop using `*` (see the warning on it).
+
+  For a service that genuinely needs no auth, drop `BATO_AUTH_URL` from
+  `deploy.env`, unwrap the `s.require(...)` calls, and remove the loopback bind in
+  `Run` — all three, or you will deploy something that cannot be reached.
+
+  ## Deploying a second service — the whole checklist
+
+  1. Claim the next free 42xxx port in `BatoApps/PORTS.md`.
+  2. Set it as `port` in `app-server/bato.json`.
+  3. Check the stamped `deploy.domain`; shorten or delete it.
+  4. `bato secrets set <name>-server BATO_AUTH_URL=…`
+  5. `make deploy`
 
   Prerequisites: `BATO_IMAGE_REGISTRY`, `BATO_DOKPLOY_URL` and `BATO_DOKPLOY_KEY`
   in the environment, and the Dokploy project named in `deploy.project` must

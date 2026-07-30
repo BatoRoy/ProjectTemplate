@@ -32,6 +32,8 @@ app-server/app-server.exe
 # ── Environment ────────────────────────────────────────────
 .env
 .env.*
+# …but the example file is documentation, not a secret.
+!app-server/.env.example
 
 # ── Misc ───────────────────────────────────────────────────
 tmp/

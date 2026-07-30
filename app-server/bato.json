@@ -8,7 +8,8 @@
     "project": "Bato",
     "environment": "production",
     "targetPort": 8080,
-    "env": [],
+    "domain": "app.bato.lan",
+    "env": ["BATO_AUTH_URL"],
     "volumes": [{ "name": "app-server-data", "path": "/data" }]
   }
 }

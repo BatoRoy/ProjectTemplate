@@ -1,0 +1,40 @@
+# Run the server as a container on THIS machine, the same way Dokploy runs it.
+# Useful for checking the image before `make deploy` ships it to the host.
+#
+#   cp .env.example .env && docker compose up -d --build
+#
+# This is not the deploy path — `bato deploy build` builds this same Dockerfile
+# and reconciles Dokploy against bato.json. See README → "Deploying the server
+# as a container (Dokploy)".
+
+services:
+  app-server:
+    build:
+      context: .
+      args:
+        VERSION: ${VERSION:-compose}
+    image: app-server:latest
+    container_name: app-server
+    restart: unless-stopped
+    ports:
+      # Host side must match the "port" you claimed in BatoApps/PORTS.md; the
+      # container side is fixed at 8080 (the Dockerfile's APP_PORT), which is
+      # what deploy.targetPort in bato.json refers to.
+      - "${APP_HOST_PORT:-8080}:8080"
+    environment:
+      # Identity comes from bato-auth. BATO_AUTH_URL is where this server
+      # verifies requests (the host IP works from inside the container);
+      # BATO_AUTH_PUBLIC_URL is where browsers are sent to sign in. With
+      # BATO_AUTH_URL unset the server binds 127.0.0.1 — a container without it
+      # is unreachable on purpose rather than open.
+      BATO_AUTH_URL: ${BATO_AUTH_URL:-}
+      BATO_AUTH_PUBLIC_URL: ${BATO_AUTH_PUBLIC_URL:-}
+    volumes:
+      # A NAMED volume, deliberately. The Dockerfile's VOLUME line alone gets an
+      # anonymous one, and Swarm hands each new task a fresh anonymous volume —
+      # so the service would silently start empty after every deploy. This
+      # mirrors deploy.volumes in bato.json.
+      - app-server-data:/data
+
+volumes:
+  app-server-data:

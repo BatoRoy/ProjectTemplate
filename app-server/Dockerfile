@@ -31,6 +31,14 @@ COPY --from=build /app-server /usr/local/bin/app-server
 # rebuilding to move a service to a different host port.
 ENV APP_PORT=8080
 
+# Where the server keeps anything it expects to find after a redeploy. It must
+# come from the environment: a container has no ~/.config/app/config.json, and
+# a server that insists on one crash-loops on "Run with --init" while Dokploy
+# reports the deploy as done. Pair it with a *named* volume in bato.json's
+# deploy.volumes — the VOLUME line below alone gets an anonymous volume, and
+# Swarm hands each new task a fresh one.
+ENV APP_DATA_DIR=/data
+
 RUN mkdir -p /data && chown app:app /data
 USER app
 VOLUME ["/data"]

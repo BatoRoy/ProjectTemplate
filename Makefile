@@ -1,4 +1,4 @@
-.PHONY: all server client-linux client-windows publish-client dev-setup verify-electron dev-server dev-client new-app lint test clean
+.PHONY: all server client-linux client-windows publish-client dev-setup verify-electron dev-server dev-client docker deploy new-app lint test clean
 
 VERSION := $(shell cat VERSION)
 
@@ -76,6 +76,24 @@ dev-client:
 	fi
 	@echo "→ Starting Electron dev client (Vite + Electron)..."
 	cd app-client && npm run dev
+
+# ─── Containers ──────────────────────────────────────────────────────────────
+
+# Run the server as a container on THIS machine, the same way Dokploy runs it.
+# Pushes .env to the central secrets store first when both exist, so the local
+# copy and the deployed one can't drift.
+docker:
+	@if [ -f app-server/.env ] && command -v bato >/dev/null 2>&1; then \
+		NAME=$$(node -p "require('./app-server/bato.json').name"); \
+		(cd app-server && bato secrets push $$NAME -f .env) || echo "⚠ bato secrets push failed — continuing"; \
+	fi
+	cd app-server && docker compose up -d --build
+
+# Build the image, push it, reconcile Dokploy against app-server/bato.json
+# (image, env, ports, domain, volumes) and deploy. Needs BATO_IMAGE_REGISTRY,
+# BATO_DOKPLOY_URL and BATO_DOKPLOY_KEY — see README.
+deploy:
+	cd app-server && bato deploy build
 
 # ─── New app ─────────────────────────────────────────────────────────────────
 

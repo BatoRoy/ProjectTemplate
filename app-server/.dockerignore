@@ -1,0 +1,12 @@
+# Build context is this directory. Keep it to source: everything else is either
+# rebuilt inside the image or has no business in it.
+data
+app-server
+app-server.exe
+.env
+.env.*
+!.env.example
+*.test
+*.out
+.git
+.DS_Store
