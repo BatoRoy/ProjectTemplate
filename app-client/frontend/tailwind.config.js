@@ -3,6 +3,14 @@ export default {
   content: ["./index.html", "./src/**/*.{js,ts,jsx,tsx}"],
   theme: {
     extend: {
+      // The layout breakpoint used by ResponsiveShell — the one place an app
+      // decides "phone UI" vs "desktop UI". It matches useIsDesktop() and the
+      // minWidth in electron/main.js, so the CSS and the JS can never disagree
+      // about which layout is showing. Only apps that ship a PWA need it; see
+      // the Responsive shell section of the README.
+      screens: {
+        app: '900px',
+      },
       colors: {
         app: {
           bg:          'rgb(var(--app-bg)           / <alpha-value>)',

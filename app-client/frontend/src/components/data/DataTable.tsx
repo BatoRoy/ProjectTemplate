@@ -100,6 +100,7 @@ export function DataTable<T>({
   }
 
   const allOnPageSelected = rows.length > 0 && rows.every(r => selected.includes(rowKey(r)))
+  const someOnPageSelected = !allOnPageSelected && rows.some(r => selected.includes(rowKey(r)))
   const toggleAll = () => {
     const keys = rows.map(rowKey)
     onSelectedChange?.(allOnPageSelected ? selected.filter(k => !keys.includes(k)) : [...new Set([...selected, ...keys])])
@@ -127,7 +128,7 @@ export function DataTable<T>({
             <tr className="bg-app-surface border-b border-app-border">
               {selectable && (
                 <th className="w-10 px-3 py-3">
-                  <Checkbox checked={allOnPageSelected} onChange={toggleAll} />
+                  <Checkbox checked={allOnPageSelected} indeterminate={someOnPageSelected} onChange={toggleAll} />
                 </th>
               )}
               {columns.map(col => {

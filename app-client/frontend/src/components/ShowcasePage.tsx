@@ -203,7 +203,30 @@ function InputsSection({ toast }: ShowcasePageProps) {
         <div className="space-y-4">
           <Switch checked={sw} onChange={setSw} label="Enable notifications" />
           <Checkbox checked={cb} onChange={setCb} label="I agree to the terms" />
+          <Checkbox checked={false} indeterminate onChange={() => {}} label="Indeterminate (partial selection)" />
           <RadioGroup value={radio} onChange={setRadio} options={[{ value: 'a', label: 'Option A' }, { value: 'b', label: 'Option B' }, { value: 'c', label: 'Option C' }]} />
+
+          {/* Native inputs are themed by index.css (color-scheme + appearance
+              reset), so they match even when a component is bypassed. Keeping
+              them on the showcase makes a regression visible immediately. */}
+          <Divider label="native inputs — themed by index.css" />
+          <div className="flex flex-wrap items-center gap-x-6 gap-y-3 text-sm text-app-subtext">
+            <label className="flex items-center gap-2.5 cursor-pointer">
+              <input type="checkbox" defaultChecked /> checked
+            </label>
+            <label className="flex items-center gap-2.5 cursor-pointer">
+              <input type="checkbox" /> unchecked
+            </label>
+            <label className="flex items-center gap-2.5 cursor-pointer">
+              <input type="checkbox" ref={el => { if (el) el.indeterminate = true }} /> indeterminate
+            </label>
+            <label className="flex items-center gap-2.5 cursor-pointer">
+              <input type="radio" name="showcase-native-radio" defaultChecked /> radio on
+            </label>
+            <label className="flex items-center gap-2.5 cursor-pointer">
+              <input type="radio" name="showcase-native-radio" /> radio off
+            </label>
+          </div>
 
           <Divider label="disabled" />
           <div className="flex flex-wrap gap-x-10 gap-y-4">

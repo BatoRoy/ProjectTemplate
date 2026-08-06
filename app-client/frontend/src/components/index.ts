@@ -57,6 +57,8 @@ export { Stack, HStack, VStack, Grid, Container, Center, AspectRatio, Divider, S
 export { AutoGrid, Masonry } from './layout/Responsive'
 export { Scrollable } from './layout/Scrollable'
 export { AppShell } from './layout/AppShell'
+export { ResponsiveShell, useIsDesktop } from './layout/ResponsiveShell'
+export type { NavItem } from './layout/ResponsiveShell'
 export { PanelGroup, Panel } from './layout/PanelGroup'
 export { EditorTabs } from './layout/EditorTabs'
 export { Dashboard } from './layout/Dashboard'

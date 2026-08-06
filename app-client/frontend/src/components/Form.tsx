@@ -1,5 +1,5 @@
 import type { ReactNode, TextareaHTMLAttributes } from 'react'
-import { Check } from 'lucide-react'
+import { Check, Minus } from 'lucide-react'
 import clsx from 'clsx'
 
 // Form controls that complement <Input> / <Button> in Modal.tsx. All theme-aware
@@ -40,28 +40,39 @@ export function Switch({ checked, onChange, label, disabled }: SwitchProps) {
 }
 
 // ── Checkbox ────────────────────────────────────────────────
+// Use this instead of a bare <input type="checkbox">. The box is a <button>
+// with token-driven colors, so it can never pick up the browser's white
+// light-mode chrome on a dark theme. (index.css themes native checkboxes too,
+// as a backstop for hand-written inputs.)
 interface CheckboxProps {
   checked: boolean
   onChange: (checked: boolean) => void
   label?: ReactNode
   disabled?: boolean
+  /** Renders a dash instead of a tick — for "some but not all" parent rows. */
+  indeterminate?: boolean
+  className?: string
 }
 
-export function Checkbox({ checked, onChange, label, disabled }: CheckboxProps) {
+export function Checkbox({ checked, onChange, label, disabled, indeterminate, className }: CheckboxProps) {
+  const filled = checked || indeterminate
   return (
-    <label className={clsx('flex items-center gap-2.5 select-none', disabled ? 'opacity-50' : 'cursor-pointer')}>
+    <label className={clsx('flex items-center gap-2.5 select-none', disabled ? 'opacity-50' : 'cursor-pointer', className)}>
       <button
         type="button"
         role="checkbox"
-        aria-checked={checked}
+        aria-checked={indeterminate ? 'mixed' : checked}
         disabled={disabled}
         onClick={() => onChange(!checked)}
         className={clsx(
           'w-4 h-4 rounded border flex items-center justify-center transition-colors flex-shrink-0',
-          checked ? 'bg-app-accent border-app-accent text-white' : 'border-app-border hover:border-app-accent/60',
+          'focus:outline-none focus-visible:ring-2 focus-visible:ring-app-accent/50 focus-visible:ring-offset-0',
+          filled
+            ? 'bg-app-accent border-app-accent text-white'
+            : 'bg-app-surface border-app-border hover:border-app-accent/60',
         )}
       >
-        {checked && <Check size={12} strokeWidth={3} />}
+        {indeterminate ? <Minus size={12} strokeWidth={3} /> : checked && <Check size={12} strokeWidth={3} />}
       </button>
       {label && <span className="text-sm text-app-subtext">{label}</span>}
     </label>
@@ -98,7 +109,8 @@ export function RadioGroup<T extends string | number>({ value, options, onChange
               disabled={disabled}
               onClick={() => onChange(opt.value)}
               className={clsx(
-                'w-4 h-4 rounded-full border flex items-center justify-center transition-colors flex-shrink-0',
+                'w-4 h-4 rounded-full border bg-app-surface flex items-center justify-center transition-colors flex-shrink-0',
+                'focus:outline-none focus-visible:ring-2 focus-visible:ring-app-accent/50',
                 active ? 'border-app-accent' : 'border-app-border hover:border-app-accent/60',
               )}
             >

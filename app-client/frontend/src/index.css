@@ -15,10 +15,19 @@
   --app-accent:        124 58 237;
   --app-accent-hover:  140 82 239;
   --app-accent-bright: 179 141 245;
+
+  /* Tints every native control the UA paints for us (checkbox, radio,
+     progress, Firefox range) with the app accent. */
+  accent-color: rgb(var(--app-accent));
 }
 
 /* ── Dark theme (default) — lifted zinc ──────────────────────── */
 :root, [data-theme="dark"] {
+  /* color-scheme is what stops native widgets — checkboxes, radios, selects,
+     date pickers, scrollbars — from rendering with the browser's light-mode
+     chrome (the classic white checkbox on a dark background). Every theme
+     block below must declare it. */
+  color-scheme: dark;
   --app-bg:      22 22 25;
   --app-surface: 29 29 33;
   --app-card:    33 33 38;
@@ -33,6 +42,7 @@
 
 /* ── Dim theme (lifted one more step) ───────────────────────── */
 [data-theme="dim"] {
+  color-scheme: dark;
   --app-bg:      29 29 33;
   --app-surface: 36 36 41;
   --app-card:    40 40 46;
@@ -47,6 +57,7 @@
 
 /* ── Light theme (zinc light scale) ─────────────────────────── */
 [data-theme="light"] {
+  color-scheme: light;
   --app-bg:      250 250 250;
   --app-surface: 255 255 255;
   --app-card:    255 255 255;
@@ -120,6 +131,93 @@ input[type='range']::-webkit-slider-thumb {
 }
 input[type='range']::-webkit-slider-thumb:hover {
   transform: scale(1.2);
+}
+
+/* ── Native checkbox / radio ─────────────────────────────────
+   Prefer the <Checkbox> / <RadioGroup> components in components/Form.tsx.
+   These rules exist so that a hand-written <input type="checkbox"> — the
+   easy thing to reach for — still matches the token palette instead of
+   showing the UA's white box. Element selectors (0,0,1) lose to Tailwind
+   utilities, so `className="w-5 h-5 …"` still overrides everything here.
+   ───────────────────────────────────────────────────────────── */
+input[type='checkbox'],
+input[type='radio'] {
+  -webkit-appearance: none;
+  appearance: none;
+  flex-shrink: 0;
+  display: inline-grid;
+  place-content: center;
+  width: 1rem;
+  height: 1rem;
+  margin: 0;
+  border: 1px solid rgb(var(--app-border));
+  background-color: rgb(var(--app-surface));
+  color: #fff;
+  cursor: pointer;
+  transition: background-color 0.15s, border-color 0.15s;
+}
+input[type='checkbox'] {
+  border-radius: 4px;
+}
+input[type='radio'] {
+  border-radius: 50%;
+}
+input[type='checkbox']:hover:not(:disabled),
+input[type='radio']:hover:not(:disabled) {
+  border-color: rgb(var(--app-accent) / 0.6);
+}
+input[type='checkbox']:focus-visible,
+input[type='radio']:focus-visible {
+  outline: 2px solid rgb(var(--app-accent) / 0.5);
+  outline-offset: 2px;
+}
+input[type='checkbox']:disabled,
+input[type='radio']:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* Checkbox: accent fill + a clipped checkmark (or dash when indeterminate). */
+input[type='checkbox']:checked,
+input[type='checkbox']:indeterminate {
+  background-color: rgb(var(--app-accent));
+  border-color: rgb(var(--app-accent));
+}
+input[type='checkbox']::before {
+  content: '';
+  width: 0.625rem;
+  height: 0.625rem;
+  background-color: currentColor;
+  transform: scale(0);
+  transition: transform 0.1s ease-out;
+  clip-path: polygon(14% 44%, 0 65%, 50% 100%, 100% 16%, 80% 0%, 43% 62%);
+}
+input[type='checkbox']:checked::before {
+  transform: scale(1);
+}
+input[type='checkbox']:indeterminate::before {
+  width: 0.5rem;
+  height: 2px;
+  border-radius: 1px;
+  clip-path: none;
+  transform: scale(1);
+}
+
+/* Radio: hollow ring with an accent dot. */
+input[type='radio']:checked {
+  border-color: rgb(var(--app-accent));
+}
+input[type='radio']::before {
+  content: '';
+  width: 0.5rem;
+  height: 0.5rem;
+  border-radius: 50%;
+  background-color: rgb(var(--app-accent));
+  transform: scale(0);
+  transition: transform 0.1s ease-out;
+}
+input[type='radio']:checked::before {
+  transform: scale(1);
 }
 
 .mono-text {

@@ -114,6 +114,13 @@ Pushing a `v*.*.*` tag triggers `.github/workflows/release.yml`, which builds th
   from the chosen hex (preset or custom), lightening on dark themes and darkening on light. Use
   `bg-app-accent` (+ `hover:bg-app-accentHover`) for solid actions and `bg-app-accent/15
   text-app-accentBright` for active/soft states. Surfaces are flat — there is no background engine.
+- **Native controls** are covered too. Each theme block in `index.css` declares `color-scheme`
+  (`dark` for Dark/Dim, `light` for Light) and `:root` sets `accent-color`, which is what keeps the
+  browser from painting checkboxes, radios, selects, date pickers and scrollbars in its light-mode
+  chrome — the white-checkbox-on-dark bug. `index.css` also restyles `input[type=checkbox]` and
+  `input[type=radio]` onto the tokens, so even a hand-written native input looks right. **Don't
+  remove the `color-scheme` lines when you edit the palette.** Prefer the `Checkbox` / `RadioGroup`
+  components regardless — they add labels, focus rings and an indeterminate state.
 - **Frontend ↔ backend** goes over HTTP via `src/lib/bridge.ts` (default `http://localhost:8080`).
 - **Frontend ↔ OS** (file dialogs, settings store, file I/O, native notifications) goes through the Electron preload
   bridge, typed in `src/lib/electron.d.ts` and implemented in `electron/main.js`.
@@ -162,7 +169,7 @@ import { Button, DatePicker, KanbanBoard, useToast } from '../components'
 | `TimeInput` | Typeable H:M:S segments — ↑/↓ (hold) with carry, 24h-cap toggle, wrap/clamp (vs the scroll-based `TimePicker`) |
 | `ColorPicker` | HSV picker + swatches + hex |
 | `FileDropzone` | Drag-drop + click (Electron dialog aware) |
-| `Switch`, `Checkbox`, `RadioGroup` | Toggles |
+| `Switch`, `Checkbox`, `RadioGroup` | Toggles; `Checkbox` supports `indeterminate` |
 
 **Layout & feedback** (`components/layout/`, `components/Feedback.tsx`)
 
@@ -181,9 +188,49 @@ import { Button, DatePicker, KanbanBoard, useToast } from '../components'
 | `AutoGrid`, `Masonry` | Responsive grids that reflow by width |
 | `Scrollable` | Constrained scroll container (axis, maxHeight, optional edge fade) |
 | `AppShell` | Page scaffold: header + sidebar + footer + scrollable content |
+| `ResponsiveShell` + `useIsDesktop` | Phone layout on a narrow browser, desktop layout otherwise. **Opt-in — see below** |
 | `PanelGroup` + `Panel` | N-panel, nestable, resizable splits (persisted) |
 | `EditorTabs` | VS Code–style tabs: closable, drag-to-reorder, dirty dot, add |
 | `Dashboard` | Hand-rolled drag-and-drop widget builder: snap/free, edit mode, add/remove palette, pointer drag + resize, persisted serializable layout |
+
+### Responsive shell — only if your app ships a PWA
+
+`ResponsiveShell` renders a **bottom tab bar on a phone and a sidebar on a
+desktop**, choosing between two separate component trees rather than restyling
+one. It is deliberately **not wired into `App.tsx`** — a desktop-only Electron
+app has no phone to be a phone on, and should keep `AppShell` + `Sidebar`. Reach
+for this only when the same build is also served to a browser (BatoHealth,
+BatoMoney).
+
+```tsx
+import { ResponsiveShell } from './components'
+import type { NavItem } from './components'
+
+type View = 'home' | 'settings'
+const NAV: NavItem<View>[] = [
+  { id: 'home',     label: 'Home',     icon: House },
+  { id: 'settings', label: 'Settings', icon: Settings },
+]
+
+<ResponsiveShell view={view} onNavigate={setView} items={NAV}>
+  {view === 'home' && <HomePage />}
+</ResponsiveShell>
+```
+
+The breakpoint is **900px, written down in three places that must stay equal**:
+`useIsDesktop()` in the component, `screens.app` in `tailwind.config.js` (giving
+you the `app:` variant for layout inside a view), and `minWidth` in
+`electron/main.js`. The Electron floor is what makes the other two agree —
+`useIsDesktop()` returns `true` for Electron unconditionally, and a window that
+cannot go below 900px can never contradict that.
+
+Two things the shell assumes but cannot enforce:
+
+- `index.html` needs `viewport-fit=cover`, or `env(safe-area-inset-bottom)` on
+  the tab bar resolves to 0 and iOS overlaps the home indicator.
+- Views should not carry their own page padding or `max-w-*` — the shell owns
+  the content container, which is how one view can be a 448px column on a phone
+  and a two-column layout on a monitor.
 
 **Date & calendar** (`components/date/`, uses `date-fns`)
 
