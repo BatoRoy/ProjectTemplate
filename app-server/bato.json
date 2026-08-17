@@ -2,6 +2,10 @@
   "name": "app-server",
   "type": "backend",
   "description": "Backend for the app",
+  "env": {
+    "PATH": "~/.local/bin:/usr/local/bin:/usr/bin:/bin",
+    "APP_DATA_DIR": "~/.local/share/app"
+  },
   "deploy": {
     "app": "AppServer",
     "image": "app-server",

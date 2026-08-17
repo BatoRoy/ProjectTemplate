@@ -82,6 +82,20 @@ make all             # everything
 make clean
 ```
 
+## Publishing
+
+```bash
+make publish-client                    # AppImage → bato, self-updating
+make publish-server                    # tarball  → bato, `bato install`-able
+make publish-server NOTES="what changed"
+make stage-server                      # what would ship, without uploading
+```
+
+Both need the `bato` CLI on PATH and `BATO_*` credentials in the environment.
+Details, and how to publish a native (non-Electron) client, are in
+[Publishing a backend service to bato](#publishing-a-backend-service-to-bato)
+and [Publishing a native app](#publishing-a-native-app-the-desktop-type).
+
 ### Bundling the service into the client
 
 Published apps usually ship the Go server **inside** the AppImage and spawn it on
@@ -333,8 +347,10 @@ If you port a large batch, update the SHA in `.template` so the next diff starts
 
 # Publishing a backend service to bato
 
-  Any project that produces a server binary can publish it to your bato (MinIO) registry. A backend is published with the same bato publish command as a
-  desktop app — it just dispatches on the type field — but with three differences to account for:
+  Any project that produces a server binary can publish it to your bato (MinIO)
+  registry. `bato publish` is the same command for every kind of program — it
+  dispatches on the `type` field in bato.json — but a backend differs from the
+  Electron client in three ways:
 
   1. It needs its own bato.json. The CLI reads ./bato.json from the current directory and that file describes exactly one project. If the repo already has
   an electron bato.json at the root, the server needs a separate one in its own directory.
@@ -344,49 +360,145 @@ If you port a large batch, update the SHA in `.template` so the next diff starts
 
   Steps
 
-  1. Create a staging directory with a bato.json for the service, e.g. deploy/server/bato.json:
+  **The template already does all of this** — `make publish-server` builds, stages
+  and publishes. What follows is what it does and why, so you can extend it.
 
-  {
-    "name": "<service-name>",
-    "type": "backend",
-    "description": "<one-line description>",
-    "artifacts": ["<binary-filename>"]
-  }
+  1. `make stage-server` writes `deploy/server/`: the built binary plus a
+  generated `bato.json`.
 
-  - name is what you'll bato get later.
-  - Omit s3Path — it defaults to backends/<name>, so it never collides with electron apps under apps/.
-  - Keep artifacts as bare filenames (no ../); you'll stage the build output into this dir so the paths stay simple and the tarball is clean.
+  The manifest is generated from `app-server/bato.json` (dropping the `deploy`
+  block, adding `exec` and `artifacts`) rather than committed as a second file.
+  One service described by two hand-maintained manifests will drift, and the copy
+  that drifts is always the one you are not looking at — a real release once
+  shipped from a stale second manifest and installed nothing.
 
-  2. Add a publish target to your build system. The pattern is: build → copy the binary next to its bato.json → cd there → publish. In a Makefile:
+  Why a staging dir at all: `bato publish` tars the listed `artifacts` *relative
+  to the working directory*. Publishing from `app-server/` would either ship the
+  whole Go source tree (what happens with no `artifacts` list) or bake `../dist/`
+  paths into the tarball.
 
-  publish-server: server          # reuse your existing build target
-        cp <build-output-path> deploy/server/
-        cd deploy/server && bato publish -v $(VERSION) -n "$(NOTES)"
+  2. `make publish-server` pushes `.env` to the central secrets store, then runs
+  `bato publish -v $(VERSION)` from the staging dir.
 
-  The cd is what makes the CLI pick up the server's bato.json instead of the repo-root one, and tars relative to that directory.
+  The version comes from the `VERSION` file, the same one the `server` target
+  stamps into the binary with `-ldflags "-X main.Version="`. Never hardcode it in
+  a publish target, or the registry and the binary silently disagree.
 
-  Make sure the build target the publish reuses stamps the binary with the same version it publishes under, or the two silently drift apart
-  (registry says 1.0.1, binary reports 1.1.0). The template's `server` target already does this:
-
-  go build -ldflags="-s -w -X main.Version=$(VERSION)" ...
-
-  Never hardcode a version in the publish target — always pass $(VERSION) so the VERSION file stays the single source of truth.
-
-  3. Prerequisites (same as any bato publish): the bato CLI on PATH, and write credentials in the environment — BATO_S3_ENDPOINT, BATO_BUCKET,
+  3. Prerequisites (same as any bato publish): the bato CLI on PATH, and write
+  credentials in the environment — BATO_S3_ENDPOINT, BATO_BUCKET,
   BATO_ACCESS_KEY, BATO_SECRET_KEY.
+
+  ### Environment for the generated unit
+
+  `app-server/bato.json` carries an `env` block:
+
+  ```json
+  "env": {
+    "PATH": "~/.local/bin:/usr/local/bin:/usr/bin:/bin",
+    "APP_DATA_DIR": "~/.local/share/<slug>"
+  }
+  ```
+
+  `bato install` writes these into the systemd unit as `Environment=`. Both lines
+  earn their place:
+
+  - **PATH** — a systemd *user* unit does not inherit your login shell's PATH. A
+    server that shells out to a tool in `~/.local/bin` starts cleanly without
+    this and then fails at call time, which reads like a bug in the feature
+    rather than a missing search path.
+  - **APP_DATA_DIR** — without it the server defaults to a data directory inside
+    the release directory, which the next upgrade replaces. Pinning it outside
+    means the data survives upgrades and is the same wherever the release lives.
+
+  `~` and `$HOME` are expanded by the CLI, because systemd expands neither in
+  `Environment=`. systemd's own `%h`-style specifiers are *not* available here.
 
   Result
 
-  The binary lands in MinIO at backends/<name>/<version>/<name>-<version>.tar.gz with a meta.json recording the version and sha256. Backends are
-  manual-pull only — no auto-update, and no `bato install`. On the host that runs the service:
+  The binary lands in MinIO at backends/<name>/<version>/<name>-<version>.tar.gz
+  with a meta.json recording the version and sha256. On the host that runs it:
 
-  bato get <service-name>                    # latest; add -v X.Y.Z for a specific version
-  tar xzf <service-name>-<version>.tar.gz    # the CLI prints this exact command after the download
-  ./<binary-filename>
+  ```bash
+  bato install <service-name>     # unpacks it, writes + starts a systemd user unit
+  bato service logs <service-name> -f
+  bato uninstall <service-name>   # removes exactly what the install created
+  ```
 
-  The CLI verifies the tarball against the sha256 recorded at publish time before saving it.
+  `bato get <service-name>` still downloads the raw tarball if you want to unpack
+  it yourself. Either way the CLI verifies it against the sha256 recorded at
+  publish time.
 
   This generalizes to any number of services in a repo: give each its own staging dir + bato.json and its own publish target.
+
+# Publishing a native app (the `desktop` type)
+
+  This template's client is Electron, which publishes as `type: "electron"`: one
+  self-contained AppImage that auto-updates itself. If you replace it with a
+  native client — Qt/QML, a Go GUI, anything that is a binary plus resources
+  rather than one file — publish it as `type: "desktop"` instead.
+
+  A desktop release is a versioned tarball like a backend, but the manifest also
+  declares what the install should *do*, so no post-install script is needed (and
+  none is accepted):
+
+  ```json
+  {
+    "name": "myapp",
+    "type": "desktop",
+    "description": "…",
+    "artifacts": ["myapp", "myapp-server", "qml"],
+    "bin": ["myapp", "myapp-server"],
+    "desktop": {
+      "name": "MyApp",
+      "exec": "myapp ui",
+      "categories": "Utility;",
+      "startupWMClass": "org.qt-project.qml"
+    },
+    "service": {
+      "exec": "myapp-server",
+      "port": 42xxx,
+      "dirs": ["~/.local/share/myapp"],
+      "env": { "APP_DATA_DIR": "~/.local/share/myapp" }
+    },
+    "requires": [
+      { "command": "qml6", "required": true,
+        "install": { "arch": "sudo pacman -S qt6-declarative" },
+        "reason": "runs the dashboard" }
+    ]
+  }
+  ```
+
+  What each block buys you, all of it otherwise hand-written shell:
+
+  - **`bin`** — symlinked into `~/.local/bin`, never copied, so the next upgrade
+    takes effect instead of leaving you on the build you first installed. A
+    same-named binary that is not yours is left alone.
+  - **`desktop`** — the launcher and its icon (fetched from the registry, so it
+    does not travel in your tarball). Pass an array for several launchers.
+    `exec`'s first token is rewritten to an absolute path, because a `.desktop`
+    `Exec=` runs without your shell's PATH. **Measure `startupWMClass`**
+    (`hyprctl clients`, `xprop WM_CLASS`) rather than guessing — a QML app
+    launched through `qml6` reports `org.qt-project.qml` no matter what argv[0]
+    says, and a wrong value gives you a second, iconless taskbar entry.
+  - **`service`** — optional. A GUI with no daemon omits it and gets no unit.
+  - **`requires`** — checked *before* the download, with the exact install
+    command for this distro. Better than fetching the release and wiring up a
+    launcher for something that cannot start.
+
+  Shipping your own Qt/libs instead of using system packages? Set
+  `"bundled": true` with `bundledLibs.libDirs` / `.qmlDirs`; the install then
+  writes a wrapper into `~/.local/bin` that exports `LD_LIBRARY_PATH` /
+  `QML2_IMPORT_PATH` and `exec`s the binary, instead of a bare symlink.
+
+  Staging and publishing works exactly like the backend above — build, stage the
+  artifacts into a directory with the manifest, `cd` there, `bato publish -v
+  $(VERSION)`. Copy `stage-server`/`publish-server` from the Makefile and swap
+  the artifact list.
+
+  Whatever the type, the install writes a **receipt** listing every path it
+  created, and `bato uninstall` replays it in reverse — so a launcher, a PATH
+  symlink and a unit are all removed, not just the files someone remembered to
+  list. Paths you replaced by hand are left alone.
 
 # Deploying the server as a container (Dokploy)
 

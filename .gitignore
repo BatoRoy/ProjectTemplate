@@ -7,6 +7,11 @@ app-client/frontend/package.json.md5
 # ── Electron build output ─────────────────────────────────
 dist/
 
+# ── Server release staging ────────────────────────────────
+# `make stage-server` builds this whole directory, manifest included, from
+# app-server/. Nothing in it is source.
+deploy/
+
 # ── Go binaries ────────────────────────────────────────────
 app-server/app-server
 app-server/app-server.exe

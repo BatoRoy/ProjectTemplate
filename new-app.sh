@@ -171,6 +171,11 @@ edit('app-client/bato.json', (p) => {
 edit('app-server/bato.json', (p) => {
   p.name = `${slug}-server`
   p.description = `Backend for ${name}`
+  // Where the daemon keeps its data when it runs under systemd. `bato install`
+  // writes this into the unit as Environment=, expanding `~` itself — systemd
+  // expands neither `~` nor $HOME there. Without it the server would default to
+  // a data dir inside the release directory and lose it on the next upgrade.
+  p.env = { ...p.env, APP_DATA_DIR: `~/.local/share/${slug}` }
   p.deploy.app = `${execName}Server`
   p.deploy.image = `${slug}-server`
   p.deploy.domain = `${slug}.bato.lan`

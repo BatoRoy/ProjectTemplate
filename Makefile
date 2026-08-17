@@ -1,6 +1,14 @@
-.PHONY: all server client-linux client-windows publish-client dev-setup verify-electron dev-server dev-client docker deploy new-app lint test clean
+.PHONY: all server client-linux client-windows publish-client stage-server publish-server \
+        dev-setup verify-electron dev-server dev-client docker deploy new-app lint test clean
 
 VERSION := $(shell cat VERSION)
+
+# The service slug, read from the one manifest that defines it. Everything the
+# publish and deploy targets need is derived from this rather than repeated.
+SERVER_NAME := $(shell node -p "require('./app-server/bato.json').name" 2>/dev/null)
+
+# Release notes for a publish: make publish-server NOTES="what changed"
+NOTES ?=
 
 all: server client-linux client-windows
 
@@ -26,6 +34,8 @@ client-windows:
 	cd app-client && npm run package:win
 	@echo "✓ app-client → dist/electron/"
 
+# ─── Publishing ──────────────────────────────────────────────────────────────
+
 # Build the renderer, package the AppImage, and publish it to your bato (MinIO).
 # Requires the `bato` CLI on PATH and BATO_* env vars set (see bato/README.md).
 publish-client:
@@ -34,6 +44,39 @@ publish-client:
 	npm install --prefix app-client
 	cd app-client && bato publish
 	@echo "✓ published to bato"
+
+# Stage the server release into deploy/server/.
+#
+# `bato publish` reads bato.json from the working directory and tars the listed
+# artifacts *relative to it*. Publishing from app-server/ would therefore either
+# ship the entire Go source tree (that is what happens with no "artifacts" list)
+# or bake ../dist/ paths into the tarball. A staging directory keeps the release
+# to exactly the files that belong in it.
+#
+# The staged manifest is *generated* from app-server/bato.json rather than
+# committed next to it. Two hand-maintained manifests for one service drift, and
+# the one that drifts is always the one you are not looking at — a real release
+# once shipped from a stale second copy. The deploy block is dropped because it
+# describes how to run a container, which a tarball release has no use for.
+stage-server: server
+	@test -n "$(SERVER_NAME)" || { echo "✗ could not read name from app-server/bato.json"; exit 1; }
+	@mkdir -p deploy/server
+	@install -Dm755 dist/app-server-linux-amd64 deploy/server/$(SERVER_NAME)
+	@node -e "const fs=require('fs'); const {deploy, ...m}=require('./app-server/bato.json'); \
+	  fs.writeFileSync('deploy/server/bato.json', JSON.stringify({...m, exec:m.name, artifacts:[m.name]}, null, 2)+'\n')"
+	@echo "✓ staged $(SERVER_NAME) v$(VERSION) → deploy/server/"
+
+# Publish the server as a tarball others can `bato install`.
+#
+# Secrets go up first so the copy in the central store can never be older than
+# the release that needs it — `bato install` pulls them onto the target host.
+publish-server: stage-server
+	@if [ -f app-server/.env ]; then \
+	  (cd app-server && bato secrets push $(SERVER_NAME) -f .env) || echo "⚠ bato secrets push failed — continuing"; \
+	fi
+	cd deploy/server && bato publish -v $(VERSION) -n "$(NOTES)"
+	@echo "✓ published $(SERVER_NAME) v$(VERSION)"
+	@echo "  install it on the host that runs it with:  bato install $(SERVER_NAME)"
 
 # ─── Development ─────────────────────────────────────────────────────────────
 
@@ -119,4 +162,5 @@ test:
 
 clean:
 	rm -rf dist/
+	rm -rf deploy/
 	rm -rf app-client/frontend/dist/
