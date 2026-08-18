@@ -1,8 +1,7 @@
 # Project Template
 
-A starting template for desktop apps: a **Go** backend, a polished theming system, a
-version-tagged build/release pipeline — and a choice of two clients that look and behave
-the same.
+A starting template for desktop apps: a **Go** backend, an **Electron + React** client, a
+polished theming system, and a version-tagged build/release pipeline.
 
 It ships the look-and-feel ready to go — a clean zinc-based dark UI, theme presets
 (Dark / Dim / Light), Inter + JetBrains Mono, a per-app **accent color** (presets +
@@ -10,27 +9,29 @@ custom), and a self-contained **App Options** panel for theme / accent / UI scal
 width / text selection, all persisted. Drop in your pages and backend routes; the chrome
 is done.
 
-## Choosing a client
+## Clients
 
-`new-app.sh` keeps exactly one. Both draw the same palette, the same sidebar, the same
-App Options; `PARITY.md` is the contract between them and lists every deliberate
-difference.
+The template ships one client: **Electron + React** in `app-client/`. It packages as a
+self-contained AppImage (plus a Windows NSIS build), publishes to bato as
+`type: "electron"`, and self-updates from there.
 
-| | `--electron` (default) | `--qml` |
-|---|---|---|
-| Stack | Electron + React + TS + Tailwind | Qt/QML + a Go host process |
-| Startup / memory | heavier | markedly lighter and faster |
-| Ships as | one self-contained AppImage | tarball + system `qt6-declarative` |
-| Publishes as | `type: "electron"` | `type: "desktop"` |
-| Auto-update | yes (electron-updater) | **no** — About detects, `bato install` upgrades |
-| Runs in bato-hub | yes (web bundle) | **no** |
-| Windows build | yes | Linux only |
-| Component kit | ~95 components | 80 components; 6 not ported (see `PARITY.md`) |
-| Runtime deps | none | `qml6`, Inter, JetBrainsMono Nerd Font |
+It is not *wired in*, though, and that is deliberate. The client is the part of an app
+most likely to be swapped, so the plumbing dispatches on what is in the tree rather than
+assuming Electron:
 
-Pick Electron when you want the widest component kit, a web bundle, self-update or a
-Windows build. Pick QML when startup time and memory matter more than any of those — see
-`QML-CLIENT.md`.
+- `make client` / `make publish-client` / `make dev-client` are the names you type. They
+  forward to the Electron targets today; a different client adds its own `HAS_<FLAVOR>`
+  probe and branches in the `Makefile` and the generic names keep working.
+- `new-app.sh` takes a `--<flavor>` flag, records the choice in `.template`, stamps the
+  identity files that flavor owns, and keeps `.github/workflows/release-<flavor>.yml`
+  while deleting the others. Electron is the only flavor today, so it is also the default.
+- A client that ships as a binary plus resources rather than one file publishes as
+  `type: "desktop"` instead — see [Publishing a native app](#publishing-a-native-app-the-desktop-type)
+  for the manifest, and `make check-desktop-manifest DIR=…` to validate a staged one.
+
+> The template carried a second client for a while, so this dispatch is load-bearing
+> rather than speculative — it has been exercised. What is left is the shape: adding a
+> client is a new branch in each of the three places above, not a reshaping.
 
 ## Stack
 
@@ -38,17 +39,10 @@ Windows build. Pick QML when startup time and memory matter more than any of tho
 |---------------|----------------------------|---------------------------------------------|
 | Frontend      | `app-client/frontend`      | React 18, TypeScript, Vite, Tailwind        |
 | Desktop shell | `app-client/electron`      | Electron (main + preload)                   |
-| QML client    | `app-client-qml`           | Qt 6 QML + Go host (`qml6`, no bindings)    |
 | Backend       | `app-server`               | Go 1.22, `net/http`                         |
 | Pipeline      | root                       | `VERSION`, `version.sh`, `Makefile`, GitHub Actions |
 
-Further reading: **`QML-CLIENT.md`** (architecture and the QML-specific traps),
-**`PARITY.md`** (token and component contract, deliberate deviations),
-**`app-client-qml/CLIENT.md`** (the `desktop` release manifest, annotated).
-
 ## Quick start
-
-### Electron flavor
 
 ```bash
 # One-time: install all frontend + electron deps
@@ -63,25 +57,6 @@ make dev-server
 # Terminal 2 — Vite dev server + Electron
 make dev-client
 ```
-
-### QML flavor
-
-```bash
-# Check the runtime and fonts are installed before anything else
-make doctor-qml
-
-# The real thing: host process + UI + a bundled server on a free port
-make dev-qml
-```
-
-`make dev-qml` needs no dependency install — the QML is read from the checkout and the
-UI has no build step. For the fastest edit-reload loop use `make dev-ui`, which starts
-`qml6` alone; native operations are then unavailable and you supply a backend yourself
-with `make dev-server` plus a saved server URL in App Options.
-
-Missing `qml6`? `sudo pacman -S qt6-declarative` (Arch) — `make doctor-qml` prints the
-command for your distro, and `bato install` refuses to install the app on a machine that
-lacks it rather than leaving you with a launcher that does nothing.
 
 ## Branding — make it yours
 
@@ -131,18 +106,6 @@ Details, and how to publish a native (non-Electron) client, are in
 [Publishing a backend service to bato](#publishing-a-backend-service-to-bato)
 and [Publishing a native app](#publishing-a-native-app-the-desktop-type).
 
-### Publishing the QML client
-
-`make publish-qml` stages `deploy/desktop/` and publishes it as a `type: "desktop"`
-release. Run `make publish-check-qml` first: it stages the same tree and validates it
-against the rules `bato publish` enforces, without uploading — there is no dry-run flag
-on the real command, and republishing a version silently overwrites it.
-
-One thing that catches everyone once: **a desktop launcher's icon is fetched from the
-registry, not from the tarball.** Register the slug in `BatoApps/bato/icons` and run
-`make publish-icons` there, or the app-menu entry has no icon. Details in
-`app-client-qml/CLIENT.md`.
-
 ### Bundling the service into the client
 
 Published apps usually ship the Go server **inside** the AppImage and spawn it on
@@ -163,7 +126,7 @@ A single `VERSION` file is the source of truth; `version.sh` syncs it into the f
 git push && git push origin v1.0.0
 ```
 
-Pushing a `v*.*.*` tag triggers `.github/workflows/release.yml`, which builds the Go binaries
+Pushing a `v*.*.*` tag triggers `.github/workflows/release-electron.yml`, which builds the Go binaries
 (Linux + Windows) and the Electron clients (AppImage + NSIS) and attaches them to a GitHub Release.
 
 ## Architecture notes
@@ -338,11 +301,12 @@ const menu = useContextMenu()
 
 ## Starting a new project from this template
 
-`./new-app.sh <AppName> <dest> [--electron|--qml]` — the flag picks the client and the
-other one is deleted, along with the docs and the release workflow that belong to it.
-Electron is the default, so an unqualified invocation behaves as it always has. The
-choice is recorded in `.template` next to the template version and commit, because it is
-not otherwise recoverable from a diff: half the tree was removed on purpose.
+`./new-app.sh <AppName> <dest> [--electron]` — the flag picks the client. Electron is the
+only one the template ships today and is the default, so an unqualified invocation is the
+normal case; the flag exists because the choice drives which identity files are stamped
+and which `release-<flavor>.yml` workflow survives. It is recorded in `.template` next to
+the template version and commit, so a later diff against the template can tell a
+deliberate omission from drift.
 
 From a checkout of the template, run the scaffold script (or its make wrapper):
 
@@ -485,14 +449,17 @@ If you port a large batch, update the SHA in `.template` so the next diff starts
 
 # Publishing a native app (the `desktop` type)
 
-  > **This is no longer hypothetical.** `app-client-qml/` is a working implementation
-  > of everything below, and `app-client-qml/CLIENT.md` annotates its manifest field by
-  > field with the constraints the CLI actually enforces. Read this section for the
-  > mechanism, that one for the decisions.
-
   The Electron client publishes as `type: "electron"`: one self-contained AppImage that
-  auto-updates itself. A native client — Qt/QML, a Go GUI, anything that is a binary
-  plus resources rather than one file — publishes as `type: "desktop"` instead.
+  auto-updates itself. A native client — a Go or Rust GUI, a toolkit-based UI, anything
+  that is a binary plus resources rather than one file — publishes as `type: "desktop"`
+  instead.
+
+  > Nothing in the template publishes this way today. The section stays because this is
+  > the mechanism a replacement client would use, and `tools/check-desktop-manifest.mjs`
+  > (via `make check-desktop-manifest DIR=…`) already validates a staged tree against
+  > exactly these rules without uploading — `bato publish` runs them only as the first
+  > step of a command that then uploads, and a republished version silently overwrites
+  > the previous one.
 
   A desktop release is a versioned tarball like a backend, but the manifest also
   declares what the install should *do*, so no post-install script is needed (and
@@ -503,13 +470,13 @@ If you port a large batch, update the SHA in `.template` so the next diff starts
     "name": "myapp",
     "type": "desktop",
     "description": "…",
-    "artifacts": ["myapp", "myapp-server", "qml"],
+    "artifacts": ["myapp", "myapp-server", "resources"],
     "bin": ["myapp", "myapp-server"],
     "desktop": {
       "name": "MyApp",
       "exec": "myapp ui",
       "categories": "Utility;",
-      "startupWMClass": "org.qt-project.qml"
+      "startupWMClass": "myapp"
     },
     "service": {
       "exec": "myapp-server",
@@ -518,9 +485,9 @@ If you port a large batch, update the SHA in `.template` so the next diff starts
       "env": { "APP_DATA_DIR": "~/.local/share/myapp" }
     },
     "requires": [
-      { "command": "qml6", "required": true,
-        "install": { "arch": "sudo pacman -S qt6-declarative" },
-        "reason": "runs the dashboard" }
+      { "command": "some-runtime", "required": true,
+        "install": { "arch": "sudo pacman -S some-runtime" },
+        "reason": "draws the UI" }
     ]
   }
   ```
@@ -534,23 +501,30 @@ If you port a large batch, update the SHA in `.template` so the next diff starts
     does not travel in your tarball). Pass an array for several launchers.
     `exec`'s first token is rewritten to an absolute path, because a `.desktop`
     `Exec=` runs without your shell's PATH. **Measure `startupWMClass`**
-    (`hyprctl clients`, `xprop WM_CLASS`) rather than guessing — a QML app
-    launched through `qml6` reports `org.qt-project.qml` no matter what argv[0]
-    says, and a wrong value gives you a second, iconless taskbar entry.
+    (`hyprctl clients`, `xprop WM_CLASS`) rather than guessing — a UI launched
+    through a shared runtime often reports that runtime's class rather than
+    anything derived from argv[0], and a wrong value gives you a second,
+    iconless taskbar entry.
   - **`service`** — optional. A GUI with no daemon omits it and gets no unit.
   - **`requires`** — checked *before* the download, with the exact install
     command for this distro. Better than fetching the release and wiring up a
     launcher for something that cannot start.
 
-  Shipping your own Qt/libs instead of using system packages? Set
+  Shipping your own libraries instead of relying on system packages? Set
   `"bundled": true` with `bundledLibs.libDirs` / `.qmlDirs`; the install then
   writes a wrapper into `~/.local/bin` that exports `LD_LIBRARY_PATH` /
   `QML2_IMPORT_PATH` and `exec`s the binary, instead of a bare symlink.
 
   Staging and publishing works exactly like the backend above — build, stage the
   artifacts into a directory with the manifest, `cd` there, `bato publish -v
-  $(VERSION)`. Copy `stage-server`/`publish-server` from the Makefile and swap
-  the artifact list.
+  $(VERSION)`. Copy `stage-server`/`publish-server` from the Makefile, swap the
+  artifact list, and run `make check-desktop-manifest DIR=<staged-dir>` before
+  the publish.
+
+  One thing that catches everyone once: **a desktop launcher's icon is fetched
+  from the registry, not from the tarball.** Register the slug in
+  `BatoApps/bato/icons` and run `make publish-icons` there, or the app-menu
+  entry has no icon.
 
   Whatever the type, the install writes a **receipt** listing every path it
   created, and `bato uninstall` replays it in reverse — so a launcher, a PATH

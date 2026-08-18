@@ -2,9 +2,10 @@
 
 > **Electron flavor only.** Everything here is `electron-updater`, which works because
 > `apps/` is the one anonymously readable bucket prefix and ships a `latest-linux.yml`.
-> A QML client publishes as `type: "desktop"` under `desktop/`, which is neither, so it
-> has no self-update path at all: its About dialog asks the registry for the latest
-> version and shows `bato install <slug>`. `new-app.sh --qml` deletes this file.
+> A client that publishes as `type: "desktop"` under `desktop/` is neither, so it has no
+> self-update path at all — the usual substitute is an About dialog that asks the
+> registry for the latest version and shows `bato install <slug>`. A flavor like that
+> would delete this file in `new-app.sh`.
 
 
 This template is wired to publish builds to a self-hosted **bato** (MinIO) and

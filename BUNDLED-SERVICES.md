@@ -1,15 +1,15 @@
 # Bundling the Go service into the client
 
-> **Electron flavor.** The QML client already ships this: `internal/backend` is the
-> same supervisor in Go (free port → spawn `--port N` → poll `/api/health` ≤8s →
-> SIGTERM/SIGKILL), wired up by default, no `extraResources` step needed.
+> **Electron flavor.** A client that is a native binary rather than an AppImage does
+> not need any of the packaging below — it can spawn the server directly and skip
+> `extraResources` entirely. The supervisor logic (free port → spawn `--port N` → poll
+> `/api/health` ≤8s → SIGTERM/SIGKILL) is the part worth copying either way.
 >
-> One deliberate difference in precedence. This document tells you to delete the
-> `ServerUrlCard` and let the bundled server always win. The QML template keeps the
-> card and supports both shapes, so there a **saved `backendUrl` wins** and suppresses
-> the child entirely — otherwise "point at my daemon" silently starts a second server
-> and it is ambiguous which one the UI is talking to. Worth adopting here too if your
-> Electron app keeps its Server section.
+> One precedence note that applies to both. This document tells you to delete the
+> `ServerUrlCard` and let the bundled server always win. If you keep the card, make a
+> **saved `backendUrl` win** and suppress the child entirely — otherwise "point at my
+> daemon" silently starts a second server and it is ambiguous which one the UI is
+> talking to.
 
 
 By default the template runs the backend as a separate process you start yourself

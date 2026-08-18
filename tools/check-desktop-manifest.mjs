@@ -1,13 +1,16 @@
 #!/usr/bin/env node
 // Validate a staged `type: "desktop"` release the way `bato publish` will.
 //
-//   node tools/check-desktop-manifest.mjs deploy/desktop
+//   node tools/check-desktop-manifest.mjs <staged-dir>     (make check-desktop-manifest)
 //
-// Why this exists: `bato publish` runs these checks itself, but as the first step of a
-// command that then uploads. There is no dry-run flag. So the only way to find out
-// that you forgot `make client-qml` used to be to attempt a real publish — and a
-// republished version silently overwrites the previous one, so a failed attempt is
-// not always free.
+// Nothing in the template publishes as `desktop` today — the Electron client publishes
+// as `type: "electron"`. This is here for a client that ships as a binary plus resources
+// rather than one self-contained file; see README → "Publishing a native app".
+//
+// Why it exists: `bato publish` runs these checks itself, but as the first step of a
+// command that then uploads. There is no dry-run flag. So the only way to find out that
+// you forgot a build step used to be to attempt a real publish — and a republished
+// version silently overwrites the previous one, so a failed attempt is not always free.
 //
 // These mirror publishDesktop() in bato/cli/src/publish.ts and resolveExec() in
 // desktop.ts. If `bato` ever tightens them, this drifts *permissive*, which is the
@@ -89,7 +92,7 @@ entries.forEach((d, i) => {
     }
   }
   if (!d.startupWMClass) {
-    bad(`desktop entry '${d.name}': no startupWMClass — a QML app reports org.qt-project.qml; measure it with hyprctl clients / xprop WM_CLASS`)
+    bad(`desktop entry '${d.name}': no startupWMClass — measure it with hyprctl clients / xprop WM_CLASS rather than guessing; a UI launched through a shared runtime often reports that runtime's class, not the binary's`)
   }
 })
 
