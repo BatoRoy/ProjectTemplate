@@ -177,3 +177,15 @@ make test-qml       # the contrast contract, offscreen
 
 `make check-qml` needs PySide6 (`pip install PySide6`). It is a development dependency
 only — the app never uses Python.
+
+What it actually covers is worth knowing, because the obvious version of this check is
+nearly useless. Pages live in a `StackLayout`, so only the current one is instantiated at
+all, and an invisible item has zero size and is skipped by any geometry walk. A harness
+that loads `Main.qml` and measures therefore checks *one page* and nothing else — which is
+how a clipped Accordion body shipped. So it sweeps both pages, all six `ShowcasePage`
+sections and both dialogs, at four widths, and waits out animations rather than measuring
+mid-transition.
+
+Two exemptions are deliberate: a `MouseArea` widened with negative margins is a hit target
+and draws nothing, and anything marked `objectName: "overflow-ok"` (the `Swatch` selection
+ring) is larger than its parent on purpose.

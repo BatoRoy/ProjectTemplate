@@ -25,7 +25,7 @@ difference.
 | Auto-update | yes (electron-updater) | **no** — About detects, `bato install` upgrades |
 | Runs in bato-hub | yes (web bundle) | **no** |
 | Windows build | yes | Linux only |
-| Component kit | ~95 components | shell + core today, rest in progress |
+| Component kit | ~95 components | 80 components; 6 not ported (see `PARITY.md`) |
 | Runtime deps | none | `qml6`, Inter, JetBrainsMono Nerd Font |
 
 Pick Electron when you want the widest component kit, a web bundle, self-update or a

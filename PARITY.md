@@ -60,29 +60,50 @@ Sidebar is 208px expanded / 56px collapsed (`w-52` / `w-14`) either way.
 
 ## Component map
 
+The React barrel is `components/index.ts`; its QML equivalent is `qml/App/qmldir`. That
+is not merely a convention — inside a QML module directory Qt disables the implicit
+same-directory import, so a component missing from `qmldir` fails to load with "Type X
+unavailable". Forgetting an entry is a loud error.
+
 | React | QML | Status |
 |---|---|---|
 | `Sidebar` | `Sidebar` + `NavRow` | exact |
-| `AppOptionsModal` | `AppOptions` | see *Custom colour* below |
-| `ServerUrlCard` | `ServerUrlCard` | exact |
-| `AboutDialog` | `AboutDialog` | see *Updates* below |
-| `Modal`, `Input`, `Button` | `Modal`, `Input`, `Button` | exact |
-| `Card`, `Badge`, `Spinner`, `EmptyState` | same names | exact |
-| `HomePage`, `ShowcasePage` | `pages/HomePage`, `pages/ShowcasePage` | exact |
+| `AppOptionsModal` | `AppOptions` | see *Custom colour* |
+| `ServerUrlCard`, `AboutDialog` | same names | see *Updates* |
+| `Modal`, `Input`, `Button` | same names | exact |
+| `Card`, `Badge`, `Spinner`, `Skeleton`, `EmptyState` | same names | exact |
+| `Switch`, `Checkbox`, `RadioGroup` | same names | exact |
+| `Tabs`, `SegmentedControl`, `Alert`, `Progress`, `CircularProgress` | same names | exact |
+| `Toast` + `useToast` | `Toast` | one component; QML has no hooks |
+| `Tooltip` | `Tooltip` | restyles Controls' `ToolTip`, used as an attached property |
+| `ConfirmDialog`, `MenuList`, `ContextMenu`, `Dropdown`, `Select` | same names | exact |
+| `Popover`, `Drawer`, `CommandPalette` | same names | `Drawer` is Popup-based, see below |
+| `Field`, `TextField`, `TextArea`, `NumberInput` | same names | exact |
+| `Slider`, `RangeSlider`, `VolumeControl`, `TagsInput` | same names | exact |
+| `SearchInput`, `Combobox`, `MultiSelect`, `OtpInput` | same names | exact |
+| `MaskedInput`, `CurrencyInput`, `FileDropzone` | same names | exact |
+| `ColorPicker` | `ColorPicker` | swatches + hex, no HSV area — see below |
+| `CodeEditor` | `CodeEditor` | **largest deviation** — see below |
+| `Accordion`, `Collapsible`, `Breadcrumbs`, `Avatar`, `Stepper` | same names | exact |
+| `Scrollable`, `ResizablePanels`, `EditorTabs`, `AutoGrid`, `AspectRatio` | same names | exact |
+| `DataTable`, `Pagination`, `Timeline`, `SortableList`, `KanbanBoard` | same names | exact |
+| `LineChart`, `BarChart`, `Sparkline` | same names | `AreaChart` is `LineChart { area: true }` |
+| `Calendar`, `DatePicker`, `TimePicker` | same names | exact |
+| `HomePage`, `ShowcasePage` | `pages/*` | exact |
 | (Tailwind classes on spans) | `Txt`, `MonoText`, `SectionLabel` | QML-only primitives |
-| `Skeleton`, `Tooltip`, `Tabs`, `ConfirmDialog`, `ContextMenu`, `Dropdown`, `Select`, `MenuList`, `Toast` | — | **Phase 3** |
-| `Popover`, `Drawer`, `CommandPalette` | — | **Phase 3** |
-| `inputs/*` (18) | — | **Phase 3** |
-| `layout/*` (16, minus `ResponsiveShell`) | — | **Phase 3** |
-| `data/*` (7), `date/*` (6) | — | **Phase 3** |
-| `ResponsiveShell`, `useIsDesktop` | — | **not ported, deliberately** |
+| (date-fns + inline helpers) | `Format` singleton | QML-only |
+| `Stack`, `HStack`, `VStack`, `Grid`, `Container`, `Center`, `Spacer`, `Divider` | **QML natives** | `ColumnLayout`, `RowLayout`, `GridLayout`, `anchors.fill`, `anchors.centerIn`, `Item { Layout.fillWidth: true }`. Only `Divider` is a component, because a hairline should not scale with UI scale |
+| `DateRangePicker`, `DateTimePicker`, `CalendarView` | — | not ported; `Calendar` supports `range`, so these are compositions an app can make |
+| `Masonry` | — | not ported; `AutoGrid` covers the common case |
+| `PanelGroup` / `Panel` (N-way) | — | not ported; `ResizablePanels` covers two |
+| `Dashboard` (drag/resize widget grid) | — | not ported |
+| `NodeGraph` (`@xyflow/react`) | — | not ported |
+| `ErrorBoundary` | — | no QML equivalent: a QML binding error does not unwind to a catchable boundary |
+| `ResponsiveShell`, `useIsDesktop` | — | **not ported, deliberately** (PWA-only path) |
+| `useHotkeys`, `useElementSize`, `useDismiss`, `useControllableState`, `useHoldRepeat` | — | QML natives: `Shortcut`, `onWidthChanged`, `Popup.closePolicy`, plain properties, a `Timer` pair |
 
-The React barrel is `components/index.ts`; its QML equivalent is
-`qml/App/qmldir`. That is not merely a convention — inside a QML module directory Qt
-disables the implicit same-directory import, so a component missing from `qmldir`
-fails to load with "Type X unavailable". Forgetting an entry is a loud error.
-
----
+**80 components** are registered in `qmldir`. The six not ported are listed above with
+the reason; each is a candidate if an app needs it, not an oversight.
 
 ## Deliberate deviations
 
@@ -111,6 +132,28 @@ asserts this across every preset and accent.
 
 > **Open item:** backport an `--app-accent-text` token to the React side so the two
 > flavors agree. Until then, "identical look" holds only for the stock accents.
+
+**CodeEditor is a monospace editor, not an IDE.** The web flavor is CodeMirror 6 with
+real language grammars, bracket matching, folding and an optional vim mode. None of that
+exists for QML and vendoring an editor is out of scope for a template, so the QML one is
+a monospace `TextEdit` with line numbers and regex highlighting for keywords, strings,
+numbers and comments — plain while focused, highlighted when not, because re-parsing rich
+text on every keystroke fights the cursor. Good enough for a config file or a snippet. An
+app that needs a real editor should embed one.
+
+**ColorPicker has no HSV area.** The browser gives the web flavor a gradient canvas for
+free; here it would be a shader, for a control most apps use to pick from a short list.
+Swatches plus a hex field, the same call App Options makes.
+
+**`Drawer` is built on `Popup`, not Controls' `Drawer`.** A composite type named `Drawer`
+that inherits `Drawer` is circular: it runs, but qmllint then reports "Found incomplete
+composite type Drawer" on *every file that imports App*, burying real warnings. Keeping
+the React-side name was worth more than reusing a base whose drag-to-open this app had
+disabled anyway.
+
+**Charts are drawn with `QtQuick.Shapes`, not QtCharts.** QtCharts is a separate package
+(absent on the reference machine, and GPL/commercial rather than LGPL), so depending on it
+would add a `requires` entry and an install step to every app that draws one line.
 
 **Icons are vendored, not installed.** The React flavor imports `lucide-react` and gets
 ~1600 icons. The QML flavor ships the ~45 it uses as SVGs in `qml/App/icons/`,

@@ -78,6 +78,13 @@ RangeSlider      1.0 inputs/RangeSlider.qml
 SearchInput      1.0 inputs/SearchInput.qml
 ColorPicker      1.0 inputs/ColorPicker.qml
 FileDropzone     1.0 inputs/FileDropzone.qml
+Combobox         1.0 inputs/Combobox.qml
+MultiSelect      1.0 inputs/MultiSelect.qml
+OtpInput         1.0 inputs/OtpInput.qml
+VolumeControl    1.0 inputs/VolumeControl.qml
+MaskedInput      1.0 inputs/MaskedInput.qml
+CurrencyInput    1.0 inputs/CurrencyInput.qml
+CodeEditor       1.0 inputs/CodeEditor.qml
 
 # ── Overlays ─────────────────────────────────────────────────────────────────
 MenuList         1.0 overlay/MenuList.qml
@@ -96,6 +103,9 @@ Avatar           1.0 layout/Avatar.qml
 Stepper          1.0 layout/Stepper.qml
 Scrollable       1.0 layout/Scrollable.qml
 ResizablePanels  1.0 layout/ResizablePanels.qml
+AutoGrid         1.0 layout/AutoGrid.qml
+AspectRatio      1.0 layout/AspectRatio.qml
+EditorTabs       1.0 layout/EditorTabs.qml
 
 # ── Data ─────────────────────────────────────────────────────────────────────
 DataTable        1.0 data/DataTable.qml
@@ -105,6 +115,7 @@ BarChart         1.0 data/BarChart.qml
 Sparkline        1.0 data/Sparkline.qml
 Timeline         1.0 data/Timeline.qml
 SortableList     1.0 data/SortableList.qml
+KanbanBoard      1.0 data/KanbanBoard.qml
 
 # ── Date ─────────────────────────────────────────────────────────────────────
 Calendar         1.0 date/Calendar.qml

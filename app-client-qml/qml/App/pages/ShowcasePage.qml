@@ -362,6 +362,97 @@ Flickable {
             }
         }
 
+        Card {
+            Layout.fillWidth: true
+            visible: root.section === "inputs"
+            title: qsTr("Structured")
+
+            Field {
+                Layout.fillWidth: true
+                label: qsTr("Service")
+                Combobox {
+                    Layout.fillWidth: true
+                    value: "batoai"
+                    options: [
+                        {
+                            "value": "batoai",
+                            "label": "batoai"
+                        },
+                        {
+                            "value": "batomusic",
+                            "label": "batomusic"
+                        },
+                        {
+                            "value": "batogit",
+                            "label": "batogit"
+                        }
+                    ]
+                }
+            }
+
+            Field {
+                Layout.fillWidth: true
+                label: qsTr("Tags")
+                MultiSelect {
+                    Layout.fillWidth: true
+                    values: ["go"]
+                    options: [
+                        {
+                            "value": "go",
+                            "label": "Go"
+                        },
+                        {
+                            "value": "qml",
+                            "label": "QML"
+                        },
+                        {
+                            "value": "ts",
+                            "label": "TypeScript"
+                        }
+                    ]
+                }
+            }
+
+            MaskedInput {
+                Layout.fillWidth: true
+                label: qsTr("Reference")
+                mask: "AA-####-AA"
+            }
+
+            CurrencyInput {
+                Layout.fillWidth: true
+                label: qsTr("Amount")
+                value: 1249.5
+            }
+
+            Field {
+                Layout.fillWidth: true
+                label: qsTr("Verification code")
+                OtpInput {}
+            }
+
+            Field {
+                Layout.fillWidth: true
+                label: qsTr("Volume")
+                VolumeControl {
+                    Layout.fillWidth: true
+                }
+            }
+        }
+
+        Card {
+            Layout.fillWidth: true
+            visible: root.section === "inputs"
+            title: qsTr("Code")
+
+            CodeEditor {
+                Layout.fillWidth: true
+                Layout.preferredHeight: Theme.px(150)
+                language: "go"
+                text: "// A monospace editor with line numbers.\n// Highlighting is regex-based, not a grammar.\nfunc main() {\n\tport := 42117\n\tfmt.Println(\"listening on\", port)\n}\n"
+            }
+        }
+
         // ── Layout ───────────────────────────────────────────────────────────
         Card {
             Layout.fillWidth: true
@@ -469,6 +560,54 @@ Flickable {
                         text: qsTr("Second")
                         color: Theme.muted
                         pixelSize: Theme.fontXs
+                    }
+                }
+            }
+        }
+
+        Card {
+            Layout.fillWidth: true
+            visible: root.section === "layout"
+            title: qsTr("Tabs and grids")
+
+            EditorTabs {
+                Layout.fillWidth: true
+                current: "main"
+                tabs: [
+                    {
+                        "id": "main",
+                        "label": "main.go"
+                    },
+                    {
+                        "id": "theme",
+                        "label": "Theme.qml",
+                        "dirty": true
+                    },
+                    {
+                        "id": "readme",
+                        "label": "README.md"
+                    }
+                ]
+            }
+
+            AutoGrid {
+                Layout.fillWidth: true
+                minWidth: Theme.px(120)
+
+                Repeater {
+                    model: 6
+                    delegate: Rectangle {
+                        required property int index
+                        Layout.fillWidth: true
+                        implicitHeight: Theme.px(40)
+                        radius: Theme.radiusSm
+                        color: Theme.alpha(Theme.border, 0.4)
+                        Txt {
+                            anchors.centerIn: parent
+                            text: qsTr("Cell %1").arg(parent.index + 1)
+                            pixelSize: Theme.fontXs
+                            color: Theme.muted
+                        }
                     }
                 }
             }
@@ -631,6 +770,49 @@ Flickable {
                 Layout.fillWidth: true
                 Layout.preferredHeight: Theme.px(140)
                 items: [qsTr("First item"), qsTr("Second item"), qsTr("Third item")]
+            }
+        }
+
+        Card {
+            Layout.fillWidth: true
+            visible: root.section === "data"
+            title: qsTr("Board")
+
+            KanbanBoard {
+                Layout.fillWidth: true
+                Layout.preferredHeight: Theme.px(180)
+                columns: [
+                    {
+                        "id": "todo",
+                        "title": qsTr("To do"),
+                        "cards": [
+                            {
+                                "id": "a",
+                                "title": qsTr("Port the date family")
+                            }
+                        ]
+                    },
+                    {
+                        "id": "doing",
+                        "title": qsTr("Doing"),
+                        "cards": [
+                            {
+                                "id": "b",
+                                "title": qsTr("Widget kit")
+                            }
+                        ]
+                    },
+                    {
+                        "id": "done",
+                        "title": qsTr("Done"),
+                        "cards": [
+                            {
+                                "id": "c",
+                                "title": qsTr("Publish pipeline")
+                            }
+                        ]
+                    }
+                ]
             }
         }
 
