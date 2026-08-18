@@ -31,6 +31,10 @@ Item {
 
     Rectangle {
         id: ring
+        // Deliberately larger than its parent — see the note above. Tells
+        // tools/check-qml.py this overflow is intended, so the check stays meaningful
+        // for the ones that are not.
+        objectName: "overflow-ok"
         anchors.centerIn: parent
         width: parent.width + Theme.px(8)
         height: parent.height + Theme.px(8)

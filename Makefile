@@ -302,10 +302,20 @@ endif
 
 # The contrast contract, asserted rather than eyeballed: every preset x every accent
 # has to clear WCAG AA for the derived text colours. Offscreen, so it runs in CI.
+#
+# XDG_CONFIG_HOME is redirected to a throwaway directory, and that is not optional.
+# Theme is a singleton backed by QtCore.Settings, so the tests' assignments to
+# Theme.preset and Theme.accentHex are *persisted* — running the suite against the real
+# config directory rewrites the developer's own theme and accent to whatever the last
+# assertion happened to set. Found the hard way: a test run left this machine on the
+# light preset with a magenta accent.
 test-qml:
 	@test -x $(QMLTEST) || { echo "✗ $(QMLTEST) not found — install qt6-declarative"; exit 1; }
-	QT_QPA_PLATFORM=offscreen QT_ASSUME_STDERR_HAS_CONSOLE=1 \
+	@rm -rf .qmltest-home && mkdir -p .qmltest-home
+	XDG_CONFIG_HOME=$(CURDIR)/.qmltest-home \
+	  QT_QPA_PLATFORM=offscreen QT_ASSUME_STDERR_HAS_CONSOLE=1 \
 	  $(QMLTEST) -import app-client-qml/qml -input app-client-qml/tests
+	@rm -rf .qmltest-home
 
 # Load every component and report QML warnings, then assert nothing overflows its
 # card between 300 and 900px. Complements qmllint, which is static: the layout bugs
@@ -327,5 +337,6 @@ vendor-icons:
 
 clean:
 	rm -rf dist/
+	rm -rf .qmltest-home/
 	rm -rf deploy/
 	rm -rf app-client/frontend/dist/

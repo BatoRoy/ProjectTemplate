@@ -1,5 +1,12 @@
 # Bato auto-update
 
+> **Electron flavor only.** Everything here is `electron-updater`, which works because
+> `apps/` is the one anonymously readable bucket prefix and ships a `latest-linux.yml`.
+> A QML client publishes as `type: "desktop"` under `desktop/`, which is neither, so it
+> has no self-update path at all: its About dialog asks the registry for the latest
+> version and shows `bato install <slug>`. `new-app.sh --qml` deletes this file.
+
+
 This template is wired to publish builds to a self-hosted **bato** (MinIO) and
 to **auto-update** itself from there. Every app you create from the template
 inherits this — you only adjust a few identifiers per app.

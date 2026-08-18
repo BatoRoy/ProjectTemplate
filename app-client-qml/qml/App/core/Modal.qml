@@ -28,6 +28,12 @@ Dialog {
     // max-w-sm in the web flavor, and never wider than the window it sits in.
     width: Math.min(parent ? parent.width - Theme.space6 * 2 : Theme.px(420), Theme.px(420))
 
+    // …and never taller than it either. The web flavor gets this free: an overlong
+    // modal scrolls with the page. A Dialog does not — it simply extends past the
+    // window edge, and the bottom of App Options becomes unreachable at the window's
+    // own minimum height. Capping the height and scrolling the body is the fix.
+    height: Math.min(implicitHeight, parent ? parent.height - Theme.space6 * 2 : Theme.px(720))
+
     enter: Transition {
         // The web flavor's animate-scale-in.
         NumberAnimation { property: "scale"; from: 0.96; to: 1.0; duration: Theme.animFast; easing.type: Easing.OutCubic }
@@ -97,12 +103,27 @@ Dialog {
             }
         }
 
-        // Body
-        ColumnLayout {
-            id: bodyColumn
+        // Body. Scrolls only when it has to: contentHeight below the viewport leaves
+        // the Flickable inert, so a short modal behaves exactly as before.
+        Flickable {
             Layout.fillWidth: true
-            Layout.margins: root.contentPadding
-            spacing: Theme.space6
+            Layout.fillHeight: true
+            implicitHeight: bodyColumn.implicitHeight + root.contentPadding * 2
+            contentWidth: width
+            contentHeight: bodyColumn.implicitHeight + root.contentPadding * 2
+            clip: true
+            boundsBehavior: Flickable.StopAtBounds
+            ScrollBar.vertical: ScrollBar {
+                policy: ScrollBar.AsNeeded
+            }
+
+            ColumnLayout {
+                id: bodyColumn
+                x: root.contentPadding
+                y: root.contentPadding
+                width: parent.width - root.contentPadding * 2
+                spacing: Theme.space6
+            }
         }
     }
 }

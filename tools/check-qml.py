@@ -38,7 +38,7 @@ os.environ.setdefault("QT_ASSUME_STDERR_HAS_CONSOLE", "1")
 os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 
 try:
-    from PySide6.QtCore import QUrl, QtMsgType, qInstallMessageHandler
+    from PySide6.QtCore import QObject, QUrl, QtMsgType, qInstallMessageHandler
     from PySide6.QtGui import QGuiApplication
     from PySide6.QtQml import QQmlApplicationEngine
     # Importing QtQuick is not decorative: without it shiboken has no QQuickWindow type
@@ -49,6 +49,10 @@ except ImportError:
     print("✗ PySide6 is not installed — pip install PySide6", file=sys.stderr)
     print("  (development-only dependency; the app itself never uses Python)", file=sys.stderr)
     sys.exit(2)
+
+# Dialogs to open and measure. Named explicitly rather than discovered, so deleting one
+# from Main.qml fails this check instead of quietly reducing its coverage.
+DIALOGS = {"AppOptions", "AboutDialog"}
 
 ROOT = Path(__file__).resolve().parent.parent
 QML_ROOT = ROOT / "app-client-qml" / "qml"
@@ -78,6 +82,14 @@ def type_name(item) -> str:
     return cls.removeprefix("QQuick") or "Item"
 
 
+def scrollable(item, needed: float) -> bool:
+    """Is there a Flickable in here that can actually reach `needed` pixels of content?"""
+    if item.metaObject().indexOfProperty("contentHeight") >= 0:
+        if (item.property("contentHeight") or 0.0) > item.height() - 1.0:
+            return True
+    return any(scrollable(c, needed) for c in item.childItems())
+
+
 def overflowing(item, path="root", out=None, depth=0):
     """Collect children whose geometry escapes their parent's box.
 
@@ -101,6 +113,20 @@ def overflowing(item, path="root", out=None, depth=0):
             continue
         name = type_name(child)
         here = f"{path} > {name}"
+
+        # A MouseArea that is bigger than the thing it sits on is the *point*: a 16px
+        # glyph is a 16px hit target, which is a miss more often than a hit, so the
+        # template widens them with negative margins. Input handlers draw nothing, so
+        # they cannot overflow anything visually.
+        if name == "MouseArea":
+            continue
+
+        # An explicit opt-out for decorations that are deliberately larger than their
+        # parent — the Swatch selection ring, which grows outward so selecting a colour
+        # does not resize it. Marked at the declaration rather than pattern-matched
+        # here, so the exemption lives next to the reason for it.
+        if child.objectName() == "overflow-ok":
+            continue
 
         if not parent_is_flickable:
             # A 1px allowance: Qt lays out in floats and rounds to device pixels, so an
@@ -142,9 +168,29 @@ def main() -> int:
     window = engine.rootObjects()[0]
     failures: list[str] = []
 
+    # Dialogs are checked too, and they are the ones that need it most: they are the
+    # tallest thing in the app and they are never on screen during normal use, so a
+    # dialog that runs off the bottom of a small window is invisible until a user with a
+    # small window opens it. App Options did exactly that before the Modal body was made
+    # to scroll.
+    #
+    # Searched as QObject, not QQuickItem: a Controls Dialog is a Popup, which is NOT an
+    # Item — it merely owns one. Filtering on QQuickItem finds nothing and the whole
+    # check passes vacuously, which is exactly what it did before this comment existed.
+    dialogs = [c for c in window.findChildren(QObject)
+               if type_name(c) in DIALOGS]
+    if len(dialogs) != len(DIALOGS):
+        print(f"✗ expected {sorted(DIALOGS)}, found {sorted(type_name(d) for d in dialogs)}",
+              file=sys.stderr)
+        return 1
+    for d in dialogs:
+        d.setProperty("visible", True)
+
     for width in [int(w) for w in args.widths.split(",")]:
         window.setWidth(width)
-        window.setHeight(700)
+        # The window's own declared minimum, so a dialog is measured against the
+        # smallest box a user can actually put it in.
+        window.setHeight(420 if width == min(int(w) for w in args.widths.split(",")) else 700)
         # Two passes: layouts settle asynchronously, so measuring immediately after a
         # resize reads the previous frame's geometry. This is the same class of problem
         # that makes Flow unreliable.
@@ -154,6 +200,39 @@ def main() -> int:
         content = window.contentItem()
         for problem in overflowing(content, f"[{width}px]"):
             failures.append(problem)
+
+        # Dialogs are checked for *reachability*, not for fitting.
+        #
+        # "Is the dialog taller than the window" can never fail: Qt clamps a popup to the
+        # window it belongs to, so an overlong dialog silently reports the window's own
+        # height while its content is cut off. Measured: App Options wants 809px, and
+        # reports exactly 420 in a 420px window whether or not its content can be
+        # scrolled to.
+        #
+        # The property that actually matters is therefore: if the natural content is
+        # taller than the box it was given, something must be able to scroll it.
+        for d in dialogs:
+            name = type_name(d)
+            dw, dh = d.property("width"), d.property("height")
+            natural = d.property("implicitHeight") or 0.0
+
+            if dw > window.width() + 1.0:
+                failures.append(
+                    f"[{width}px] {name}: width {dw:.0f} exceeds the window's "
+                    f"{window.width():.0f}")
+
+            content = d.property("contentItem")
+            if content is None:
+                continue
+
+            if natural > dh + 1.0 and not scrollable(content, dh):
+                failures.append(
+                    f"[{width}x{window.height():.0f}] {name}: content is {natural:.0f}px "
+                    f"tall in a {dh:.0f}px dialog with nothing to scroll it — the bottom "
+                    f"is unreachable")
+
+            for problem in overflowing(content, f"[{width}px] {name}"):
+                failures.append(problem)
 
     print()
     if messages:
