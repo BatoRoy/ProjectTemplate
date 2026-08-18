@@ -80,10 +80,14 @@ Modal {
             Txt {
                 text: {
                     switch (root.updateState) {
-                    case "checking":  return qsTr("Checking for updates…")
-                    case "current":   return qsTr("Up to date")
-                    case "available": return qsTr("v%1 is available").arg(root.latestVersion)
-                    default:          return qsTr("Could not check for updates")
+                    case "checking":
+                        return qsTr("Checking for updates…");
+                    case "current":
+                        return qsTr("Up to date");
+                    case "available":
+                        return qsTr("v%1 is available").arg(root.latestVersion);
+                    default:
+                        return qsTr("Could not check for updates");
                     }
                 }
                 color: root.updateState === "available" ? Theme.accentText : Theme.muted
@@ -105,7 +109,9 @@ Modal {
         Layout.fillWidth: true
         spacing: Theme.space2
 
-        Item { Layout.fillWidth: true }
+        Item {
+            Layout.fillWidth: true
+        }
 
         Button {
             variant: "ghost"
@@ -126,29 +132,29 @@ Modal {
     // CLI reads — as --app-registry-url; without it there is nothing to ask and the
     // check is simply skipped rather than shown as an error.
     function checkForUpdate() {
-        var registry = Env.get("APP_REGISTRY_URL", "")
+        var registry = Env.get("APP_REGISTRY_URL", "");
         if (registry === "" || Brand.version === "dev") {
-            root.updateState = ""
-            return
+            root.updateState = "";
+            return;
         }
-        root.updateState = "checking"
-        Api.request("GET", registry.replace(/\/+$/, "") + "/api/apps/" + Brand.slug, null,
-                    function (ok, data) {
-                        if (!ok || !data || !data.latest) {
-                            root.updateState = "error"
-                            return
-                        }
-                        root.latestVersion = data.latest
-                        root.updateState = isNewer(data.latest, Brand.version) ? "available" : "current"
-                    })
+        root.updateState = "checking";
+        Api.request("GET", registry.replace(/\/+$/, "") + "/api/apps/" + Brand.slug, null, function (ok, data) {
+            if (!ok || !data || !data.latest) {
+                root.updateState = "error";
+                return;
+            }
+            root.latestVersion = data.latest;
+            root.updateState = isNewer(data.latest, Brand.version) ? "available" : "current";
+        });
     }
 
     function isNewer(a, b) {
-        var pa = String(a).split("."), pb = String(b).split(".")
+        var pa = String(a).split("."), pb = String(b).split(".");
         for (var i = 0; i < 3; ++i) {
-            var na = parseInt(pa[i] || "0", 10), nb = parseInt(pb[i] || "0", 10)
-            if (na !== nb) return na > nb
+            var na = parseInt(pa[i] || "0", 10), nb = parseInt(pb[i] || "0", 10);
+            if (na !== nb)
+                return na > nb;
         }
-        return false
+        return false;
     }
 }

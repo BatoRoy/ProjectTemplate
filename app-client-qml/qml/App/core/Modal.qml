@@ -36,8 +36,19 @@ Dialog {
 
     enter: Transition {
         // The web flavor's animate-scale-in.
-        NumberAnimation { property: "scale"; from: 0.96; to: 1.0; duration: Theme.animFast; easing.type: Easing.OutCubic }
-        NumberAnimation { property: "opacity"; from: 0.0; to: 1.0; duration: Theme.animFast }
+        NumberAnimation {
+            property: "scale"
+            from: 0.96
+            to: 1.0
+            duration: Theme.animFast
+            easing.type: Easing.OutCubic
+        }
+        NumberAnimation {
+            property: "opacity"
+            from: 0.0
+            to: 1.0
+            duration: Theme.animFast
+        }
     }
 
     background: Rectangle {

@@ -2,7 +2,7 @@
         publish-client publish-qml publish-check-qml stage-server publish-server stage-qml \
         dev-setup verify-electron dev-server dev-client dev-qml dev-ui doctor-qml \
         docker deploy new-app lint lint-qml test test-qml check-qml check-deps \
-        vendor-icons clean
+        vendor-icons format-qml clean
 
 VERSION := $(shell cat VERSION)
 
@@ -34,6 +34,7 @@ QML_NAME := $(shell node -p "require('./app-client-qml/bato.json').name" 2>/dev/
 QT6_BINS := $(shell qmake6 -query QT_HOST_BINS 2>/dev/null || echo /usr/lib/qt6/bin)
 QMLLINT  := $(QT6_BINS)/qmllint
 QMLTEST  := $(QT6_BINS)/qmltestrunner
+QMLFORMAT := $(QT6_BINS)/qmlformat
 
 all: server
 ifneq ($(HAS_ELECTRON),)
@@ -322,6 +323,14 @@ test-qml:
 # a QML app actually ships are runtime sizing problems.
 check-qml:
 	QT_ASSUME_STDERR_HAS_CONSOLE=1 python3 tools/check-qml.py
+
+# qmlformat is Qt's own formatter — the QML equivalent of prettier, and the reason no
+# style is argued about in review. Same Qt 6 resolution problem as qmllint, so it goes
+# through QT6_BINS too.
+format-qml:
+	@test -x $(QMLFORMAT) || { echo "✗ $(QMLFORMAT) not found — install qt6-declarative"; exit 1; }
+	find app-client-qml/qml -name '*.qml' -print0 | xargs -0 $(QMLFORMAT) -i
+	@echo "✓ formatted"
 
 # The manifest's requires[] and internal/deps must agree; drift means an app that
 # installs cleanly and then cannot draw itself.

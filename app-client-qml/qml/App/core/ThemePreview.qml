@@ -16,20 +16,22 @@ Rectangle {
     property string presetId: "dark"
     property string label: ""
     property bool active: false
-    signal picked()
+    signal picked
 
     readonly property var c: Theme.presetColors(presetId)
 
     color: "transparent"
     border.width: 2
-    border.color: active ? Theme.accent
-                : mouse.containsMouse ? Theme.accentRing
-                : Theme.border
+    border.color: active ? Theme.accent : mouse.containsMouse ? Theme.accentRing : Theme.border
     radius: Theme.radiusLg
     clip: true
     implicitHeight: Theme.px(64)
 
-    Behavior on border.color { ColorAnimation { duration: Theme.animFast } }
+    Behavior on border.color {
+        ColorAnimation {
+            duration: Theme.animFast
+        }
+    }
 
     ColumnLayout {
         anchors.fill: parent

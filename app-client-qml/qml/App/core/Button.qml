@@ -17,14 +17,17 @@ Rectangle {
     property string variant: "primary"   // primary | ghost | success | danger
     property string icon: ""
     property bool loading: false
-    signal clicked()
+    signal clicked
 
     readonly property bool interactive: enabled && !loading
     readonly property color tone: {
         switch (variant) {
-        case "success": return Theme.green
-        case "danger":  return Theme.red
-        default:        return Theme.accent
+        case "success":
+            return Theme.green;
+        case "danger":
+            return Theme.red;
+        default:
+            return Theme.accent;
         }
     }
 
@@ -33,10 +36,10 @@ Rectangle {
 
     color: {
         if (ghost)
-            return mouse.containsMouse && interactive ? Theme.alpha(Theme.card, 0.6) : "transparent"
+            return mouse.containsMouse && interactive ? Theme.alpha(Theme.card, 0.6) : "transparent";
         if (!interactive)
-            return Theme.composite(tone, Theme.card, 0.35)
-        return mouse.containsMouse ? Theme.mix(tone, Theme.isLight ? 0.0 : 1.0, 0.12) : tone
+            return Theme.composite(tone, Theme.card, 0.35);
+        return mouse.containsMouse ? Theme.mix(tone, Theme.isLight ? 0.0 : 1.0, 0.12) : tone;
     }
     border.width: ghost ? 1 : 0
     border.color: Theme.border
@@ -46,7 +49,11 @@ Rectangle {
     implicitHeight: Theme.controlHeight
     implicitWidth: row.implicitWidth + Theme.space4 * 2
 
-    Behavior on color { ColorAnimation { duration: Theme.animFast } }
+    Behavior on color {
+        ColorAnimation {
+            duration: Theme.animFast
+        }
+    }
 
     // A Row, not a RowLayout. A positioner resolves its implicitWidth from its
     // children in the same frame, which is what makes this Button's own implicitWidth
@@ -86,6 +93,7 @@ Rectangle {
         anchors.fill: parent
         hoverEnabled: true
         cursorShape: root.interactive ? Qt.PointingHandCursor : Qt.ArrowCursor
-        onClicked: if (root.interactive) root.clicked()
+        onClicked: if (root.interactive)
+            root.clicked()
     }
 }

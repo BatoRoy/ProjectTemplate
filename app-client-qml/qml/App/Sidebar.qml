@@ -23,19 +23,30 @@ Rectangle {
     readonly property bool collapsed: Theme.sidebarCollapsed
 
     signal navigate(string id)
-    signal openOptions()
-    signal openAbout()
+    signal openOptions
+    signal openAbout
 
     // Add your app's pages here. Each id maps to a page in Main.qml's StackLayout.
     readonly property var nav: [
-        { id: "home",     label: qsTr("Home"),     icon: "home" },
-        { id: "examples", label: qsTr("Examples"), icon: "layout-grid" }
+        {
+            id: "home",
+            label: qsTr("Home"),
+            icon: "home"
+        },
+        {
+            id: "examples",
+            label: qsTr("Examples"),
+            icon: "layout-grid"
+        }
     ]
 
     color: Theme.bg
     implicitWidth: collapsed ? Theme.sidebarWidthCollapsed : Theme.sidebarWidth
     Behavior on implicitWidth {
-        NumberAnimation { duration: Theme.animBase; easing.type: Easing.OutCubic }
+        NumberAnimation {
+            duration: Theme.animBase
+            easing.type: Easing.OutCubic
+        }
     }
 
     // Right border. QML has no per-side border, so it is a 1px child.
@@ -58,9 +69,18 @@ Rectangle {
             implicitHeight: 2
             gradient: Gradient {
                 orientation: Gradient.Horizontal
-                GradientStop { position: 0.0; color: Theme.accent }
-                GradientStop { position: 0.5; color: Theme.alpha(Theme.accentBright, 0.7) }
-                GradientStop { position: 1.0; color: "transparent" }
+                GradientStop {
+                    position: 0.0
+                    color: Theme.accent
+                }
+                GradientStop {
+                    position: 0.5
+                    color: Theme.alpha(Theme.accentBright, 0.7)
+                }
+                GradientStop {
+                    position: 1.0
+                    color: "transparent"
+                }
             }
         }
 
@@ -75,7 +95,9 @@ Rectangle {
                 anchors.rightMargin: root.collapsed ? 0 : Theme.space5
                 spacing: Theme.px(10)
 
-                Item { Layout.fillWidth: root.collapsed }
+                Item {
+                    Layout.fillWidth: root.collapsed
+                }
 
                 Image {
                     source: Brand.icon
@@ -108,7 +130,9 @@ Rectangle {
                     }
                 }
 
-                Item { Layout.fillWidth: root.collapsed }
+                Item {
+                    Layout.fillWidth: root.collapsed
+                }
             }
 
             Rectangle {
@@ -138,7 +162,9 @@ Rectangle {
             }
         }
 
-        Item { Layout.fillHeight: true }
+        Item {
+            Layout.fillHeight: true
+        }
 
         // Footer
         Item {

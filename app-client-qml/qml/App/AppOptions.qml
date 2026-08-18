@@ -35,7 +35,9 @@ Modal {
         Layout.fillWidth: true
         spacing: Theme.space3
 
-        SectionLabel { text: qsTr("Theme") }
+        SectionLabel {
+            text: qsTr("Theme")
+        }
 
         RowLayout {
             Layout.fillWidth: true
@@ -61,7 +63,9 @@ Modal {
         Layout.fillWidth: true
         spacing: Theme.space3
 
-        SectionLabel { text: qsTr("Accent") }
+        SectionLabel {
+            text: qsTr("Accent")
+        }
 
         // A plain Row, not a Flow: Flow positions children against widths that
         // settle a frame later, so a row of swatches overflows instead of wrapping.
@@ -92,7 +96,9 @@ Modal {
                 }
             }
 
-            Item { Layout.fillWidth: true }
+            Item {
+                Layout.fillWidth: true
+            }
         }
 
         RowLayout {
@@ -114,7 +120,8 @@ Modal {
                 // Accept only once it is a complete colour, so the UI does not
                 // repaint through "#8b", "#8b5", "#8b5c" as you type.
                 invalid: text.length > 0 && !root.isHex(text)
-                onAccepted: if (root.isHex(text)) Theme.accentHex = text.toLowerCase()
+                onAccepted: if (root.isHex(text))
+                    Theme.accentHex = text.toLowerCase()
             }
 
             Button {
@@ -124,7 +131,9 @@ Modal {
                 onClicked: Theme.accentHex = hexField.text.toLowerCase()
             }
 
-            Item { Layout.fillWidth: true }
+            Item {
+                Layout.fillWidth: true
+            }
         }
     }
 
@@ -133,7 +142,9 @@ Modal {
         Layout.fillWidth: true
         spacing: Theme.space3
 
-        SectionLabel { text: qsTr("Scale") }
+        SectionLabel {
+            text: qsTr("Scale")
+        }
 
         RowLayout {
             Layout.fillWidth: true
@@ -166,7 +177,9 @@ Modal {
         Layout.fillWidth: true
         spacing: Theme.space3
 
-        SectionLabel { text: qsTr("Content width") }
+        SectionLabel {
+            text: qsTr("Content width")
+        }
 
         RowLayout {
             Layout.fillWidth: true
@@ -202,7 +215,9 @@ Modal {
         Layout.fillWidth: true
         spacing: Theme.space3
 
-        SectionLabel { text: qsTr("Text selection") }
+        SectionLabel {
+            text: qsTr("Text selection")
+        }
 
         RowLayout {
             Layout.fillWidth: true
@@ -234,6 +249,6 @@ Modal {
     }
 
     function isHex(s) {
-        return /^#[0-9a-fA-F]{6}$/.test(s)
+        return /^#[0-9a-fA-F]{6}$/.test(s);
     }
 }

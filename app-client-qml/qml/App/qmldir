@@ -48,6 +48,40 @@ EmptyState    1.0 core/EmptyState.qml
 OptionChip    1.0 core/OptionChip.qml
 Swatch        1.0 core/Swatch.qml
 ThemePreview  1.0 core/ThemePreview.qml
+Skeleton      1.0 core/Skeleton.qml
+Divider       1.0 core/Divider.qml
+
+# ── Form controls ────────────────────────────────────────────────────────────
+Switch           1.0 core/Switch.qml
+Checkbox         1.0 core/Checkbox.qml
+RadioGroup       1.0 core/RadioGroup.qml
+SegmentedControl 1.0 core/SegmentedControl.qml
+Tabs             1.0 core/Tabs.qml
+
+# ── Feedback ─────────────────────────────────────────────────────────────────
+Alert            1.0 core/Alert.qml
+Progress         1.0 core/Progress.qml
+CircularProgress 1.0 core/CircularProgress.qml
+Toast            1.0 core/Toast.qml
+Tooltip          1.0 core/Tooltip.qml
+ConfirmDialog    1.0 core/ConfirmDialog.qml
+
+# ── Inputs ───────────────────────────────────────────────────────────────────
+Field            1.0 inputs/Field.qml
+TextField        1.0 inputs/TextField.qml
+TextArea         1.0 inputs/TextArea.qml
+NumberInput      1.0 inputs/NumberInput.qml
+Slider           1.0 inputs/Slider.qml
+TagsInput        1.0 inputs/TagsInput.qml
+
+# ── Overlays ─────────────────────────────────────────────────────────────────
+MenuList         1.0 overlay/MenuList.qml
+Popover          1.0 overlay/Popover.qml
+Dropdown         1.0 overlay/Dropdown.qml
+Select           1.0 overlay/Select.qml
+ContextMenu      1.0 overlay/ContextMenu.qml
+Drawer           1.0 overlay/Drawer.qml
+CommandPalette   1.0 overlay/CommandPalette.qml
 
 # ── Pages ────────────────────────────────────────────────────────────────────
 HomePage      1.0 pages/HomePage.qml

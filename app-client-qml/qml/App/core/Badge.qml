@@ -24,11 +24,16 @@ Rectangle {
 
     readonly property color base: {
         switch (tone) {
-        case "success": return Theme.green
-        case "error":   return Theme.red
-        case "warning": return Theme.yellow
-        case "info":    return Theme.accent
-        default:        return Theme.border
+        case "success":
+            return Theme.green;
+        case "error":
+            return Theme.red;
+        case "warning":
+            return Theme.yellow;
+        case "info":
+            return Theme.accent;
+        default:
+            return Theme.border;
         }
     }
 
@@ -36,9 +41,7 @@ Rectangle {
     // it gets a stronger fill and takes its text from the normal palette.
     readonly property real fillAlpha: tone === "neutral" ? 0.40 : 0.15
     readonly property color fill: Theme.composite(base, Theme.card, fillAlpha)
-    readonly property color ink: tone === "neutral"
-                                 ? Theme.subtext
-                                 : Theme.readableOn(base, fill)
+    readonly property color ink: tone === "neutral" ? Theme.subtext : Theme.readableOn(base, fill)
 
     color: fill
     radius: Theme.radiusFull

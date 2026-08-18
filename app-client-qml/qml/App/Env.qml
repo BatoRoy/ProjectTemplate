@@ -29,30 +29,30 @@ QtObject {
     // The host's loopback bridge — the preload.js equivalent. Empty when the QML
     // is run directly (make dev-ui) with no host, in which case every native
     // operation degrades to a no-op rather than an error.
-    readonly property string nativeUrl:   get("APP_NATIVE_URL", "")
+    readonly property string nativeUrl: get("APP_NATIVE_URL", "")
     readonly property string nativeToken: get("APP_NATIVE_TOKEN", "")
     readonly property bool hasNative: nativeUrl !== "" && nativeToken !== ""
 
     readonly property string appVersion: get("APP_VERSION", "")
 
     function get(name, fallback) {
-        var key = "--" + name.toLowerCase().replace(/_/g, "-")
-        var v = values[key]
-        return (v === undefined || v === "") ? fallback : v
+        var key = "--" + name.toLowerCase().replace(/_/g, "-");
+        var v = values[key];
+        return (v === undefined || v === "") ? fallback : v;
     }
 
     function parseArgs() {
-        var out = ({})
-        var args = Qt.application.arguments
+        var out = ({});
+        var args = Qt.application.arguments;
         for (var i = 0; i < args.length; ++i) {
-            var a = args[i]
+            var a = args[i];
             if (a.indexOf("--") !== 0)
-                continue
-            var eq = a.indexOf("=")
+                continue;
+            var eq = a.indexOf("=");
             if (eq <= 2)
-                continue
-            out[a.substring(0, eq)] = a.substring(eq + 1)
+                continue;
+            out[a.substring(0, eq)] = a.substring(eq + 1);
         }
-        return out
+        return out;
     }
 }

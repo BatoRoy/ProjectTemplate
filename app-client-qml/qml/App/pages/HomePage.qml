@@ -27,9 +27,7 @@ Flickable {
         // unless Content width is Full.
         x: Math.max(Theme.space6, (root.width - width) / 2)
         y: Theme.space6
-        width: Theme.wide
-               ? root.width - Theme.space6 * 2
-               : Math.min(root.width - Theme.space6 * 2, Theme.maxW2xl)
+        width: Theme.wide ? root.width - Theme.space6 * 2 : Math.min(root.width - Theme.space6 * 2, Theme.maxW2xl)
         spacing: Theme.space6
 
         // Heading
@@ -62,8 +60,8 @@ Flickable {
                 icon: "refresh-cw"
                 text: qsTr("Ping")
                 onClicked: {
-                    Api.checkHealth()
-                    Api.getInfo()
+                    Api.checkHealth();
+                    Api.getInfo();
                 }
             }
 
@@ -84,7 +82,9 @@ Flickable {
                     text: qsTr("server v%1").arg(Api.serverVersion)
                 }
 
-                Item { Layout.fillWidth: true }
+                Item {
+                    Layout.fillWidth: true
+                }
             }
 
             MonoText {
@@ -95,9 +95,7 @@ Flickable {
             Txt {
                 Layout.fillWidth: true
                 visible: !Api.connected
-                text: Api.lastError !== ""
-                      ? Api.lastError
-                      : qsTr("Nothing answered yet.")
+                text: Api.lastError !== "" ? Api.lastError : qsTr("Nothing answered yet.")
                 color: Theme.muted
                 pixelSize: Theme.fontXs
                 wrapMode: Text.WordWrap
@@ -111,9 +109,7 @@ Flickable {
 
             Txt {
                 Layout.fillWidth: true
-                text: Env.hasNative
-                      ? qsTr("Notifications, file I/O and settings go through the host process.")
-                      : qsTr("No host process — run through the app binary rather than qml6 directly to enable these.")
+                text: Env.hasNative ? qsTr("Notifications, file I/O and settings go through the host process.") : qsTr("No host process — run through the app binary rather than qml6 directly to enable these.")
                 color: Theme.subtext
                 pixelSize: Theme.fontXs
                 wrapMode: Text.WordWrap
@@ -133,7 +129,9 @@ Flickable {
                     })
                 }
 
-                Item { Layout.fillWidth: true }
+                Item {
+                    Layout.fillWidth: true
+                }
             }
         }
 
@@ -165,21 +163,48 @@ Flickable {
                 Layout.fillWidth: true
                 spacing: Theme.space2
 
-                Button { variant: "primary"; text: qsTr("Primary") }
-                Button { variant: "ghost";   text: qsTr("Ghost") }
-                Button { variant: "success"; text: qsTr("Success") }
-                Button { variant: "danger";  text: qsTr("Danger") }
+                Button {
+                    variant: "primary"
+                    text: qsTr("Primary")
+                }
+                Button {
+                    variant: "ghost"
+                    text: qsTr("Ghost")
+                }
+                Button {
+                    variant: "success"
+                    text: qsTr("Success")
+                }
+                Button {
+                    variant: "danger"
+                    text: qsTr("Danger")
+                }
             }
 
             Flow {
                 Layout.fillWidth: true
                 spacing: Theme.space2
 
-                Badge { tone: "success"; text: qsTr("Success") }
-                Badge { tone: "error";   text: qsTr("Error") }
-                Badge { tone: "warning"; text: qsTr("Warning") }
-                Badge { tone: "info";    text: qsTr("Info") }
-                Badge { tone: "neutral"; text: qsTr("Neutral") }
+                Badge {
+                    tone: "success"
+                    text: qsTr("Success")
+                }
+                Badge {
+                    tone: "error"
+                    text: qsTr("Error")
+                }
+                Badge {
+                    tone: "warning"
+                    text: qsTr("Warning")
+                }
+                Badge {
+                    tone: "info"
+                    text: qsTr("Info")
+                }
+                Badge {
+                    tone: "neutral"
+                    text: qsTr("Neutral")
+                }
             }
         }
     }

@@ -26,8 +26,8 @@ ApplicationWindow {
     color: Theme.bg
 
     Component.onCompleted: {
-        Api.checkHealth()
-        Api.getInfo()
+        Api.checkHealth();
+        Api.getInfo();
     }
 
     // Any request failure worth showing lands in the banner and clears itself, so a
@@ -36,11 +36,15 @@ ApplicationWindow {
     Connections {
         target: Api
         function onRequestFailed(message) {
-            win.banner = message
-            bannerTimer.restart()
+            win.banner = message;
+            bannerTimer.restart();
         }
     }
-    Timer { id: bannerTimer; interval: 12000; onTriggered: win.banner = "" }
+    Timer {
+        id: bannerTimer
+        interval: 12000
+        onTriggered: win.banner = ""
+    }
 
     // Ctrl-K is reserved for the command palette (Phase 3). The Shortcut is declared
     // now so the binding is in one place when the palette lands.
@@ -49,8 +53,12 @@ ApplicationWindow {
         onActivated: {} // TODO(phase 3): open the CommandPalette
     }
 
-    AppOptions { id: options }
-    AboutDialog { id: about }
+    AppOptions {
+        id: options
+    }
+    AboutDialog {
+        id: about
+    }
 
     RowLayout {
         anchors.fill: parent
@@ -59,7 +67,7 @@ ApplicationWindow {
         Sidebar {
             id: sidebar
             Layout.fillHeight: true
-            onNavigate: (id) => Theme.view = id
+            onNavigate: id => Theme.view = id
             onOpenOptions: options.open()
             onOpenAbout: about.open()
         }
@@ -82,8 +90,8 @@ ApplicationWindow {
 
                     Txt {
                         text: {
-                            var item = sidebar.nav.find(n => n.id === Theme.view)
-                            return item ? item.label : ""
+                            var item = sidebar.nav.find(n => n.id === Theme.view);
+                            return item ? item.label : "";
                         }
                         color: Theme.text
                         pixelSize: Theme.fontSm
@@ -132,7 +140,11 @@ ApplicationWindow {
                     anchors.margins: Theme.space3
                     spacing: Theme.space2
 
-                    Icon { name: "alert-circle"; size: Theme.px(14); color: Theme.red }
+                    Icon {
+                        name: "alert-circle"
+                        size: Theme.px(14)
+                        color: Theme.red
+                    }
 
                     Txt {
                         id: bannerText

@@ -14,11 +14,9 @@ Rectangle {
 
     property string label: ""
     property bool active: false
-    signal clicked()
+    signal clicked
 
-    color: active ? Theme.accentTintMed
-         : (mouse.containsMouse && enabled) ? Theme.alpha(Theme.card, 0.6)
-         : "transparent"
+    color: active ? Theme.accentTintMed : (mouse.containsMouse && enabled) ? Theme.alpha(Theme.card, 0.6) : "transparent"
     border.width: 1
     border.color: (active || (mouse.containsMouse && enabled)) ? Theme.accentRing : Theme.border
     radius: Theme.radius
@@ -27,8 +25,16 @@ Rectangle {
     implicitHeight: Theme.controlHeight
     implicitWidth: text.implicitWidth + Theme.space4 * 2
 
-    Behavior on color { ColorAnimation { duration: Theme.animFast } }
-    Behavior on border.color { ColorAnimation { duration: Theme.animFast } }
+    Behavior on color {
+        ColorAnimation {
+            duration: Theme.animFast
+        }
+    }
+    Behavior on border.color {
+        ColorAnimation {
+            duration: Theme.animFast
+        }
+    }
 
     Txt {
         id: text
@@ -36,9 +42,7 @@ Rectangle {
         text: root.label
         pixelSize: Theme.fontXs
         weight: Font.Medium
-        color: root.active ? Theme.accentText
-             : mouse.containsMouse ? Theme.text
-             : Theme.muted
+        color: root.active ? Theme.accentText : mouse.containsMouse ? Theme.text : Theme.muted
     }
 
     MouseArea {
@@ -46,6 +50,7 @@ Rectangle {
         anchors.fill: parent
         hoverEnabled: true
         cursorShape: root.enabled ? Qt.PointingHandCursor : Qt.ArrowCursor
-        onClicked: if (root.enabled) root.clicked()
+        onClicked: if (root.enabled)
+            root.clicked()
     }
 }

@@ -17,19 +17,21 @@ Rectangle {
     property alias readOnly: field.readOnly
     property bool mono: false
     property bool invalid: false
-    signal accepted()
-    signal edited()
+    signal accepted
+    signal edited
 
     color: Theme.isLight ? Theme.surface : Theme.bg
     border.width: 1
-    border.color: invalid ? Theme.red
-                 : field.activeFocus ? Theme.accentRing
-                 : Theme.border
+    border.color: invalid ? Theme.red : field.activeFocus ? Theme.accentRing : Theme.border
     radius: Theme.radius
     implicitHeight: Theme.controlHeight
     implicitWidth: Theme.px(220)
 
-    Behavior on border.color { ColorAnimation { duration: Theme.animFast } }
+    Behavior on border.color {
+        ColorAnimation {
+            duration: Theme.animFast
+        }
+    }
 
     TextInput {
         id: field

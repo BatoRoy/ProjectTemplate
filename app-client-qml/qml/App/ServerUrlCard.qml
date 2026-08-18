@@ -32,7 +32,9 @@ ColumnLayout {
     readonly property string current: Api.backendUrl
     readonly property bool dirty: field.text !== current
 
-    SectionLabel { text: qsTr("Server") }
+    SectionLabel {
+        text: qsTr("Server")
+    }
 
     RowLayout {
         Layout.fillWidth: true
@@ -45,7 +47,10 @@ ColumnLayout {
             placeholder: "http://localhost:8080"
             Layout.fillWidth: true
             Layout.minimumWidth: 0
-            onEdited: { root.probe = ""; root.saved = false }
+            onEdited: {
+                root.probe = "";
+                root.saved = false;
+            }
             onAccepted: root.save()
         }
 
@@ -74,7 +79,11 @@ ColumnLayout {
         Layout.fillWidth: true
         spacing: Theme.space1
         opacity: root.probe === "" ? 0 : 1
-        Behavior on opacity { NumberAnimation { duration: Theme.animFast } }
+        Behavior on opacity {
+            NumberAnimation {
+                duration: Theme.animFast
+            }
+        }
 
         Icon {
             name: root.probe === "ok" ? "check-circle" : "x-circle"
@@ -84,42 +93,36 @@ ColumnLayout {
         }
 
         Txt {
-            text: root.probe === "ok" ? qsTr("Server reached")
-                : root.probe === "fail" ? qsTr("No server answered")
-                : qsTr("Testing…")
-            color: root.probe === "ok" ? Theme.green
-                 : root.probe === "fail" ? Theme.red
-                 : Theme.muted
+            text: root.probe === "ok" ? qsTr("Server reached") : root.probe === "fail" ? qsTr("No server answered") : qsTr("Testing…")
+            color: root.probe === "ok" ? Theme.green : root.probe === "fail" ? Theme.red : Theme.muted
             pixelSize: Theme.fontXs
         }
     }
 
     Txt {
         Layout.fillWidth: true
-        text: Env.backendUrl !== "" && !root.dirty && root.current === Env.backendUrl
-              ? qsTr("Provided by the app at launch. Save a different address to override it.")
-              : qsTr("Applies immediately — no restart. A saved address stops the bundled server from starting.")
+        text: Env.backendUrl !== "" && !root.dirty && root.current === Env.backendUrl ? qsTr("Provided by the app at launch. Save a different address to override it.") : qsTr("Applies immediately — no restart. A saved address stops the bundled server from starting.")
         color: Theme.muted
         pixelSize: Theme.fontXs
         wrapMode: Text.WordWrap
     }
 
     function test() {
-        root.probe = "testing"
+        root.probe = "testing";
         Api.testConnection(field.text, function (ok) {
-            root.probe = ok ? "ok" : "fail"
-        })
+            root.probe = ok ? "ok" : "fail";
+        });
     }
 
     function save() {
         if (!root.dirty)
-            return
-        root.saving = true
+            return;
+        root.saving = true;
         Api.setBackendUrl(field.text, function (ok) {
-            root.saving = false
-            root.saved = ok
+            root.saving = false;
+            root.saved = ok;
             if (!ok)
-                root.probe = "fail"
-        })
+                root.probe = "fail";
+        });
     }
 }

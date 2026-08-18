@@ -17,16 +17,18 @@ Rectangle {
     property string label: ""
     property bool active: false
     property bool collapsed: false
-    signal clicked()
+    signal clicked
 
     Layout.fillWidth: true
     implicitHeight: Theme.rowHeight
     radius: Theme.radius
 
-    color: active ? Theme.accentTint
-         : mouse.containsMouse ? Theme.alpha(Theme.card, 0.6)
-         : "transparent"
-    Behavior on color { ColorAnimation { duration: Theme.animFast } }
+    color: active ? Theme.accentTint : mouse.containsMouse ? Theme.alpha(Theme.card, 0.6) : "transparent"
+    Behavior on color {
+        ColorAnimation {
+            duration: Theme.animFast
+        }
+    }
 
     RowLayout {
         anchors.fill: parent
@@ -36,14 +38,14 @@ Rectangle {
 
         // When collapsed the glyph is centred, which two flexible spacers achieve
         // without a second layout branch.
-        Item { Layout.fillWidth: root.collapsed }
+        Item {
+            Layout.fillWidth: root.collapsed
+        }
 
         Icon {
             name: root.icon
             size: Theme.iconSize
-            color: root.active ? Theme.accentTextOnBg
-                 : mouse.containsMouse ? Theme.subtext
-                 : Theme.muted
+            color: root.active ? Theme.accentTextOnBg : mouse.containsMouse ? Theme.subtext : Theme.muted
         }
 
         Txt {
@@ -51,15 +53,15 @@ Rectangle {
             text: root.label
             pixelSize: Theme.fontSm
             weight: root.active ? Font.Medium : Font.Normal
-            color: root.active ? Theme.text
-                 : mouse.containsMouse ? Theme.text
-                 : Theme.muted
+            color: root.active ? Theme.text : mouse.containsMouse ? Theme.text : Theme.muted
             elide: Text.ElideRight
             Layout.fillWidth: !root.collapsed
             Layout.minimumWidth: 0
         }
 
-        Item { Layout.fillWidth: root.collapsed }
+        Item {
+            Layout.fillWidth: root.collapsed
+        }
     }
 
     MouseArea {

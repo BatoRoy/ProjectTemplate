@@ -24,7 +24,7 @@ Item {
     // "star" on the brand default, "check" when selected, "" otherwise.
     property string glyph: ""
     property string tooltip: ""
-    signal picked()
+    signal picked
 
     implicitWidth: Theme.px(28)
     implicitHeight: Theme.px(28)
@@ -52,7 +52,11 @@ Item {
         color: root.hex
 
         scale: mouse.containsMouse ? 1.1 : 1.0
-        Behavior on scale { NumberAnimation { duration: Theme.animFast } }
+        Behavior on scale {
+            NumberAnimation {
+                duration: Theme.animFast
+            }
+        }
 
         Icon {
             anchors.centerIn: parent

@@ -42,7 +42,7 @@ QtObject {
     signal requestFailed(string message)
 
     function normalize(url) {
-        return String(url).trim().replace(/\/+$/, "")
+        return String(url).trim().replace(/\/+$/, "");
     }
 
     // ── Backend ──────────────────────────────────────────────────────────────
@@ -52,13 +52,14 @@ QtObject {
     // user has signed in to anything.
     function checkHealth(onDone) {
         request("GET", backendUrl + "/api/health", null, function (ok, data) {
-            root.connected = ok
+            root.connected = ok;
             if (!ok)
-                root.lastError = data && data.error ? data.error : "no server answered"
+                root.lastError = data && data.error ? data.error : "no server answered";
             else
-                root.lastError = ""
-            if (onDone) onDone(ok)
-        })
+                root.lastError = "";
+            if (onDone)
+                onDone(ok);
+        });
     }
 
     // /api/info is role-gated, unlike health, so it is fetched separately and its
@@ -66,16 +67,18 @@ QtObject {
     function getInfo(onDone) {
         request("GET", backendUrl + "/api/info", null, function (ok, data) {
             if (ok && data && data.version)
-                root.serverVersion = data.version
-            if (onDone) onDone(ok, data)
-        })
+                root.serverVersion = data.version;
+            if (onDone)
+                onDone(ok, data);
+        });
     }
 
     // Probe a candidate URL without saving it — what ServerUrlCard's Test does.
     function testConnection(url, onDone) {
         request("GET", normalize(url) + "/api/health", null, function (ok) {
-            if (onDone) onDone(ok)
-        })
+            if (onDone)
+                onDone(ok);
+        });
     }
 
     // Persist a new backend URL and apply it now. Saving goes through the native
@@ -83,66 +86,83 @@ QtObject {
     // read it on the *next* launch to decide whether to spawn a bundled server, so
     // the two must agree on one document.
     function setBackendUrl(url, onDone) {
-        var next = normalize(url)
-        saveSettings({ backendUrl: next }, function (ok) {
+        var next = normalize(url);
+        saveSettings({
+            backendUrl: next
+        }, function (ok) {
             if (ok) {
                 // Assigning the property emits backendUrlChanged for every view
                 // bound to it; no explicit notification needed.
-                root.backendUrl = next
-                root.checkHealth()
+                root.backendUrl = next;
+                root.checkHealth();
             }
-            if (onDone) onDone(ok)
-        })
+            if (onDone)
+                onDone(ok);
+        });
     }
 
     // ── Native (the host's loopback bridge) ──────────────────────────────────
 
     function notify(opts, onDone) {
         nativeCall("POST", "/notify", opts, function (ok, data) {
-            if (onDone) onDone(ok && data && data.delivered === true)
-        })
+            if (onDone)
+                onDone(ok && data && data.delivered === true);
+        });
     }
 
     function loadSettings(onDone) {
         nativeCall("GET", "/settings", null, function (ok, data) {
-            if (onDone) onDone(ok, ok ? data : ({}))
-        })
+            if (onDone)
+                onDone(ok, ok ? data : ({}));
+        });
     }
 
     // A merge, not a replace: the host folds these keys into the existing
     // document, so a caller can save one field without knowing the rest.
     function saveSettings(patch, onDone) {
         nativeCall("PUT", "/settings", patch, function (ok) {
-            if (onDone) onDone(ok)
-        })
+            if (onDone)
+                onDone(ok);
+        });
     }
 
     function readTextFile(path, onDone) {
         nativeCall("GET", "/fs/text?path=" + encodeURIComponent(path), null, function (ok, data) {
-            if (onDone) onDone(ok, ok && data ? data.content : "")
-        })
+            if (onDone)
+                onDone(ok, ok && data ? data.content : "");
+        });
     }
 
     function writeTextFile(path, content, onDone) {
-        nativeCall("PUT", "/fs/text", { path: path, content: content }, function (ok) {
-            if (onDone) onDone(ok)
-        })
+        nativeCall("PUT", "/fs/text", {
+            path: path,
+            content: content
+        }, function (ok) {
+            if (onDone)
+                onDone(ok);
+        });
     }
 
     function openExternal(target, onDone) {
-        nativeCall("POST", "/open", { target: target }, function (ok) {
-            if (onDone) onDone(ok)
-        })
+        nativeCall("POST", "/open", {
+            target: target
+        }, function (ok) {
+            if (onDone)
+                onDone(ok);
+        });
     }
 
     function nativeCall(method, path, body, onDone) {
         if (!Env.hasNative) {
             // No host: this is `make dev-ui`. Report failure rather than
             // pretending, but never throw — the UI has to keep working.
-            if (onDone) onDone(false, { error: "no native bridge (running without the host process)" })
-            return
+            if (onDone)
+                onDone(false, {
+                    error: "no native bridge (running without the host process)"
+                });
+            return;
         }
-        request(method, Env.nativeUrl + path, body, onDone, Env.nativeToken)
+        request(method, Env.nativeUrl + path, body, onDone, Env.nativeToken);
     }
 
     // ── Transport ────────────────────────────────────────────────────────────
@@ -155,39 +175,47 @@ QtObject {
     // renderer. QML's networking has none of those restrictions, so that whole
     // mechanism collapses into a plain request here.
     function request(method, url, body, onDone, nativeToken) {
-        var xhr = new XMLHttpRequest()
-        xhr.open(method, url)
+        var xhr = new XMLHttpRequest();
+        xhr.open(method, url);
         if (body !== null && body !== undefined)
-            xhr.setRequestHeader("Content-Type", "application/json")
+            xhr.setRequestHeader("Content-Type", "application/json");
         if (nativeToken)
-            xhr.setRequestHeader("X-Native-Token", nativeToken)
+            xhr.setRequestHeader("X-Native-Token", nativeToken);
 
         xhr.onreadystatechange = function () {
             if (xhr.readyState !== XMLHttpRequest.DONE)
-                return
-
-            var data = null
+                return;
+            var data = null;
             if (xhr.responseText)
-                try { data = JSON.parse(xhr.responseText) } catch (e) { data = null }
+                try {
+                    data = JSON.parse(xhr.responseText);
+                } catch (e) {
+                    data = null;
+                }
 
             if (xhr.status >= 200 && xhr.status < 300) {
-                if (onDone) onDone(true, data)
-                return
+                if (onDone)
+                    onDone(true, data);
+                return;
             }
 
             // status 0 is "nothing answered" — a stopped server or a wrong host.
             // Say so plainly instead of reporting "HTTP 0", which reads like a bug
             // in the app.
-            var msg = xhr.status === 0
-                ? "no server answered at " + url
-                : (data && data.error ? data.error : "HTTP " + xhr.status)
-            if (onDone) onDone(false, { error: msg })
-        }
+            var msg = xhr.status === 0 ? "no server answered at " + url : (data && data.error ? data.error : "HTTP " + xhr.status);
+            if (onDone)
+                onDone(false, {
+                    error: msg
+                });
+        };
 
         try {
-            xhr.send(body !== null && body !== undefined ? JSON.stringify(body) : null)
+            xhr.send(body !== null && body !== undefined ? JSON.stringify(body) : null);
         } catch (e) {
-            if (onDone) onDone(false, { error: String(e) })
+            if (onDone)
+                onDone(false, {
+                    error: String(e)
+                });
         }
     }
 }

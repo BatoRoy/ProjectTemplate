@@ -1,14 +1,15 @@
-// ShowcasePage is the living gallery — the twin of components/ShowcasePage.tsx and
-// the parity harness for the whole kit. Every component the template ships appears
-// here, so a visual diff against the Electron flavor's Examples page is the
-// acceptance test for "the two look the same".
+pragma ComponentBehavior: Bound
+
+// ShowcasePage is the living gallery — the twin of components/ShowcasePage.tsx and the
+// parity harness for the whole kit. Every component the template ships appears here, so
+// a visual diff against the Electron flavor's Examples page is the acceptance test for
+// "the two look the same".
+//
+// It doubles as a smoke test: `make check-qml` loads this page, so a component that
+// cannot be instantiated, or that overflows its card between 560 and 1200px, fails the
+// build rather than waiting to be noticed.
 //
 // Meant to be deleted along with its entry in Sidebar.nav when you start a real app.
-//
-// Phase 3 fills in the remaining sections (Inputs, Date, Layout, Dashboard, Overlays,
-// Data & Viz) as those components land. What is here now is what exists.
-
-pragma ComponentBehavior: Bound
 
 import QtQuick
 import QtQuick.Controls
@@ -24,15 +25,13 @@ Flickable {
     boundsBehavior: Flickable.StopAtBounds
     ScrollBar.vertical: ScrollBar {}
 
+    property string section: "inputs"
+
     ColumnLayout {
         id: column
-        // `mx-auto p-6 max-w-*` in the web flavor: centred, padded, and capped
-        // unless Content width is Full.
         x: Math.max(Theme.space6, (root.width - width) / 2)
         y: Theme.space6
-        width: Theme.wide
-               ? root.width - Theme.space6 * 2
-               : Math.min(root.width - Theme.space6 * 2, Theme.maxW3xl)
+        width: Theme.wide ? root.width - Theme.space6 * 2 : Math.min(root.width - Theme.space6 * 2, Theme.maxW3xl)
         spacing: Theme.space6
 
         Txt {
@@ -42,17 +41,267 @@ Flickable {
             weight: Font.DemiBold
         }
 
+        SegmentedControl {
+            Layout.fillWidth: true
+            value: root.section
+            options: [
+                {
+                    value: "inputs",
+                    label: qsTr("Inputs")
+                },
+                {
+                    value: "feedback",
+                    label: qsTr("Feedback")
+                },
+                {
+                    value: "overlays",
+                    label: qsTr("Overlays")
+                },
+                {
+                    value: "icons",
+                    label: qsTr("Icons")
+                }
+            ]
+            onPicked: v => root.section = v
+        }
+
+        // ── Inputs ───────────────────────────────────────────────────────────
         Card {
             Layout.fillWidth: true
-            title: qsTr("Feedback")
+            visible: root.section === "inputs"
+            title: qsTr("Text")
+
+            TextField {
+                Layout.fillWidth: true
+                label: qsTr("Name")
+                hint: qsTr("As it appears on the invoice")
+                placeholder: qsTr("Ada Lovelace")
+                clearable: true
+                leftIcon: "search"
+            }
+
+            TextField {
+                Layout.fillWidth: true
+                label: qsTr("Password")
+                password: true
+                placeholder: "••••••••"
+            }
+
+            TextField {
+                Layout.fillWidth: true
+                label: qsTr("Endpoint")
+                error: qsTr("Must start with http://")
+                text: "ftp://example"
+                mono: true
+            }
+
+            TextArea {
+                Layout.fillWidth: true
+                label: qsTr("Notes")
+                placeholder: qsTr("Anything worth remembering…")
+                autosize: true
+                maxLength: 280
+                showCount: true
+            }
+        }
+
+        Card {
+            Layout.fillWidth: true
+            visible: root.section === "inputs"
+            title: qsTr("Values")
+
+            NumberInput {
+                Layout.fillWidth: true
+                label: qsTr("Retries")
+                value: 3
+                min: 0
+                max: 10
+            }
+
+            Field {
+                Layout.fillWidth: true
+                label: qsTr("Threshold")
+                Slider {
+                    Layout.fillWidth: true
+                    value: 40
+                    marks: true
+                    step: 10
+                }
+            }
+
+            TagsInput {
+                Layout.fillWidth: true
+                label: qsTr("Tags")
+                value: ["qml", "go"]
+            }
+
+            Field {
+                Layout.fillWidth: true
+                label: qsTr("Environment")
+                Select {
+                    Layout.fillWidth: true
+                    value: "prod"
+                    options: [
+                        {
+                            value: "dev",
+                            label: qsTr("Development")
+                        },
+                        {
+                            value: "staging",
+                            label: qsTr("Staging")
+                        },
+                        {
+                            value: "prod",
+                            label: qsTr("Production")
+                        }
+                    ]
+                }
+            }
+        }
+
+        Card {
+            Layout.fillWidth: true
+            visible: root.section === "inputs"
+            title: qsTr("Toggles")
 
             Flow {
                 Layout.fillWidth: true
-                spacing: Theme.space3
-                Spinner {}
-                Badge { tone: "success"; text: qsTr("Ready") }
-                Badge { tone: "warning"; text: qsTr("Degraded") }
+                spacing: Theme.space4
+                Switch {
+                    checked: true
+                    label: qsTr("Enabled")
+                }
+                Checkbox {
+                    checked: true
+                    label: qsTr("Checked")
+                }
+                Checkbox {
+                    indeterminate: true
+                    label: qsTr("Partial")
+                }
+                Checkbox {
+                    label: qsTr("Unchecked")
+                }
             }
+
+            RadioGroup {
+                Layout.fillWidth: true
+                value: "b"
+                options: [
+                    {
+                        value: "a",
+                        label: qsTr("First option")
+                    },
+                    {
+                        value: "b",
+                        label: qsTr("Second option")
+                    }
+                ]
+            }
+
+            Tabs {
+                value: "one"
+                tabs: [
+                    {
+                        id: "one",
+                        label: qsTr("One")
+                    },
+                    {
+                        id: "two",
+                        label: qsTr("Two")
+                    },
+                    {
+                        id: "three",
+                        label: qsTr("Three")
+                    }
+                ]
+            }
+        }
+
+        // ── Feedback ─────────────────────────────────────────────────────────
+        Card {
+            Layout.fillWidth: true
+            visible: root.section === "feedback"
+            title: qsTr("Status")
+
+            Flow {
+                Layout.fillWidth: true
+                spacing: Theme.space2
+                Badge {
+                    tone: "success"
+                    text: qsTr("Success")
+                }
+                Badge {
+                    tone: "error"
+                    text: qsTr("Error")
+                }
+                Badge {
+                    tone: "warning"
+                    text: qsTr("Warning")
+                }
+                Badge {
+                    tone: "info"
+                    text: qsTr("Info")
+                }
+                Badge {
+                    tone: "neutral"
+                    text: qsTr("Neutral")
+                }
+            }
+
+            Alert {
+                Layout.fillWidth: true
+                tone: "info"
+                title: qsTr("Heads up")
+                text: qsTr("Alerts carry their tone at 10% with a 30% border, so the text keeps its normal contrast.")
+            }
+            Alert {
+                Layout.fillWidth: true
+                tone: "error"
+                title: qsTr("Something failed")
+                text: qsTr("And this one can be dismissed.")
+                closable: true
+            }
+
+            RowLayout {
+                Layout.fillWidth: true
+                spacing: Theme.space4
+                Spinner {}
+                CircularProgress {
+                    value: 62
+                    showLabel: true
+                }
+                ColumnLayout {
+                    Layout.fillWidth: true
+                    Layout.minimumWidth: 0
+                    spacing: Theme.space2
+                    Progress {
+                        Layout.fillWidth: true
+                        value: 62
+                    }
+                    Progress {
+                        Layout.fillWidth: true
+                        indeterminate: true
+                    }
+                }
+            }
+
+            ColumnLayout {
+                Layout.fillWidth: true
+                spacing: Theme.space2
+                Skeleton {
+                    Layout.fillWidth: true
+                }
+                Skeleton {
+                    Layout.preferredWidth: parent.width * 0.6
+                }
+            }
+        }
+
+        Card {
+            Layout.fillWidth: true
+            visible: root.section === "feedback"
+            title: qsTr("Empty")
 
             EmptyState {
                 Layout.fillWidth: true
@@ -62,27 +311,98 @@ Flickable {
             }
         }
 
+        // ── Overlays ─────────────────────────────────────────────────────────
         Card {
             Layout.fillWidth: true
+            visible: root.section === "overlays"
+            title: qsTr("Overlays")
+
+            Txt {
+                Layout.fillWidth: true
+                text: qsTr("Right-click this card for a context menu. Toasts stack from the bottom right.")
+                color: Theme.subtext
+                pixelSize: Theme.fontXs
+                wrapMode: Text.WordWrap
+            }
+
+            Flow {
+                Layout.fillWidth: true
+                spacing: Theme.space2
+
+                Button {
+                    text: qsTr("Toast")
+                    onClicked: toasts.success(qsTr("That worked."))
+                }
+                Button {
+                    variant: "danger"
+                    text: qsTr("Confirm")
+                    onClicked: confirm.open()
+                }
+                Button {
+                    variant: "ghost"
+                    text: qsTr("Drawer")
+                    onClicked: drawer.open()
+                }
+                Dropdown {
+                    label: qsTr("Actions")
+                    icon: "more-horizontal"
+                    items: [
+                        {
+                            label: qsTr("Rename"),
+                            icon: "pencil"
+                        },
+                        {
+                            label: qsTr("Duplicate"),
+                            icon: "plus"
+                        },
+                        {
+                            separator: true
+                        },
+                        {
+                            label: qsTr("Delete"),
+                            icon: "x",
+                            danger: true
+                        }
+                    ]
+                }
+            }
+
+            MouseArea {
+                Layout.fillWidth: true
+                Layout.preferredHeight: Theme.px(40)
+                acceptedButtons: Qt.RightButton
+                onClicked: e => menu.popupAt(e.x, e.y)
+
+                Txt {
+                    anchors.centerIn: parent
+                    text: qsTr("Right-click here")
+                    color: Theme.muted
+                    pixelSize: Theme.fontXs
+                }
+            }
+        }
+
+        // ── Icons ────────────────────────────────────────────────────────────
+        Card {
+            Layout.fillWidth: true
+            visible: root.section === "icons"
             title: qsTr("Icons")
 
-            // Every vendored lucide glyph, so a missing or misnamed SVG is visible
-            // rather than a blank space on some page you forgot to open.
+            Txt {
+                Layout.fillWidth: true
+                text: qsTr("Every vendored lucide glyph, so a missing or misnamed SVG is visible here rather than on some page you forgot to open.")
+                color: Theme.subtext
+                pixelSize: Theme.fontXs
+                wrapMode: Text.WordWrap
+            }
+
             Flow {
                 Layout.fillWidth: true
                 spacing: Theme.space3
 
                 Repeater {
-                    model: [
-                        "home", "layout-grid", "settings", "info", "download",
-                        "refresh-cw", "panel-left-close", "panel-left-open", "check",
-                        "star", "x", "plug", "moon", "sun-medium", "cloud-moon",
-                        "bell", "search", "plus", "minus", "check-circle", "x-circle",
-                        "alert-circle", "alert-triangle", "chevron-down", "chevron-up",
-                        "chevron-left", "chevron-right", "eye", "eye-off", "save",
-                        "upload", "pencil", "activity", "box"
-                    ]
-                    Icon {
+                    model: ["activity", "alert-circle", "alert-triangle", "bar-chart-3", "bell", "box", "calendar", "calendar-clock", "check", "check-circle", "chevron-down", "chevron-left", "chevron-right", "chevron-up", "chevrons-up-down", "cloud-moon", "download", "eye", "eye-off", "file-code", "grip-vertical", "home", "info", "layout-grid", "list-checks", "minus", "moon", "more-horizontal", "panel-left-close", "panel-left-open", "pencil", "plug", "plus", "refresh-cw", "save", "search", "settings", "star", "sun-medium", "upload", "volume-1", "volume-2", "volume-x", "x", "x-circle"]
+                    delegate: Icon {
                         required property var modelData
                         name: modelData
                         size: Theme.px(18)
@@ -91,5 +411,52 @@ Flickable {
                 }
             }
         }
+    }
+
+    ConfirmDialog {
+        id: confirm
+        title: qsTr("Delete this?")
+        message: qsTr("This cannot be undone.")
+        confirmText: qsTr("Delete")
+        danger: true
+        onConfirmed: toasts.error(qsTr("Deleted."))
+    }
+
+    Drawer {
+        id: drawer
+        Txt {
+            text: qsTr("A drawer slides in from the edge.")
+            color: Theme.text
+            pixelSize: Theme.fontSm
+        }
+    }
+
+    ContextMenu {
+        id: menu
+        items: [
+            {
+                label: qsTr("Cut"),
+                icon: "x"
+            },
+            {
+                label: qsTr("Copy"),
+                icon: "save"
+            },
+            {
+                separator: true
+            },
+            {
+                label: qsTr("Delete"),
+                icon: "x",
+                danger: true
+            }
+        ]
+    }
+
+    Toast {
+        id: toasts
+        anchors.right: parent.right
+        anchors.bottom: parent.bottom
+        anchors.margins: Theme.space5
     }
 }
