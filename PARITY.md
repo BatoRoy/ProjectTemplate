@@ -93,17 +93,24 @@ unavailable". Forgetting an entry is a loud error.
 | (Tailwind classes on spans) | `Txt`, `MonoText`, `SectionLabel` | QML-only primitives |
 | (date-fns + inline helpers) | `Format` singleton | QML-only |
 | `Stack`, `HStack`, `VStack`, `Grid`, `Container`, `Center`, `Spacer`, `Divider` | **QML natives** | `ColumnLayout`, `RowLayout`, `GridLayout`, `anchors.fill`, `anchors.centerIn`, `Item { Layout.fillWidth: true }`. Only `Divider` is a component, because a hairline should not scale with UI scale |
-| `DateRangePicker`, `DateTimePicker`, `CalendarView` | — | not ported; `Calendar` supports `range`, so these are compositions an app can make |
-| `Masonry` | — | not ported; `AutoGrid` covers the common case |
-| `PanelGroup` / `Panel` (N-way) | — | not ported; `ResizablePanels` covers two |
-| `Dashboard` (drag/resize widget grid) | — | not ported |
-| `NodeGraph` (`@xyflow/react`) | — | not ported |
+| `DateRangePicker`, `DateTimePicker`, `CalendarView` | same names | exact; `CalendarView` has month and week views |
+| `TimeInput` (segments) / `TimePicker` (columns) | same names | both, and they are the right way round |
+| `Masonry`, `AutoGrid`, `AspectRatio` | same names | exact |
+| `PanelGroup` / `Panel` | same names | N-way, nestable, sizes persist via `settingsKey` |
+| `AvatarGroup`, `AppShell` | same names | exact |
+| `NodeGraph` | `NodeGraph` | written from scratch — QML has no `@xyflow` equivalent. Pan, cursor-anchored zoom, node dragging, bezier edges. Edges are drawn on a `Canvas`: a `Repeater` cannot produce `ShapePath` delegates, and one `Shape` per edge is a scene-graph node per edge |
+| `Dashboard` (drag/resize widget grid) | — | **not ported** — the only one |
 | `ErrorBoundary` | — | no QML equivalent: a QML binding error does not unwind to a catchable boundary |
 | `ResponsiveShell`, `useIsDesktop` | — | **not ported, deliberately** (PWA-only path) |
 | `useHotkeys`, `useElementSize`, `useDismiss`, `useControllableState`, `useHoldRepeat` | — | QML natives: `Shortcut`, `onWidthChanged`, `Popup.closePolicy`, plain properties, a `Timer` pair |
 
-**80 components** are registered in `qmldir`. The six not ported are listed above with
-the reason; each is a candidate if an app needs it, not an oversight.
+**90 components** are registered in `qmldir`. Two React entries have no QML counterpart:
+
+- **`Dashboard`** — the drag/resize widget grid. Deliberately skipped; the pointer maths
+  ports but the snap-compaction is the bulk of it, and no app has asked for one.
+- **`ErrorBoundary`** — not portable. A QML binding error does not unwind to a catchable
+  boundary; it logs and yields `undefined`. `make check-qml` plus the forced Qt console
+  output are the real substitute.
 
 ## Deliberate deviations
 

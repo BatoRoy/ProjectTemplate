@@ -63,18 +63,30 @@ Rectangle {
                 id: seg
                 required property var modelData
                 required property int index
+
+                // Both are needed. fillWidth equalises the segments when there is room;
+                // implicitWidth is what the *control* reports upward, and without it every
+                // segment claims zero, the whole control claims ~nothing, and a parent
+                // sizing it to its content clips the labels.
+                implicitWidth: segLabel.implicitWidth + Theme.space4
                 Layout.fillWidth: true
                 Layout.minimumWidth: 0
                 Layout.preferredHeight: root.segHeight
 
                 Txt {
+                    id: segLabel
                     anchors.centerIn: parent
                     text: seg.modelData.label
                     pixelSize: Theme.fontXs
                     weight: Font.Medium
                     color: seg.index === root.index ? Theme.accentText : segMouse.containsMouse ? Theme.text : Theme.muted
                     elide: Text.ElideRight
-                    width: Math.min(implicitWidth, seg.width - Theme.space2)
+                    // Guarded against seg.width being 0 on the first pass: the naive
+                    // Math.min(implicitWidth, seg.width - space2) evaluates negative there,
+                    // an elided Text given a negative width reports ~0 implicit width, and
+                    // the segment then reports that upward — so the whole control claimed
+                    // 38px and clipped its own labels.
+                    width: seg.width > Theme.space2 ? Math.min(implicitWidth, seg.width - Theme.space2) : implicitWidth
                 }
 
                 MouseArea {

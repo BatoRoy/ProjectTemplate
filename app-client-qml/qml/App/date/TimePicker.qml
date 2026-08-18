@@ -1,99 +1,208 @@
-// TimePicker — the twin of components/date/TimePicker.tsx: typeable hour/minute segments
-// with press-and-hold steppers.
+pragma ComponentBehavior: Bound
+
+// TimePicker — the twin of components/date/TimePicker.tsx: scrollable hour/minute columns.
 //
-// Segments hold a total-minutes value rather than two independent numbers, so incrementing
-// 59 minutes carries into the hour instead of wrapping in place — the same reason the web
-// flavor's TimeInput works in total seconds.
+// The other time control, TimeInput, is a segment field you type into. This one is for
+// browsing to a time rather than entering a known one — the difference between setting an
+// alarm and filling in a form.
+//
+// Columns are ListViews with snapping, so a flick lands on a value rather than between
+// two. `step` thins the minute column (5 gives :00 :05 :10 …), which is what makes a
+// picker usable for scheduling.
 
 import QtQuick
+import QtQuick.Controls
 import QtQuick.Layouts
 import App
 
-RowLayout {
+Rectangle {
     id: root
 
     property int hours: 9
     property int minutes: 0
-    property bool seconds: false
     property int secs: 0
-    signal changed(int hours, int minutes, int secs)
+    property bool seconds: false
+    // 24-hour by default; 12-hour adds the AM/PM column.
+    property bool hour12: false
+    property int step: 1              // minute granularity
+    signal picked(int hours, int minutes, int secs)
 
-    spacing: Theme.space1
+    implicitHeight: Theme.px(180)
+    implicitWidth: row.implicitWidth + Theme.space2 * 2
+    color: Theme.card
+    border.color: Theme.border
+    border.width: 1
+    radius: Theme.radius
+    clip: true
 
-    readonly property int total: hours * 3600 + minutes * 60 + secs
-
-    function setTotal(t) {
-        var day = 24 * 3600;
-        var v = ((t % day) + day) % day;   // wrap across midnight, both directions
-        root.hours = Math.floor(v / 3600);
-        root.minutes = Math.floor((v % 3600) / 60);
-        root.secs = v % 60;
-        root.changed(root.hours, root.minutes, root.secs);
+    readonly property var hourValues: {
+        var out = [];
+        if (hour12)
+            for (var h = 1; h <= 12; ++h)
+                out.push(h);
+        else
+            for (var i = 0; i < 24; ++i)
+                out.push(i);
+        return out;
+    }
+    readonly property var minuteValues: {
+        var out = [];
+        for (var m = 0; m < 60; m += Math.max(1, step))
+            out.push(m);
+        return out;
+    }
+    readonly property var secondValues: {
+        var out = [];
+        for (var s = 0; s < 60; ++s)
+            out.push(s);
+        return out;
     }
 
-    Segment {
-        value: root.hours
-        max: 23
-        onStep: d => root.setTotal(root.total + d * 3600)
-    }
-    Txt {
-        text: ":"
-        color: Theme.muted
-        pixelSize: Theme.fontSm
-    }
-    Segment {
-        value: root.minutes
-        max: 59
-        onStep: d => root.setTotal(root.total + d * 60)
-    }
-    Txt {
-        visible: root.seconds
-        text: ":"
-        color: Theme.muted
-        pixelSize: Theme.fontSm
-    }
-    Segment {
-        visible: root.seconds
-        value: root.secs
-        max: 59
-        onStep: d => root.setTotal(root.total + d)
+    function emit() {
+        root.picked(root.hours, root.minutes, root.secs);
     }
 
-    Item {
-        Layout.fillWidth: true
-    }
+    RowLayout {
+        id: row
+        anchors.fill: parent
+        anchors.margins: Theme.space2
+        spacing: Theme.space1
 
-    component Segment: Rectangle {
-        id: seg
-        property int value: 0
-        property int max: 59
-        signal step(int delta)
-
-        implicitWidth: Theme.px(44)
-        implicitHeight: Theme.controlHeight
-        color: Theme.isLight ? Theme.surface : Theme.bg
-        border.width: 1
-        border.color: segMouse.containsMouse ? Theme.accentRing : Theme.border
-        radius: Theme.radius
+        Column {
+            values: root.hourValues
+            current: root.hour12 ? (root.hours % 12 === 0 ? 12 : root.hours % 12) : root.hours
+            onPickedValue: v => {
+                if (root.hour12) {
+                    var pm = root.hours >= 12;
+                    root.hours = (v % 12) + (pm ? 12 : 0);
+                } else {
+                    root.hours = v;
+                }
+                root.emit();
+            }
+        }
 
         Txt {
-            anchors.centerIn: parent
-            text: Format.pad(seg.value)
-            family: Theme.fontMono
+            text: ":"
+            color: Theme.muted
             pixelSize: Theme.fontSm
-            color: Theme.text
         }
 
-        MouseArea {
-            id: segMouse
-            anchors.fill: parent
-            hoverEnabled: true
-            // The whole segment is a scroll target, which is how these are actually
-            // used — clicking tiny arrows for a time is nobody's preference.
-            onWheel: wheel => seg.step(wheel.angleDelta.y > 0 ? 1 : -1)
+        Column {
+            values: root.minuteValues
+            current: root.minutes
+            onPickedValue: v => {
+                root.minutes = v;
+                root.emit();
+            }
         }
 
-        Keys.onUpPressed: seg.step(1)
-        Keys.onDownPressed: seg.step(-1)
+        Txt {
+            visible: root.seconds
+            text: ":"
+            color: Theme.muted
+            pixelSize: Theme.fontSm
+        }
+
+        Column {
+            visible: root.seconds
+            values: root.secondValues
+            current: root.secs
+            onPickedValue: v => {
+                root.secs = v;
+                root.emit();
+            }
+        }
+
+        Column {
+            visible: root.hour12
+            values: ["AM", "PM"]
+            current: root.hours >= 12 ? "PM" : "AM"
+            pad: false
+            onPickedValue: v => {
+                var h = root.hours % 12;
+                root.hours = v === "PM" ? h + 12 : h;
+                root.emit();
+            }
+        }
+    }
+
+    // One scrollable column. Extracted because four of them differ only in their values.
+    component Column: ListView {
+        id: col
+        property var values: []
+        property var current: undefined
+        property bool pad: true
+        signal pickedValue(var value)
+
+        Layout.fillHeight: true
+        Layout.preferredWidth: Theme.px(46)
+        model: values
+        clip: true
+        // Snapping is what makes a flick land on a value instead of between two.
+        snapMode: ListView.SnapToItem
+        highlightMoveDuration: Theme.animBase
+        boundsBehavior: Flickable.StopAtBounds
+
+        // Half a viewport of padding at each end, so the first and last values can reach
+        // the centre line rather than stopping at the edge.
+        header: Item {
+            width: 1
+            height: col.height / 2 - Theme.rowHeight / 2
+        }
+        footer: Item {
+            width: 1
+            height: col.height / 2 - Theme.rowHeight / 2
+        }
+
+        onCurrentChanged: positionToCurrent()
+        Component.onCompleted: positionToCurrent()
+        function positionToCurrent() {
+            var i = values.indexOf(current);
+            if (i >= 0)
+                positionViewAtIndex(i, ListView.Center);
+        }
+
+        delegate: Rectangle {
+            id: cell
+            required property var modelData
+            readonly property bool active: modelData === col.current
+
+            width: col.width
+            height: Theme.rowHeight
+            radius: Theme.radiusSm
+            color: active ? Theme.accentTintMed : cellMouse.containsMouse ? Theme.alpha(Theme.border, 0.5) : "transparent"
+
+            Txt {
+                anchors.centerIn: parent
+                text: col.pad && typeof cell.modelData === "number" ? Format.pad(cell.modelData) : cell.modelData
+                family: Theme.fontMono
+                pixelSize: Theme.fontSm
+                weight: cell.active ? Font.Medium : Font.Normal
+                color: cell.active ? Theme.accentText : Theme.subtext
+            }
+
+            MouseArea {
+                id: cellMouse
+                anchors.fill: parent
+                hoverEnabled: true
+                cursorShape: Qt.PointingHandCursor
+                onClicked: col.pickedValue(cell.modelData)
+            }
+        }
+    }
+
+    // The centre line, so it is obvious which row is the selected one.
+    Rectangle {
+        anchors.left: parent.left
+        anchors.right: parent.right
+        anchors.verticalCenter: parent.verticalCenter
+        anchors.margins: Theme.space2
+        height: Theme.rowHeight
+        color: "transparent"
+        border.color: Theme.alpha(Theme.border, 0.8)
+        border.width: 1
+        radius: Theme.radiusSm
+        z: -1
     }
 }

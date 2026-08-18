@@ -349,7 +349,18 @@ Flickable {
                 Layout.fillWidth: true
                 spacing: Theme.space3
                 DatePicker {}
-                TimePicker {}
+                TimeInput {}
+                DateRangePicker {}
+                DateTimePicker {}
+            }
+
+            Field {
+                Layout.fillWidth: true
+                label: qsTr("Column picker")
+                TimePicker {
+                    step: 5
+                    hour12: true
+                }
             }
 
             FileDropzone {
@@ -507,6 +518,10 @@ Flickable {
                 }
             }
 
+            AvatarGroup {
+                names: ["Ada Lovelace", "Grace Hopper", "Alan Turing", "Katherine Johnson", "Edsger Dijkstra", "Barbara Liskov"]
+            }
+
             Divider {
                 Layout.fillWidth: true
             }
@@ -608,6 +623,97 @@ Flickable {
                             pixelSize: Theme.fontXs
                             color: Theme.muted
                         }
+                    }
+                }
+            }
+        }
+
+        Card {
+            Layout.fillWidth: true
+            visible: root.section === "layout"
+            title: qsTr("Nested splits")
+
+            Txt {
+                Layout.fillWidth: true
+                text: qsTr("PanelGroup nests, so any arrangement is a group inside a panel. Sizes persist when settingsKey is set.")
+                color: Theme.subtext
+                pixelSize: Theme.fontXs
+                wrapMode: Text.WordWrap
+            }
+
+            PanelGroup {
+                Layout.fillWidth: true
+                Layout.preferredHeight: Theme.px(150)
+
+                Panel {
+                    weight: 1
+                    Rectangle {
+                        anchors.fill: parent
+                        color: Theme.alpha(Theme.border, 0.4)
+                        radius: Theme.radiusSm
+                        Txt {
+                            anchors.centerIn: parent
+                            text: qsTr("Left")
+                            color: Theme.muted
+                            pixelSize: Theme.fontXs
+                        }
+                    }
+                }
+                Panel {
+                    weight: 2
+                    PanelGroup {
+                        anchors.fill: parent
+                        vertical: true
+                        Panel {
+                            Rectangle {
+                                anchors.fill: parent
+                                color: Theme.alpha(Theme.border, 0.4)
+                                radius: Theme.radiusSm
+                                Txt {
+                                    anchors.centerIn: parent
+                                    text: qsTr("Top right")
+                                    color: Theme.muted
+                                    pixelSize: Theme.fontXs
+                                }
+                            }
+                        }
+                        Panel {
+                            Rectangle {
+                                anchors.fill: parent
+                                color: Theme.alpha(Theme.border, 0.4)
+                                radius: Theme.radiusSm
+                                Txt {
+                                    anchors.centerIn: parent
+                                    text: qsTr("Bottom right")
+                                    color: Theme.muted
+                                    pixelSize: Theme.fontXs
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        Card {
+            Layout.fillWidth: true
+            visible: root.section === "layout"
+            title: qsTr("Masonry")
+
+            Masonry {
+                Layout.fillWidth: true
+                columns: 3
+                model: [40, 70, 30, 90, 50, 60]
+                delegate: Rectangle {
+                    required property var modelData
+                    height: Theme.px(modelData)
+                    radius: Theme.radiusSm
+                    color: Theme.alpha(Theme.border, 0.4)
+                    Txt {
+                        anchors.centerIn: parent
+                        text: parent.modelData
+                        pixelSize: Theme.fontXs
+                        color: Theme.muted
                     }
                 }
             }
@@ -811,6 +917,90 @@ Flickable {
                                 "title": qsTr("Publish pipeline")
                             }
                         ]
+                    }
+                ]
+            }
+        }
+
+        Card {
+            Layout.fillWidth: true
+            visible: root.section === "data"
+            title: qsTr("Graph")
+
+            Txt {
+                Layout.fillWidth: true
+                text: qsTr("Drag a node, drag the background to pan, scroll to zoom. Written from scratch — QML has no @xyflow equivalent.")
+                color: Theme.subtext
+                pixelSize: Theme.fontXs
+                wrapMode: Text.WordWrap
+            }
+
+            NodeGraph {
+                Layout.fillWidth: true
+                Layout.preferredHeight: Theme.px(260)
+                nodes: [
+                    {
+                        "id": "src",
+                        "x": 20,
+                        "y": 60,
+                        "label": "app-client-qml",
+                        "sublabel": "Go host"
+                    },
+                    {
+                        "id": "qml",
+                        "x": 220,
+                        "y": 20,
+                        "label": "qml6",
+                        "sublabel": "the UI",
+                        "tone": "success"
+                    },
+                    {
+                        "id": "srv",
+                        "x": 220,
+                        "y": 130,
+                        "label": "app-server",
+                        "sublabel": "free port",
+                        "tone": "warning"
+                    }
+                ]
+                edges: [
+                    {
+                        "from": "src",
+                        "to": "qml"
+                    },
+                    {
+                        "from": "src",
+                        "to": "srv"
+                    }
+                ]
+            }
+        }
+
+        Card {
+            Layout.fillWidth: true
+            visible: root.section === "data"
+            title: qsTr("Event calendar")
+
+            CalendarView {
+                Layout.fillWidth: true
+                Layout.preferredHeight: Theme.px(320)
+                events: [
+                    {
+                        "date": new Date(),
+                        "title": qsTr("Publish v0.3.0"),
+                        "tone": "success",
+                        "minutes": 60
+                    },
+                    {
+                        "date": new Date(Date.now() + 86400000),
+                        "title": qsTr("Review parity"),
+                        "minutes": 90
+                    },
+                    {
+                        "date": new Date(Date.now() + 2 * 86400000),
+                        "title": qsTr("Port the kit"),
+                        "tone": "warning",
+                        "minutes": 120
                     }
                 ]
             }

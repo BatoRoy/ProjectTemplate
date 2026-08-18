@@ -35,6 +35,7 @@ Item {
     property int elide: Text.ElideNone
     property int wrapMode: Text.NoWrap
     property int horizontalAlignment: Text.AlignLeft
+    property int verticalAlignment: Text.AlignVCenter
     property real lineHeight: 1.0
     property real letterSpacing: 0
     // Font.AllUppercase rather than uppercasing the string, so the property reads
@@ -45,10 +46,30 @@ Item {
     // to be truncated.
     readonly property bool selectable: Theme.textSelect && elide === Text.ElideNone
 
-    // Loader republishes the loaded item's implicit size; reading it off
-    // Loader.item instead is untyped (item is a bare QObject).
-    implicitWidth: impl.implicitWidth
-    implicitHeight: impl.implicitHeight
+    // Implicit width comes from TextMetrics, not from the loaded item.
+    //
+    // The obvious `implicitWidth: impl.implicitWidth` is wrong in one specific and very
+    // damaging case: an elided Text that is currently sized to a zero-width parent reports
+    // an implicit width of 0. Since the Loader fills this item, and this item's width is
+    // often decided by a layout that is itself asking for the implicit width, an elided
+    // label would report 0 — telling every enclosing layout it needs no space at all.
+    // Measured: a Txt with elide set reported 0 where the same text without elide reported
+    // 33. It is why SegmentedControl claimed 38px and clipped its own labels.
+    //
+    // TextMetrics measures the *unelided* text independently of any layout pass, which is
+    // exactly what an implicit width should be.
+    implicitWidth: metrics.width
+    implicitHeight: Math.max(metrics.height, impl.implicitHeight)
+
+    TextMetrics {
+        id: metrics
+        text: root.text
+        font.family: root.family
+        font.pixelSize: root.pixelSize
+        font.weight: root.weight
+        font.letterSpacing: root.letterSpacing
+        font.capitalization: root.capitalization
+    }
 
     Loader {
         id: impl
@@ -69,7 +90,7 @@ Item {
             elide: root.elide
             wrapMode: root.wrapMode
             horizontalAlignment: root.horizontalAlignment
-            verticalAlignment: Text.AlignVCenter
+            verticalAlignment: root.verticalAlignment
             lineHeight: root.lineHeight
             renderType: Text.NativeRendering
         }
@@ -87,7 +108,7 @@ Item {
             font.capitalization: root.capitalization
             wrapMode: root.wrapMode
             horizontalAlignment: root.horizontalAlignment
-            verticalAlignment: Text.AlignVCenter
+            verticalAlignment: root.verticalAlignment
             readOnly: true
             selectByMouse: true
             selectionColor: Theme.accentTintHi
