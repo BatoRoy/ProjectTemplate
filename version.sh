@@ -4,6 +4,11 @@ set -euo pipefail
 VERSION_FILE="VERSION"
 JS_VERSION_FILE="app-client/frontend/src/lib/version.ts"
 GO_VERSION_FILE="app-server/version.go"
+# The QML client's host binary carries its own version constant, for the same reason
+# the server does: it is stamped into the build with -ldflags and printed by
+# `<app> --version`. The QML side reads the version from the host at launch rather
+# than from a constant of its own, so there is no QML file to keep in sync.
+QML_GO_VERSION_FILE="app-client-qml/version.go"
 PACKAGE_JSON="app-client/package.json"
 FRONTEND_PACKAGE_JSON="app-client/frontend/package.json"
 PACKAGE_LOCK="app-client/package-lock.json"
@@ -23,6 +28,9 @@ sync_files() {
   fi
   if [[ -f "$GO_VERSION_FILE" ]]; then
     sed -i "s/var Version = \"[0-9]*\.[0-9]*\.[0-9]*\"/var Version = \"$ver\"/" "$GO_VERSION_FILE"
+  fi
+  if [[ -f "$QML_GO_VERSION_FILE" ]]; then
+    sed -i "s/var Version = \"[0-9]*\.[0-9]*\.[0-9]*\"/var Version = \"$ver\"/" "$QML_GO_VERSION_FILE"
   fi
   if [[ -f "$PACKAGE_JSON" ]]; then
     npm version "$ver" --no-git-tag-version --prefix app-client > /dev/null
@@ -118,7 +126,7 @@ echo "Version set to $new_version"
 
 # Stage version files plus the lockfiles npm version rewrites (existing only)
 stage_files=("$VERSION_FILE")
-for f in "$JS_VERSION_FILE" "$GO_VERSION_FILE" \
+for f in "$JS_VERSION_FILE" "$GO_VERSION_FILE" "$QML_GO_VERSION_FILE" \
          "$PACKAGE_JSON" "$FRONTEND_PACKAGE_JSON" \
          "$PACKAGE_LOCK" "$FRONTEND_PACKAGE_LOCK"; do
   [[ -f "$f" ]] && stage_files+=("$f")

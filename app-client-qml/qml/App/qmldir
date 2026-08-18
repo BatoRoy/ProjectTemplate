@@ -1,0 +1,54 @@
+# The App module.
+#
+# This file is the barrel — the direct analogue of
+# app-client/frontend/src/components/index.ts. Every component the UI can use is
+# listed here, and `import App` in any file makes all of them available along with
+# the singletons.
+#
+# It is not optional bookkeeping. Inside a module directory Qt disables the implicit
+# same-directory import, so a component missing from this list fails to load with
+# "Type X unavailable" rather than silently resolving. Forgetting an entry is a loud
+# error, which is the behaviour you want.
+#
+# `module App` plus `qml6 -I <import root>` is what makes the subpaths below work,
+# so components can live in folders that mirror the React tree instead of piling
+# into one directory. The host always passes -I; see internal/host.
+
+module App
+
+# ── Singletons ───────────────────────────────────────────────────────────────
+# Registered first because everything else reads them. A syntax error in any one of
+# these takes the whole module down, which is worth knowing when a seemingly
+# unrelated component reports "unavailable".
+singleton Theme 1.0 Theme.qml
+singleton Brand 1.0 Brand.qml
+singleton Env   1.0 Env.qml
+singleton Api   1.0 Api.qml
+
+# ── Shell ────────────────────────────────────────────────────────────────────
+Main          1.0 Main.qml
+Sidebar       1.0 Sidebar.qml
+NavRow        1.0 NavRow.qml
+AppOptions    1.0 AppOptions.qml
+AboutDialog   1.0 AboutDialog.qml
+ServerUrlCard 1.0 ServerUrlCard.qml
+Icon          1.0 Icon.qml
+
+# ── Core ─────────────────────────────────────────────────────────────────────
+Txt           1.0 core/Txt.qml
+MonoText      1.0 core/MonoText.qml
+SectionLabel  1.0 core/SectionLabel.qml
+Card          1.0 core/Card.qml
+Badge         1.0 core/Badge.qml
+Button        1.0 core/Button.qml
+Input         1.0 core/Input.qml
+Modal         1.0 core/Modal.qml
+Spinner       1.0 core/Spinner.qml
+EmptyState    1.0 core/EmptyState.qml
+OptionChip    1.0 core/OptionChip.qml
+Swatch        1.0 core/Swatch.qml
+ThemePreview  1.0 core/ThemePreview.qml
+
+# ── Pages ────────────────────────────────────────────────────────────────────
+HomePage      1.0 pages/HomePage.qml
+ShowcasePage  1.0 pages/ShowcasePage.qml

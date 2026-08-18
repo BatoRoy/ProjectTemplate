@@ -1,0 +1,49 @@
+{
+  "name": "app",
+  "type": "desktop",
+  "description": "Desktop client built from BatoTemplate (Qt/QML + Go)",
+  "artifacts": ["app", "app-server", "qml"],
+  "bin": [{ "name": "app", "target": "app" }],
+  "desktop": {
+    "name": "App",
+    "exec": "app",
+    "categories": "Utility;",
+    "startupWMClass": "org.qt-project.qml"
+  },
+  "requires": [
+    {
+      "name": "qml6",
+      "command": "qml6",
+      "required": true,
+      "install": {
+        "arch": "sudo pacman -S qt6-declarative",
+        "fedora": "sudo dnf install qt6-qtdeclarative",
+        "debian": "sudo apt install qml6-module-qtquick-controls qt6-declarative-dev-tools",
+        "*": "install the Qt 6 QML runtime (qt6-declarative)"
+      },
+      "reason": "runs the UI — the app cannot start without it"
+    },
+    {
+      "name": "Inter",
+      "font": "Inter",
+      "required": false,
+      "install": {
+        "arch": "sudo pacman -S inter-font",
+        "fedora": "sudo dnf install rsms-inter-fonts",
+        "debian": "sudo apt install fonts-inter",
+        "*": "install the Inter font family"
+      },
+      "reason": "the UI font, matching the rest of the suite; Qt substitutes a default sans without it"
+    },
+    {
+      "name": "JetBrainsMono Nerd Font",
+      "font": "JetBrainsMono Nerd Font",
+      "required": false,
+      "install": {
+        "arch": "sudo pacman -S ttf-jetbrains-mono-nerd",
+        "*": "install the JetBrainsMono Nerd Font"
+      },
+      "reason": "every figure and address in the UI, so values line up in columns"
+    }
+  ]
+}

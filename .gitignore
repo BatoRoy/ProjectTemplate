@@ -7,9 +7,9 @@ app-client/frontend/package.json.md5
 # ── Electron build output ─────────────────────────────────
 dist/
 
-# ── Server release staging ────────────────────────────────
-# `make stage-server` builds this whole directory, manifest included, from
-# app-server/. Nothing in it is source.
+# ── Release staging ───────────────────────────────────────
+# `make stage-server` / `make stage-qml` build these whole directories, manifests
+# included. Nothing in them is source.
 deploy/
 
 # ── Go binaries ────────────────────────────────────────────
@@ -42,5 +42,28 @@ app-server/app-server.exe
 
 # ── Misc ───────────────────────────────────────────────────
 tmp/
-tools/
+# tools/ is a scratch directory for downloaded binaries and one-off scripts, but the
+# repo's own checked-in tooling lives there too and IS source.
+#
+# Note `tools/*`, not `tools/`: git does not descend into an excluded directory, so a
+# negation inside one never applies and `!tools/check-qml.py` would be silently dead.
+# Excluding the contents instead is what makes the re-inclusions work.
+#
+# This matters more than it looks: new-app.sh exports a new app with `git archive`, so
+# anything ignored here simply does not reach the scaffolded app. Before this, a
+# QML-flavored app shipped without its publish validator and its QML harness, and
+# `make publish-check-qml` failed on a fresh checkout.
+tools/*
+!tools/check-desktop-manifest.mjs
+!tools/check-deps.mjs
+!tools/check-qml.py
 *.AppImage
+
+# ── QML client ────────────────────────────────────────────
+# The QML itself IS source and must stay tracked — there is no build step for it, and
+# qml/App/icons/*.svg are vendored deliberately (see tools/vendor-icons.mjs). Only the
+# host binary is output, and it lands in dist/ with everything else.
+app-client-qml/app-client-qml
+
+# PySide6 is a dev-only dependency of tools/check-qml.py; the app never uses Python.
+__pycache__/
