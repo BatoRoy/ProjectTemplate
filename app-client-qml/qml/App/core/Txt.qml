@@ -13,7 +13,7 @@
 // Text is inert, and only TextEdit can be selected. So the polarity is inverted
 // (see Theme.textSelect) and this component swaps implementations.
 //
-// The deviation, recorded in PARITY.md: an **elided** label is never selectable.
+// The deviation, recorded in QML-CLIENT.md: an **elided** label is never selectable.
 // TextEdit has no elide property at all, so a component that needs to truncate
 // gets the Text implementation regardless of the setting. That covers table cells
 // and sidebar rows; the paragraphs and values a user actually wants to copy are

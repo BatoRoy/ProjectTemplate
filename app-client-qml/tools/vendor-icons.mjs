@@ -17,7 +17,7 @@
 // In a QML-only app (new-app.sh --qml deletes app-client/), there is no
 // lucide-react to read. Adding one icon then is a download, not a script run:
 // grab the SVG from lucide.dev, set stroke="#ffffff", drop it in qml/App/icons/.
-// See PARITY.md.
+// See QML-CLIENT.md.
 //
 // Two deliberate transforms on the way out:
 //
@@ -67,7 +67,11 @@ function findLucide() {
     if (existsSync(join(c, 'icons'))) return join(c, 'icons') // lucide-static layout
   }
   console.error('✗ no lucide source found. Tried:\n  ' + candidates.join('\n  '))
-  console.error('  Install the Electron flavor\'s deps (make dev-setup) or set LUCIDE_DIR.')
+  console.error('  This needs a lucide checkout. In the template, the Electron client\'s')
+  console.error('  node_modules supplies it (make dev-setup). In a QML-only app there is no')
+  console.error('  such directory, so either set LUCIDE_DIR=/path/to/lucide-react, or skip this')
+  console.error('  script entirely and drop a single SVG into qml/App/icons/ by hand —')
+  console.error('  download it from lucide.dev and set stroke="#ffffff".')
   process.exit(1)
 }
 

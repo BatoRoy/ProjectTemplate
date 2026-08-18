@@ -111,6 +111,11 @@ if [[ "$FLAVOR" == "qml" ]]; then
   rm -rf "$DEST/app-client"
   rm -f  "$DEST/AUTOUPDATE.md"      # electron-updater only; a desktop release has no self-update
   rm -f  "$DEST/.github/workflows/release-electron.yml"
+  # PARITY.md is the contract *between* the template's two clients. An app has one
+  # client, so a document comparing it to the one it does not have is noise — and worse,
+  # it makes the generated repo read as though both are involved. It stays in the
+  # template, where the comparison is the whole point.
+  rm -f  "$DEST/PARITY.md"
 else
   rm -rf "$DEST/app-client-qml"
   rm -f  "$DEST/QML-CLIENT.md" "$DEST/PARITY.md"
@@ -272,6 +277,72 @@ else
     exit 1
   }
 fi
+
+# ── README: drop the flavor comparison ───────────────────────────────────────
+# The template's README opens by comparing the two clients, which is the right thing for
+# the template and the wrong thing for an app that contains one of them. Left in, it is
+# the single most misleading page in the generated repo — it reads as though the app
+# involves both. Replaced with one line naming the client this app actually has.
+#
+# node rather than sed: the section is multi-line and node is already required (the
+# Makefile reads bato.json with it).
+node - "$DEST" "$NAME" "$FLAVOR" <<'EOF'
+const fs = require('fs')
+const path = require('path')
+const [dest, name, flavor] = process.argv.slice(2)
+
+const file = path.join(dest, 'README.md')
+if (!fs.existsSync(file)) process.exit(0)
+let md = fs.readFileSync(file, 'utf8')
+
+const start = md.indexOf('## Choosing a client')
+const end = md.indexOf('## Stack')
+if (start !== -1 && end > start) {
+  const line = flavor === 'qml'
+    ? `${name} uses the **Qt/QML** client (\`app-client-qml/\`): a Go host process plus a QML\n` +
+      'module run by the system `qml6`. There is no Electron, no npm and no bundler here —\n' +
+      'the template ships both clients and `new-app.sh` kept this one. See `QML-CLIENT.md`.\n'
+    : `${name} uses the **Electron + React** client (\`app-client/\`). The template ships a\n` +
+      'Qt/QML client too; `new-app.sh` kept this one.\n'
+  md = md.slice(0, start) + '## Client\n\n' + line + '\n' + md.slice(end)
+}
+
+// Further-reading pointers to documents this flavor does not carry.
+md = md.replace(/^Further reading:[\s\S]*?\n\n/m,
+  flavor === 'qml'
+    ? 'Further reading: **`QML-CLIENT.md`** (architecture and the QML-specific traps),\n' +
+      '**`app-client-qml/CLIENT.md`** (the `desktop` release manifest, annotated).\n\n'
+    : '')
+
+// The opening sentence advertises the choice, which has already been made.
+md = md.replace(
+  'A starting template for desktop apps: a **Go** backend, a polished theming system, a\n' +
+  'version-tagged build/release pipeline — and a choice of two clients that look and behave\n' +
+  'the same.',
+  `${name} — a **Go** backend, a polished theming system, and a version-tagged\n` +
+  'build/release pipeline.')
+
+// Stack rows for the client this app does not have.
+const dropRows = flavor === 'qml'
+  ? ['| Frontend ', '| Desktop shell ']
+  : ['| QML client ']
+md = md.split('\n').filter(l => !dropRows.some(r => l.startsWith(r))).join('\n')
+
+// Quick start has a section per flavor; keep this one.
+const keep = flavor === 'qml' ? '### QML flavor' : '### Electron flavor'
+const drop = flavor === 'qml' ? '### Electron flavor' : '### QML flavor'
+const dropAt = md.indexOf(drop)
+if (dropAt !== -1) {
+  // Run to the next heading at the same or higher level.
+  const rest = md.slice(dropAt + drop.length)
+  const nextRel = rest.search(/\n#{2,3} /)
+  const nextAt = nextRel === -1 ? md.length : dropAt + drop.length + nextRel + 1
+  md = md.slice(0, dropAt) + md.slice(nextAt)
+}
+md = md.replace(keep + '\n\n', '')
+
+fs.writeFileSync(file, md)
+EOF
 
 # ── Provenance + fresh git history ───────────────────────────────────────────
 # The flavor is recorded because it is not otherwise recoverable from a diff against

@@ -1,6 +1,6 @@
 // CodeEditor — the twin of components/inputs/CodeEditor.tsx.
 //
-// **The largest deliberate deviation in the kit, recorded in PARITY.md.** The web flavor
+// **The largest deliberate deviation in the kit, recorded in QML-CLIENT.md.** The web flavor
 // is CodeMirror 6 with real language grammars, bracket matching, folding and an optional
 // vim mode. None of that exists for QML, and vendoring an editor is out of scope for a
 // template — so this is a monospace TextArea with line numbers and regex-based

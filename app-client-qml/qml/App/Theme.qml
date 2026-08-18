@@ -11,8 +11,9 @@ pragma Singleton
 // literals: there is no browser zoom in QML, so `scale` has to be multiplied in
 // by hand — see px().
 //
-// Values are lifted verbatim from index.css. PARITY.md is the contract; if you
-// change a colour here, change it there in the same commit.
+// Values are lifted verbatim from the Electron client's index.css. In the template, the
+// two are kept in step by hand and PARITY.md is the contract. In a scaffolded app there is
+// no other client to stay in step with — these values are simply yours.
 
 import QtQuick
 import QtCore
@@ -206,7 +207,7 @@ QtObject {
     // only clears WCAG AA because the seven stock accents are all ~Tailwind 600.
     // App Options allows any custom colour, and a bright accent measured 2.46:1 on
     // the light preset. readableOn() walks the shade until it clears 4.5:1.
-    // PARITY.md tracks backporting an --app-accent-text token to the web side.
+    // QML-CLIENT.md tracks backporting an --app-accent-text token to the web side.
     readonly property color accentText: readableOn(accent, card)
     readonly property color accentTextOnBg: readableOn(accent, bg)
 

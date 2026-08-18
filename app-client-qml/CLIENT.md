@@ -59,7 +59,7 @@ window is created nor rewriting `argv[0]` changes it, and `qml6` has no
 `--desktop-file-name` equivalent. Without a matching value the taskbar shows a
 second, iconless entry beside the launcher.
 
-The limitation this leaves, recorded in `PARITY.md`: **every** QML app in the suite
+The limitation this leaves, recorded in `QML-CLIENT.md`: **every** QML app in the suite
 shares that class, so two running at once both match whichever launcher claimed it.
 Electron clients have proper per-app classes (`batogit-client`, `batomusic-client`).
 Fixing it would need our own Qt application binary rather than the stock runtime.

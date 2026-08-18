@@ -6,7 +6,7 @@ pragma ComponentBehavior: Bound
 // The web flavor also offers an HSV area, which it can because a browser gives it a
 // gradient canvas for free. Here that would be a shader for a control most apps use to
 // pick from a short list, so the swatches and the hex field are the whole surface — the
-// same call App Options makes. Recorded in PARITY.md.
+// same call App Options makes. Recorded in QML-CLIENT.md.
 
 import QtQuick
 import QtQuick.Layouts
