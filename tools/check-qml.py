@@ -31,6 +31,7 @@ from __future__ import annotations
 import argparse
 import os
 import sys
+import time
 from pathlib import Path
 
 # Must be set before Qt initialises, or QML diagnostics never reach us.
@@ -54,6 +55,11 @@ except ImportError:
 # from Main.qml fails this check instead of quietly reducing its coverage.
 DIALOGS = {"AppOptions", "AboutDialog"}
 
+# ShowcasePage shows one section at a time, and an invisible item is skipped by the
+# overflow walk — so checking the default section alone leaves most of the kit unchecked.
+# A clipped Accordion body shipped that way once. Each of these is selected in turn.
+SHOWCASE_SECTIONS = ["inputs", "feedback", "layout", "data", "overlays", "icons"]
+
 ROOT = Path(__file__).resolve().parent.parent
 QML_ROOT = ROOT / "app-client-qml" / "qml"
 MAIN = QML_ROOT / "App" / "Main.qml"
@@ -67,6 +73,21 @@ def handler(mode, context, message):
     if mode in (QtMsgType.QtWarningMsg, QtMsgType.QtCriticalMsg, QtMsgType.QtFatalMsg):
         messages.append(message)
     print(message, file=sys.stderr)
+
+
+def settle(app, ms: int = 450) -> None:
+    """Run the event loop until layouts and animations have finished.
+
+    processEvents() alone is not enough. Several components animate their geometry
+    (Collapsible's height, the SegmentedControl pill, Drawer's slide), so measuring
+    immediately after changing a page or a section reads a frame from the middle of an
+    animation and reports overflows that do not exist. Qt has no "finish all animations"
+    switch, so this waits out the longest of them.
+    """
+    deadline = time.monotonic() + ms / 1000.0
+    while time.monotonic() < deadline:
+        app.processEvents()
+        time.sleep(0.01)
 
 
 def type_name(item) -> str:
@@ -185,12 +206,32 @@ def main() -> int:
         return 1
     for d in dialogs:
         d.setProperty("visible", True)
+    settle(app)
+
+    # Pages live in a StackLayout, so only the current one is instantiated at all —
+    # everything else reports visible=False with zero size and is skipped by the walk.
+    # Checking the default page alone therefore left most of the component kit
+    # completely unexercised, which is how a clipped Accordion body shipped.
+    #
+    # currentIndex is bound to Theme.view; assigning it breaks that binding, which is
+    # exactly what is wanted here and harmless in a throwaway process.
+    stack = next((c for c in window.findChildren(QObject)
+                  if type_name(c) == "StackLayout"), None)
+    if stack is None:
+        print("✗ no StackLayout found — pages would go unchecked", file=sys.stderr)
+        return 1
+    page_count = int(stack.property("count") or 0)
+    if page_count < 2:
+        print(f"✗ StackLayout has {page_count} page(s); expected the template's two",
+              file=sys.stderr)
+        return 1
 
     for width in [int(w) for w in args.widths.split(",")]:
         window.setWidth(width)
         # The window's own declared minimum, so a dialog is measured against the
         # smallest box a user can actually put it in.
         window.setHeight(420 if width == min(int(w) for w in args.widths.split(",")) else 700)
+        settle(app)
         # Two passes: layouts settle asynchronously, so measuring immediately after a
         # resize reads the previous frame's geometry. This is the same class of problem
         # that makes Flow unreliable.
@@ -198,8 +239,25 @@ def main() -> int:
             app.processEvents()
 
         content = window.contentItem()
-        for problem in overflowing(content, f"[{width}px]"):
-            failures.append(problem)
+
+        for page in range(page_count):
+            stack.setProperty("currentIndex", page)
+            settle(app)
+
+            # ShowcasePage exists only once its page is current, so it is looked up here
+            # rather than before the loop.
+            showcase = next((c for c in window.findChildren(QObject)
+                             if type_name(c) == "ShowcasePage"
+                             and c.property("visible")), None)
+
+            sections = SHOWCASE_SECTIONS if showcase else [None]
+            for section in sections:
+                if showcase and section:
+                    showcase.setProperty("section", section)
+                    settle(app)
+                tag = f"[{width}px/p{page}" + (f"/{section}]" if section else "]")
+                for problem in overflowing(content, tag):
+                    failures.append(problem)
 
         # Dialogs are checked for *reachability*, not for fitting.
         #

@@ -24,6 +24,7 @@ singleton Theme 1.0 Theme.qml
 singleton Brand 1.0 Brand.qml
 singleton Env   1.0 Env.qml
 singleton Api   1.0 Api.qml
+singleton Format 1.0 Format.qml
 
 # ── Shell ────────────────────────────────────────────────────────────────────
 Main          1.0 Main.qml
@@ -73,6 +74,10 @@ TextArea         1.0 inputs/TextArea.qml
 NumberInput      1.0 inputs/NumberInput.qml
 Slider           1.0 inputs/Slider.qml
 TagsInput        1.0 inputs/TagsInput.qml
+RangeSlider      1.0 inputs/RangeSlider.qml
+SearchInput      1.0 inputs/SearchInput.qml
+ColorPicker      1.0 inputs/ColorPicker.qml
+FileDropzone     1.0 inputs/FileDropzone.qml
 
 # ── Overlays ─────────────────────────────────────────────────────────────────
 MenuList         1.0 overlay/MenuList.qml
@@ -82,6 +87,29 @@ Select           1.0 overlay/Select.qml
 ContextMenu      1.0 overlay/ContextMenu.qml
 Drawer           1.0 overlay/Drawer.qml
 CommandPalette   1.0 overlay/CommandPalette.qml
+
+# ── Layout ───────────────────────────────────────────────────────────────────
+Accordion        1.0 layout/Accordion.qml
+Collapsible      1.0 layout/Collapsible.qml
+Breadcrumbs      1.0 layout/Breadcrumbs.qml
+Avatar           1.0 layout/Avatar.qml
+Stepper          1.0 layout/Stepper.qml
+Scrollable       1.0 layout/Scrollable.qml
+ResizablePanels  1.0 layout/ResizablePanels.qml
+
+# ── Data ─────────────────────────────────────────────────────────────────────
+DataTable        1.0 data/DataTable.qml
+Pagination       1.0 data/Pagination.qml
+LineChart        1.0 data/LineChart.qml
+BarChart         1.0 data/BarChart.qml
+Sparkline        1.0 data/Sparkline.qml
+Timeline         1.0 data/Timeline.qml
+SortableList     1.0 data/SortableList.qml
+
+# ── Date ─────────────────────────────────────────────────────────────────────
+Calendar         1.0 date/Calendar.qml
+DatePicker       1.0 date/DatePicker.qml
+TimePicker       1.0 date/TimePicker.qml
 
 # ── Pages ────────────────────────────────────────────────────────────────────
 HomePage      1.0 pages/HomePage.qml

@@ -54,6 +54,14 @@ Flickable {
                     label: qsTr("Feedback")
                 },
                 {
+                    value: "layout",
+                    label: qsTr("Layout")
+                },
+                {
+                    value: "data",
+                    label: qsTr("Data")
+                },
+                {
                     value: "overlays",
                     label: qsTr("Overlays")
                 },
@@ -273,6 +281,8 @@ Flickable {
                 }
                 ColumnLayout {
                     Layout.fillWidth: true
+                    // Without a zero minimum this column refuses to shrink below its
+                    // children's implicit width and the row overflows the card.
                     Layout.minimumWidth: 0
                     spacing: Theme.space2
                     Progress {
@@ -308,6 +318,319 @@ Flickable {
                 icon: "layout-grid"
                 title: qsTr("Nothing here yet")
                 subtitle: qsTr("EmptyState takes a glyph, a title and one line explaining what would fill the space.")
+            }
+        }
+
+        Card {
+            Layout.fillWidth: true
+            visible: root.section === "inputs"
+            title: qsTr("Pickers")
+
+            SearchInput {
+                Layout.fillWidth: true
+                suggestions: ["batoai", "batomusic", "batogit", "batoscribe", "bato-auth"]
+                placeholder: qsTr("Search services…")
+            }
+
+            Field {
+                Layout.fillWidth: true
+                label: qsTr("Range")
+                RangeSlider {
+                    Layout.fillWidth: true
+                    from: 20
+                    to: 70
+                }
+            }
+
+            // Flow, not RowLayout: a date picker and three time segments side by side are
+            // wider than the content column at the window's minimum size, and neither has
+            // a sensible way to shrink further.
+            Flow {
+                Layout.fillWidth: true
+                spacing: Theme.space3
+                DatePicker {}
+                TimePicker {}
+            }
+
+            FileDropzone {
+                Layout.fillWidth: true
+            }
+
+            ColorPicker {
+                Layout.fillWidth: true
+                value: Theme.accentHex
+            }
+        }
+
+        // ── Layout ───────────────────────────────────────────────────────────
+        Card {
+            Layout.fillWidth: true
+            visible: root.section === "layout"
+            title: qsTr("Structure")
+
+            Breadcrumbs {
+                Layout.fillWidth: true
+                items: [
+                    {
+                        "label": qsTr("Home")
+                    },
+                    {
+                        "label": qsTr("Projects")
+                    },
+                    {
+                        "label": qsTr("Current")
+                    }
+                ]
+            }
+
+            Stepper {
+                Layout.fillWidth: true
+                current: 1
+                steps: [
+                    {
+                        "label": qsTr("Configure")
+                    },
+                    {
+                        "label": qsTr("Review")
+                    },
+                    {
+                        "label": qsTr("Deploy")
+                    }
+                ]
+            }
+
+            Flow {
+                Layout.fillWidth: true
+                spacing: Theme.space2
+                Avatar {
+                    name: "Ada Lovelace"
+                }
+                Avatar {
+                    name: "Grace Hopper"
+                }
+                Avatar {
+                    name: "Alan Turing"
+                }
+                Avatar {
+                    name: "Katherine Johnson"
+                }
+            }
+
+            Divider {
+                Layout.fillWidth: true
+            }
+
+            Accordion {
+                Layout.fillWidth: true
+                sections: [
+                    {
+                        "title": qsTr("What is this?"),
+                        "text": qsTr("An Accordion opens one section at a time and animates its height, so the page does not jump.")
+                    },
+                    {
+                        "title": qsTr("And this?"),
+                        "text": qsTr("Each row is a Collapsible, usable on its own.")
+                    }
+                ]
+            }
+        }
+
+        Card {
+            Layout.fillWidth: true
+            visible: root.section === "layout"
+            title: qsTr("Panels")
+
+            Txt {
+                Layout.fillWidth: true
+                text: qsTr("Drag the divider. The split is a fraction, so resizing the window keeps the proportion.")
+                color: Theme.subtext
+                pixelSize: Theme.fontXs
+                wrapMode: Text.WordWrap
+            }
+
+            ResizablePanels {
+                Layout.fillWidth: true
+                Layout.preferredHeight: Theme.px(120)
+                first: Rectangle {
+                    color: Theme.alpha(Theme.border, 0.4)
+                    radius: Theme.radiusSm
+                    Txt {
+                        anchors.centerIn: parent
+                        text: qsTr("First")
+                        color: Theme.muted
+                        pixelSize: Theme.fontXs
+                    }
+                }
+                second: Rectangle {
+                    color: Theme.alpha(Theme.border, 0.4)
+                    radius: Theme.radiusSm
+                    Txt {
+                        anchors.centerIn: parent
+                        text: qsTr("Second")
+                        color: Theme.muted
+                        pixelSize: Theme.fontXs
+                    }
+                }
+            }
+        }
+
+        // ── Data ─────────────────────────────────────────────────────────────
+        Card {
+            Layout.fillWidth: true
+            visible: root.section === "data"
+            title: qsTr("Table")
+
+            DataTable {
+                Layout.fillWidth: true
+                Layout.preferredHeight: Theme.px(200)
+                sortKey: "name"
+                columns: [
+                    {
+                        "key": "name",
+                        "label": qsTr("Name"),
+                        "width": 2
+                    },
+                    {
+                        "key": "port",
+                        "label": qsTr("Port"),
+                        "mono": true
+                    },
+                    {
+                        "key": "status",
+                        "label": qsTr("Status"),
+                        "align": "right"
+                    }
+                ]
+                rows: [
+                    {
+                        "name": "bato-auth",
+                        "port": 42111,
+                        "status": "running"
+                    },
+                    {
+                        "name": "batoai-server",
+                        "port": 42116,
+                        "status": "running"
+                    },
+                    {
+                        "name": "batomusic-server",
+                        "port": 42101,
+                        "status": "stopped"
+                    }
+                ]
+            }
+
+            Pagination {
+                Layout.fillWidth: true
+                page: 4
+                pages: 20
+            }
+        }
+
+        Card {
+            Layout.fillWidth: true
+            visible: root.section === "data"
+            title: qsTr("Charts")
+
+            Txt {
+                Layout.fillWidth: true
+                text: qsTr("Drawn with QtQuick.Shapes, not QtCharts — so a chart costs no extra runtime dependency.")
+                color: Theme.subtext
+                pixelSize: Theme.fontXs
+                wrapMode: Text.WordWrap
+            }
+
+            LineChart {
+                Layout.fillWidth: true
+                area: true
+                points: [4, 9, 6, 12, 8, 15, 11, 18, 14, 21]
+            }
+
+            BarChart {
+                Layout.fillWidth: true
+                points: [
+                    {
+                        "value": 12,
+                        "label": "Mon"
+                    },
+                    {
+                        "value": 19,
+                        "label": "Tue"
+                    },
+                    {
+                        "value": 7,
+                        "label": "Wed"
+                    },
+                    {
+                        "value": 22,
+                        "label": "Thu"
+                    },
+                    {
+                        "value": 15,
+                        "label": "Fri"
+                    }
+                ]
+            }
+
+            RowLayout {
+                Layout.fillWidth: true
+                spacing: Theme.space3
+                Txt {
+                    text: qsTr("Inline trend")
+                    pixelSize: Theme.fontXs
+                    color: Theme.muted
+                }
+                Sparkline {
+                    points: [3, 5, 4, 8, 6, 9, 7, 11]
+                }
+                Item {
+                    Layout.fillWidth: true
+                }
+            }
+        }
+
+        Card {
+            Layout.fillWidth: true
+            visible: root.section === "data"
+            title: qsTr("Sequences")
+
+            Timeline {
+                Layout.fillWidth: true
+                items: [
+                    {
+                        "title": qsTr("Published"),
+                        "time": "14:02",
+                        "text": qsTr("v0.3.0 pushed to the registry."),
+                        "tone": "success"
+                    },
+                    {
+                        "title": qsTr("Build failed"),
+                        "time": "13:47",
+                        "text": qsTr("qmllint reported an unqualified access."),
+                        "tone": "error"
+                    },
+                    {
+                        "title": qsTr("Started"),
+                        "time": "13:40"
+                    }
+                ]
+            }
+
+            Divider {
+                Layout.fillWidth: true
+            }
+
+            Txt {
+                Layout.fillWidth: true
+                text: qsTr("Drag a row by its grip to reorder.")
+                color: Theme.subtext
+                pixelSize: Theme.fontXs
+            }
+
+            SortableList {
+                Layout.fillWidth: true
+                Layout.preferredHeight: Theme.px(140)
+                items: [qsTr("First item"), qsTr("Second item"), qsTr("Third item")]
             }
         }
 

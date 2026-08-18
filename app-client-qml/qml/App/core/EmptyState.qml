@@ -14,6 +14,11 @@ ColumnLayout {
 
     spacing: Theme.space3
 
+    // The subtitle caps its line length, which makes this column's implicit width that
+    // cap — and without a zero minimum an enclosing layout cannot shrink below it, so a
+    // narrow card is widened by its own empty state.
+    Layout.minimumWidth: 0
+
     Icon {
         Layout.alignment: Qt.AlignHCenter
         name: root.icon
@@ -33,8 +38,9 @@ ColumnLayout {
     Txt {
         Layout.alignment: Qt.AlignHCenter
         // Capped rather than filling the parent: an explanation stretched across a
-        // wide window is one very long line and reads worse than two short ones.
-        Layout.maximumWidth: Theme.px(420)
+        // wide window is one very long line and reads worse than two short ones. Capped
+        // against the available width too, so the cap never exceeds the space there is.
+        Layout.maximumWidth: root.width > 0 ? Math.min(Theme.px(420), root.width) : Theme.px(420)
         visible: root.subtitle !== ""
         text: root.subtitle
         color: Theme.muted
