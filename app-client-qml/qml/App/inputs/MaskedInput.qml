@@ -32,36 +32,10 @@ Field {
         return out;
     }
 
-    function matches(ch, m) {
-        if (m === "#")
-            return /[0-9]/.test(ch);
-        if (m === "A")
-            return /[a-zA-Z]/.test(ch);
-        if (m === "*")
-            return /[0-9a-zA-Z]/.test(ch);
-        return false;
-    }
-
-    // Rebuild the whole string from the typed characters, so a deletion in the middle
-    // re-flows the literals instead of leaving them stranded.
+    // The transform lives in Format so it can be used without a field — see
+    // Format.applyMask. This is the same function, not a second copy of it.
     function apply(input) {
-        var typed = "";
-        for (var i = 0; i < input.length; ++i)
-            if (/[0-9a-zA-Z]/.test(input.charAt(i)))
-                typed += input.charAt(i);
-
-        var out = "", t = 0;
-        for (var m = 0; m < mask.length && t < typed.length; ++m) {
-            var mc = mask.charAt(m);
-            if ("#A*".indexOf(mc) === -1) {
-                out += mc;
-                continue;
-            }
-            if (root.matches(typed.charAt(t), mc))
-                out += typed.charAt(t);
-            t++;
-        }
-        return out;
+        return Format.applyMask(input, root.mask);
     }
 
     Rectangle {

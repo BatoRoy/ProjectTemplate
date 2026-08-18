@@ -17,6 +17,8 @@ Rectangle {
     property string variant: "primary"   // primary | ghost | success | danger
     property string icon: ""
     property bool loading: false
+    // "sm" | "md" | "lg" — see Theme.controlHeightFor.
+    property string size: "md"
     signal clicked
 
     readonly property bool interactive: enabled && !loading
@@ -46,8 +48,8 @@ Rectangle {
     radius: Theme.radius
     opacity: interactive ? 1.0 : 0.7
 
-    implicitHeight: Theme.controlHeight
-    implicitWidth: row.implicitWidth + Theme.space4 * 2
+    implicitHeight: Theme.controlHeightFor(root.size)
+    implicitWidth: row.implicitWidth + Theme.controlPaddingFor(root.size) * 2
 
     Behavior on color {
         ColorAnimation {
@@ -82,7 +84,7 @@ Rectangle {
         Txt {
             anchors.verticalCenter: parent.verticalCenter
             text: root.text
-            pixelSize: Theme.fontSm
+            pixelSize: Theme.controlFontFor(root.size)
             weight: Font.Medium
             color: root.ghost ? Theme.text : Theme.onColor(root.tone)
         }

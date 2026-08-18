@@ -94,6 +94,78 @@ Item {
         }
     }
 
+    // ── Hover readout ────────────────────────────────────────────────────────
+    // A line has no per-item hit target the way a bar chart does, so the nearest point to
+    // the cursor is found by index: the x spacing is uniform, so it is a divide rather
+    // than a search.
+    property int hoverIndex: -1
+
+    MouseArea {
+        anchors.fill: parent
+        hoverEnabled: true
+        acceptedButtons: Qt.NoButton
+        onExited: root.hoverIndex = -1
+        onPositionChanged: e => {
+            if (root.values.length < 2) {
+                root.hoverIndex = -1;
+                return;
+            }
+            var stepX = root.width / (root.values.length - 1);
+            root.hoverIndex = Math.max(0, Math.min(root.values.length - 1, Math.round(e.x / stepX)));
+        }
+    }
+
+    // Guide line + point marker
+    Rectangle {
+        visible: root.hoverIndex >= 0
+        x: root.hoverIndex >= 0 ? root.xAt(root.hoverIndex) : 0
+        width: 1
+        height: root.height
+        color: Theme.alpha(Theme.subtext, 0.5)
+    }
+
+    Rectangle {
+        visible: root.hoverIndex >= 0
+        width: Theme.px(8)
+        height: width
+        radius: width / 2
+        x: (root.hoverIndex >= 0 ? root.xAt(root.hoverIndex) : 0) - width / 2
+        y: (root.hoverIndex >= 0 ? root.yAt(root.values[root.hoverIndex]) : 0) - height / 2
+        color: root.stroke
+        border.width: 2
+        border.color: Theme.card
+    }
+
+    Rectangle {
+        id: tip
+        visible: root.hoverIndex >= 0
+        // Clamped to the chart, so a point near either edge does not push the readout
+        // outside the card.
+        x: Math.max(0, Math.min(root.width - width, (root.hoverIndex >= 0 ? root.xAt(root.hoverIndex) : 0) - width / 2))
+        y: Math.max(0, (root.hoverIndex >= 0 ? root.yAt(root.values[root.hoverIndex]) : 0) - height - Theme.space2)
+        width: tipText.implicitWidth + Theme.space2 * 2
+        height: tipText.implicitHeight + Theme.space1 * 2
+        radius: Theme.radiusSm
+        color: Theme.isLight ? Theme.text : Theme.surface
+        border.width: 1
+        border.color: Theme.border
+
+        Txt {
+            id: tipText
+            anchors.centerIn: parent
+            text: {
+                if (root.hoverIndex < 0)
+                    return "";
+                var p = root.points[root.hoverIndex];
+                var label = (typeof p === "object" && p.label !== undefined) ? p.label + "  " : "";
+                return label + root.values[root.hoverIndex];
+            }
+            pixelSize: Theme.fontXs
+            family: Theme.fontMono
+            color: Theme.isLight ? Theme.bg : Theme.text
+        }
+    }
+
     EmptyState {
         anchors.centerIn: parent
         visible: root.values.length < 2

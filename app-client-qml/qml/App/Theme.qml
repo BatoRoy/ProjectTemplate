@@ -249,6 +249,33 @@ QtObject {
     readonly property int rowHeight: px(34)
     readonly property int controlHeight: px(32)
 
+    // Control size variants — the twin of FieldSize and sizeClasses in
+    // components/inputs/Field.tsx. Defined once here so "sm" means the same thing in every
+    // input rather than each one inventing its own padding.
+    function controlHeightFor(size) {
+        switch (size) {
+        case "sm":
+            return px(26);
+        case "lg":
+            return px(38);
+        default:
+            return controlHeight;
+        }
+    }
+    function controlPaddingFor(size) {
+        switch (size) {
+        case "sm":
+            return space2;
+        case "lg":
+            return px(14);
+        default:
+            return space3;
+        }
+    }
+    function controlFontFor(size) {
+        return size === "sm" ? fontXs : fontSm;
+    }
+
     // Content column widths, named after the Tailwind classes the web flavor uses so
     // the two are checkable against each other: pages there are
     // `mx-auto p-6 max-w-2xl` (HomePage) and `max-w-3xl` (ShowcasePage), centred,

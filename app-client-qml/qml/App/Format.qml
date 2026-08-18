@@ -72,6 +72,40 @@ QtObject {
         return (mib / 1024).toFixed(1) + " GiB";
     }
 
+    // Format `input` against a mask: `#` a digit, `A` a letter, `*` either; anything else
+    // is a literal and is inserted automatically. The twin of the applyMask helper the
+    // React side exports alongside MaskedInput, so a value can be formatted without
+    // instantiating a field — for a table cell, say.
+    function applyMask(input, mask) {
+        var typed = "";
+        for (var i = 0; i < input.length; ++i)
+            if (/[0-9a-zA-Z]/.test(input.charAt(i)))
+                typed += input.charAt(i);
+
+        function matches(ch, m) {
+            if (m === "#")
+                return /[0-9]/.test(ch);
+            if (m === "A")
+                return /[a-zA-Z]/.test(ch);
+            if (m === "*")
+                return /[0-9a-zA-Z]/.test(ch);
+            return false;
+        }
+
+        var out = "", t = 0;
+        for (var m = 0; m < mask.length && t < typed.length; ++m) {
+            var mc = mask.charAt(m);
+            if ("#A*".indexOf(mc) === -1) {
+                out += mc;
+                continue;
+            }
+            if (matches(typed.charAt(t), mc))
+                out += typed.charAt(t);
+            t++;
+        }
+        return out;
+    }
+
     function duration(seconds) {
         var s = Math.max(0, Math.round(seconds));
         var h = Math.floor(s / 3600), m = Math.floor((s % 3600) / 60), r = s % 60;

@@ -17,6 +17,8 @@ Rectangle {
     property alias readOnly: field.readOnly
     property bool mono: false
     property bool invalid: false
+    // "sm" | "md" | "lg" — see Theme.controlHeightFor.
+    property string size: "md"
     signal accepted
     signal edited
 
@@ -24,7 +26,7 @@ Rectangle {
     border.width: 1
     border.color: invalid ? Theme.red : field.activeFocus ? Theme.accentRing : Theme.border
     radius: Theme.radius
-    implicitHeight: Theme.controlHeight
+    implicitHeight: Theme.controlHeightFor(root.size)
     implicitWidth: Theme.px(220)
 
     Behavior on border.color {
@@ -36,8 +38,8 @@ Rectangle {
     TextInput {
         id: field
         anchors.fill: parent
-        anchors.leftMargin: Theme.space3
-        anchors.rightMargin: Theme.space3
+        anchors.leftMargin: Theme.controlPaddingFor(root.size)
+        anchors.rightMargin: Theme.controlPaddingFor(root.size)
         verticalAlignment: TextInput.AlignVCenter
         color: Theme.text
         selectionColor: Theme.accentTintHi
@@ -45,7 +47,7 @@ Rectangle {
         selectByMouse: true
         clip: true
         font.family: root.mono ? Theme.fontMono : Theme.fontSans
-        font.pixelSize: root.mono ? Theme.fontXs : Theme.fontSm
+        font.pixelSize: root.mono ? Theme.fontXs : Theme.controlFontFor(root.size)
         renderType: Text.NativeRendering
 
         property string placeholderText: ""

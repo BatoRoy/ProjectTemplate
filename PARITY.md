@@ -86,9 +86,11 @@ unavailable". Forgetting an entry is a loud error.
 | `CodeEditor` | `CodeEditor` | **largest deviation** — see below |
 | `Accordion`, `Collapsible`, `Breadcrumbs`, `Avatar`, `Stepper` | same names | exact |
 | `Scrollable`, `ResizablePanels`, `EditorTabs`, `AutoGrid`, `AspectRatio` | same names | exact |
-| `DataTable`, `Pagination`, `Timeline`, `SortableList`, `KanbanBoard` | same names | exact |
-| `LineChart`, `BarChart`, `Sparkline` | same names | `AreaChart` is `LineChart { area: true }` |
-| `Calendar`, `DatePicker`, `TimePicker` | same names | exact |
+| `DataTable` | `DataTable` | exact — sort, global filter, row selection, pagination, per-row actions |
+| `Pagination`, `Timeline`, `SortableList`, `KanbanBoard` | same names | exact |
+| `LineChart`, `BarChart`, `Sparkline` | same names | `AreaChart` is `LineChart { area: true }`; hover readouts on line and bar |
+| `Calendar`, `DatePicker`, `TimePicker` | same names | exact — incl. `minimumDate`/`maximumDate`, `isDateDisabled`, `weekStartsOn` |
+| `applyMask` (helper) | `Format.applyMask` | exact; `MaskedInput` uses the same function |
 | `HomePage`, `ShowcasePage` | `pages/*` | exact |
 | (Tailwind classes on spans) | `Txt`, `MonoText`, `SectionLabel` | QML-only primitives |
 | (date-fns + inline helpers) | `Format` singleton | QML-only |
@@ -161,6 +163,11 @@ disabled anyway.
 **Charts are drawn with `QtQuick.Shapes`, not QtCharts.** QtCharts is a separate package
 (absent on the reference machine, and GPL/commercial rather than LGPL), so depending on it
 would add a `requires` entry and an install step to every app that draws one line.
+
+**Control sizes are `size: "sm" | "md" | "lg"`**, not Tailwind class strings. The React
+side exports `FieldSize` and a `sizeClasses` map; here the three variants are functions on
+`Theme` (`controlHeightFor`, `controlPaddingFor`, `controlFontFor`) so "sm" means the same
+thing in `Button`, `Input` and `TextField` rather than each one inventing its padding.
 
 **Icons are vendored, not installed.** The React flavor imports `lucide-react` and gets
 ~1600 icons. The QML flavor ships the ~45 it uses as SVGs in `qml/App/icons/`,

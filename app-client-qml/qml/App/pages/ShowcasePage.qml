@@ -356,6 +356,20 @@ Flickable {
 
             Field {
                 Layout.fillWidth: true
+                label: qsTr("Bounded calendar")
+                hint: qsTr("Weekends disabled, limited to this month, weeks start Sunday.")
+
+                Calendar {
+                    Layout.fillWidth: true
+                    weekStartsOn: 6
+                    minimumDate: new Date(new Date().getFullYear(), new Date().getMonth(), 1)
+                    maximumDate: new Date(new Date().getFullYear(), new Date().getMonth() + 1, 0)
+                    isDateDisabled: d => d.getDay() === 0 || d.getDay() === 6
+                }
+            }
+
+            Field {
+                Layout.fillWidth: true
                 label: qsTr("Column picker")
                 TimePicker {
                     step: 5
@@ -727,8 +741,23 @@ Flickable {
 
             DataTable {
                 Layout.fillWidth: true
-                Layout.preferredHeight: Theme.px(200)
+                Layout.preferredHeight: Theme.px(300)
                 sortKey: "name"
+                filterable: true
+                selectable: true
+                pageSize: 2
+                rowActions: row => [
+                        {
+                            label: qsTr("Open"),
+                            tone: "accent",
+                            onTriggered: () => toasts.show(qsTr("Open %1").arg(row.name))
+                        },
+                        {
+                            icon: "x",
+                            tone: "danger",
+                            onTriggered: () => toasts.error(qsTr("Removed %1").arg(row.name))
+                        }
+                    ]
                 columns: [
                     {
                         "key": "name",

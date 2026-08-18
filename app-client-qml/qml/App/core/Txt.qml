@@ -58,7 +58,12 @@ Item {
     //
     // TextMetrics measures the *unelided* text independently of any layout pass, which is
     // exactly what an implicit width should be.
-    implicitWidth: metrics.width
+    // Rounded up, with a pixel to spare. TextMetrics.width is fractionally *smaller* than
+    // the width the Text actually needs (measured: 32 vs 32.34 for the same string and
+    // font), so binding a width to it truncates by a sub-pixel — and an eliding Text given
+    // a width a fraction under its natural one elides. That is how headings with plenty of
+    // room around them came out as "PO…".
+    implicitWidth: Math.ceil(metrics.width) + 1
     implicitHeight: Math.max(metrics.height, impl.implicitHeight)
 
     TextMetrics {

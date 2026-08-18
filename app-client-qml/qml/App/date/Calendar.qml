@@ -19,7 +19,41 @@ ColumnLayout {
     property bool range: false
     property var events: []          // array of Date
     property date month: new Date()
+
+    // Bounds. Both optional; an invalid Date means "no bound", which is why they are
+    // tested with isNaN rather than against null.
+    property date minimumDate: new Date(NaN)
+    property date maximumDate: new Date(NaN)
+    // Arbitrary per-date rule, for things a range cannot express (weekends, holidays,
+    // days already booked). Return true to disable.
+    property var isDateDisabled: null
+    // 0 = Monday … 6 = Sunday. The suite default is Monday; US callers want 6.
+    property int weekStartsOn: 0
+
     signal picked(date value)
+
+    function disabled(d) {
+        if (!isNaN(minimumDate.getTime()) && Format.startOfDay(d) < Format.startOfDay(minimumDate))
+            return true;
+        if (!isNaN(maximumDate.getTime()) && Format.startOfDay(d) > Format.startOfDay(maximumDate))
+            return true;
+        if (isDateDisabled && isDateDisabled(d))
+            return true;
+        return false;
+    }
+
+    // Weekday labels rotated to the chosen first day, and the matching offset for the
+    // month's first cell — the two have to move together or the grid shifts under the
+    // headings.
+    readonly property var weekdays: {
+        var out = [];
+        for (var i = 0; i < 7; ++i)
+            out.push(Format.weekdayShort[(i + weekStartsOn) % 7]);
+        return out;
+    }
+    function firstOffset(d) {
+        return (Format.firstWeekday(d) - weekStartsOn + 7) % 7;
+    }
 
     spacing: Theme.space2
 
@@ -102,16 +136,17 @@ ColumnLayout {
         columns: 7
 
         Repeater {
-            model: Format.firstWeekday(root.month) + Format.daysInMonth(root.month)
+            model: root.firstOffset(root.month) + Format.daysInMonth(root.month)
             delegate: Item {
                 id: cell
                 required property int index
 
-                readonly property int dayNumber: index - Format.firstWeekday(root.month) + 1
+                readonly property int dayNumber: index - root.firstOffset(root.month) + 1
                 readonly property bool blank: dayNumber < 1
                 readonly property date value: new Date(root.month.getFullYear(), root.month.getMonth(), Math.max(1, dayNumber))
                 readonly property bool isSelected: !blank && Format.sameDay(cell.value, root.selected)
                 readonly property bool isToday: !blank && Format.sameDay(cell.value, new Date())
+                readonly property bool isDisabled: !blank && root.disabled(cell.value)
 
                 width: root.width / 7
                 height: Theme.px(32)
@@ -125,6 +160,8 @@ ColumnLayout {
                     color: cell.isSelected ? Theme.accent : root.inRange(cell.value) ? Theme.accentTint : dayMouse.containsMouse ? Theme.alpha(Theme.border, 0.6) : "transparent"
                     border.width: cell.isToday && !cell.isSelected ? 1 : 0
                     border.color: Theme.accentRing
+
+                    opacity: cell.isDisabled ? 0.35 : 1.0
 
                     Txt {
                         anchors.centerIn: parent
@@ -152,7 +189,7 @@ ColumnLayout {
                 MouseArea {
                     id: dayMouse
                     anchors.fill: parent
-                    enabled: !cell.blank
+                    enabled: !cell.blank && !cell.isDisabled
                     hoverEnabled: true
                     cursorShape: Qt.PointingHandCursor
                     onClicked: {

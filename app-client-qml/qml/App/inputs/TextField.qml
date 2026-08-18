@@ -29,6 +29,8 @@ Field {
     property bool showCount: false
     property bool mono: false
     property bool readOnly: false
+    // "sm" | "md" | "lg" — see Theme.controlHeightFor.
+    property string size: "md"
     signal accepted
     signal edited
 
@@ -38,7 +40,7 @@ Field {
 
     Rectangle {
         Layout.fillWidth: true
-        implicitHeight: Theme.controlHeight
+        implicitHeight: Theme.controlHeightFor(root.size)
 
         color: Theme.isLight ? Theme.surface : Theme.bg
         border.width: 1
@@ -52,8 +54,8 @@ Field {
 
         RowLayout {
             anchors.fill: parent
-            anchors.leftMargin: Theme.space3
-            anchors.rightMargin: Theme.space2
+            anchors.leftMargin: Theme.controlPaddingFor(root.size)
+            anchors.rightMargin: Theme.controlPaddingFor(root.size) - Theme.space1
             spacing: Theme.space2
 
             Icon {
@@ -78,7 +80,7 @@ Field {
                 verticalAlignment: TextInput.AlignVCenter
                 color: Theme.text
                 font.family: root.mono ? Theme.fontMono : Theme.fontSans
-                font.pixelSize: root.mono ? Theme.fontXs : Theme.fontSm
+                font.pixelSize: root.mono ? Theme.fontXs : Theme.controlFontFor(root.size)
                 selectionColor: Theme.accentTintHi
                 selectedTextColor: Theme.text
                 selectByMouse: true
