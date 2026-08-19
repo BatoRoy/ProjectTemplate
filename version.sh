@@ -24,11 +24,13 @@ sync_files() {
   if [[ -f "$GO_VERSION_FILE" ]]; then
     sed -i "s/var Version = \"[0-9]*\.[0-9]*\.[0-9]*\"/var Version = \"$ver\"/" "$GO_VERSION_FILE"
   fi
+  # --prefix is derived from the path rather than hardcoded, so pointing the
+  # variables above at a different layout is the only edit a repo ever needs.
   if [[ -f "$PACKAGE_JSON" ]]; then
-    npm version "$ver" --no-git-tag-version --prefix app-client > /dev/null
+    npm version "$ver" --no-git-tag-version --prefix "$(dirname "$PACKAGE_JSON")" > /dev/null
   fi
   if [[ -f "$FRONTEND_PACKAGE_JSON" ]]; then
-    npm version "$ver" --no-git-tag-version --prefix app-client/frontend > /dev/null
+    npm version "$ver" --no-git-tag-version --prefix "$(dirname "$FRONTEND_PACKAGE_JSON")" > /dev/null
   fi
 }
 
