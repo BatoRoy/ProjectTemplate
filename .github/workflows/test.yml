@@ -21,10 +21,10 @@ jobs:
     name: Go — vet, race, build
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - name: Set up Go
-        uses: actions/setup-go@v5
+        uses: actions/setup-go@v7
         with:
           # Modules in this suite live at varying depths (app-server, backend,
           # nem-remote), so there is no single go.mod to read a version from.
@@ -51,21 +51,26 @@ jobs:
     name: Frontend — typecheck, lint, test
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v7
         with:
-          node-version: '20'
+          node-version: '24'
 
       - name: Find and check every frontend
         run: |
           set -euo pipefail
           found=0
-          # A frontend is any package.json with a "build" script that is not a
-          # dependency and not the Electron wrapper.
+          # Check any package that declares a "build" or a "typecheck" script.
+          # That is every frontend plus the tsx-run services in bato/ (registry,
+          # cli — neither builds a bundle, both typecheck), while skipping the
+          # dependency-only and Electron-wrapper package.json files, which have
+          # neither. A package whose only script is an Electron GUI test
+          # (bato-hub) stays out on purpose: those need a display this runner
+          # does not have.
           while IFS= read -r pkg; do
             dir=$(dirname "$pkg")
-            node -e "process.exit(require('./$pkg').scripts?.build ? 0 : 1)" || continue
+            node -e "const s = require('./$pkg').scripts || {}; process.exit(s.build || s.typecheck ? 0 : 1)" || continue
             echo "::group::$dir"
             (
               cd "$dir"
@@ -76,7 +81,7 @@ jobs:
               npm run --if-present lint
               # "test" is `vitest run` across the suite — already non-watch.
               npm run --if-present test
-              npm run build
+              npm run --if-present build
             )
             echo "::endgroup::"
             found=1
