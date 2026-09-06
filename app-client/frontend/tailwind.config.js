@@ -20,6 +20,7 @@ export default {
           accent:      'rgb(var(--app-accent)       / <alpha-value>)',
           accentHover: 'rgb(var(--app-accent-hover) / <alpha-value>)',
           accentBright:'rgb(var(--app-accent-bright)/ <alpha-value>)',
+          accentInk:   'rgb(var(--app-accent-ink)  / <alpha-value>)',
           green:       'rgb(var(--app-green)        / <alpha-value>)',
           red:         'rgb(var(--app-red)          / <alpha-value>)',
           yellow:      'rgb(var(--app-yellow)       / <alpha-value>)',

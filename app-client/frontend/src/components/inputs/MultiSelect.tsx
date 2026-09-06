@@ -99,7 +99,7 @@ export function MultiSelect<T extends string | number>({
               >
                 <span className={clsx(
                   'w-4 h-4 rounded border flex items-center justify-center flex-shrink-0',
-                  isSel ? 'bg-app-accent border-app-accent text-white' : 'border-app-border',
+                  isSel ? 'bg-app-accent border-app-accent text-app-accentInk' : 'border-app-border',
                 )}>
                   {isSel && <Check size={11} strokeWidth={3} />}
                 </span>

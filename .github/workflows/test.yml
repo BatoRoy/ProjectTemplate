@@ -1,0 +1,84 @@
+name: Test
+
+# Runs on every push and pull request — unlike the release workflow, which fires
+# only on a v*.*.* tag. Before this existed nothing in the suite ran tests
+# automatically, and BatoBrowse's only Go test sat failing for months without
+# anyone noticing: it decoded /api/health into map[string]string after the
+# handler started returning a bool field.
+#
+# Deliberately layout-agnostic. Repos in this suite disagree about directory
+# names (app-server, backend, nem-remote; app-client/frontend, frontend,
+# nem-client/frontend), so both jobs discover what to run instead of hardcoding
+# a path. That means this same file can be dropped into any repo unchanged.
+
+on:
+  push:
+    branches: ['**']
+  pull_request:
+
+jobs:
+  go:
+    name: Go — vet, race, build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          # Modules in this suite live at varying depths (app-server, backend,
+          # nem-remote), so there is no single go.mod to read a version from.
+          # Pin a floor here; a module needing newer gets it from its own
+          # toolchain directive.
+          go-version: '1.25'
+          cache: false
+
+      - name: Find and check every Go module
+        run: |
+          set -euo pipefail
+          shopt -s globstar nullglob
+          found=0
+          while IFS= read -r mod; do
+            dir=$(dirname "$mod")
+            echo "::group::$dir"
+            ( cd "$dir" && go vet ./... && go build ./... && go test -race ./... )
+            echo "::endgroup::"
+            found=1
+          done < <(find . -name go.mod -not -path '*/vendor/*' -not -path '*/node_modules/*' | sort)
+          if [ "$found" -eq 0 ]; then echo "no Go modules — nothing to do"; fi
+
+  frontend:
+    name: Frontend — typecheck, lint, test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Find and check every frontend
+        run: |
+          set -euo pipefail
+          found=0
+          # A frontend is any package.json with a "build" script that is not a
+          # dependency and not the Electron wrapper.
+          while IFS= read -r pkg; do
+            dir=$(dirname "$pkg")
+            node -e "process.exit(require('./$pkg').scripts?.build ? 0 : 1)" || continue
+            echo "::group::$dir"
+            (
+              cd "$dir"
+              if [ -f package-lock.json ]; then npm ci; else npm install --no-audit --no-fund; fi
+              # Each step runs only if the repo actually defines it, so a repo
+              # that has not adopted lint yet is not failed for that alone.
+              npm run --if-present typecheck
+              npm run --if-present lint
+              # "test" is `vitest run` across the suite — already non-watch.
+              npm run --if-present test
+              npm run build
+            )
+            echo "::endgroup::"
+            found=1
+          done < <(find . -name package.json -not -path '*/node_modules/*' -not -path '*/dist/*' | sort)
+          if [ "$found" -eq 0 ]; then echo "no frontends — nothing to do"; fi

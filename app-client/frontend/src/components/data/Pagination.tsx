@@ -40,7 +40,7 @@ export function Pagination({ page, pageCount, onChange, siblings = 1, className 
           <button
             key={p}
             onClick={() => onChange(p)}
-            className={clsx(btn, p === page ? 'bg-app-accent text-white font-medium' : 'text-app-subtext hover:text-app-text hover:bg-app-card')}
+            className={clsx(btn, p === page ? 'bg-app-accent text-app-accentInk font-medium' : 'text-app-subtext hover:text-app-text hover:bg-app-card')}
           >
             {p}
           </button>

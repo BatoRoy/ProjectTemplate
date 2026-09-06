@@ -56,7 +56,7 @@ export function ServerUrlCard() {
             saved
               ? 'border-transparent bg-app-accent/15 text-app-accentBright'
               : dirty
-              ? 'border-transparent bg-app-accent text-white hover:opacity-90'
+              ? 'border-transparent bg-app-accent text-app-accentInk hover:opacity-90'
               : 'border-app-border text-app-muted opacity-50 cursor-not-allowed'
           }`}
         >
@@ -64,9 +64,9 @@ export function ServerUrlCard() {
         </button>
       </div>
       {test === 'ok' && (
-        <p className="text-xs text-emerald-500 mt-2">Server reached{dirty ? ' — remember to save' : ''}</p>
+        <p className="text-xs text-app-green mt-2">Server reached{dirty ? ' — remember to save' : ''}</p>
       )}
-      {test === 'fail' && <p className="text-xs text-red-500 mt-2">No server answered at this address</p>}
+      {test === 'fail' && <p className="text-xs text-app-red mt-2">No server answered at this address</p>}
       <p className="text-xs text-app-muted mt-2">
         Backend address including port. Saved on this machine — point it at whichever machine runs the server.
       </p>

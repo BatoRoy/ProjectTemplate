@@ -90,7 +90,7 @@ function MonthGrid({ cursor, weekStartsOn, eventsOn, onEventClick, onDayClick }:
             >
               <span className={clsx(
                 'inline-flex items-center justify-center w-6 h-6 rounded-full text-xs mb-1',
-                isToday(day) ? 'bg-app-accent text-white font-medium' : dim ? 'text-app-muted' : 'text-app-subtext',
+                isToday(day) ? 'bg-app-accent text-app-accentInk font-medium' : dim ? 'text-app-muted' : 'text-app-subtext',
               )}>
                 {format(day, 'd')}
               </span>

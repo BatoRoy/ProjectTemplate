@@ -42,7 +42,7 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundarySt
           <p className="text-xs text-app-muted mt-1.5 mono-text break-words">{error.message}</p>
           <button
             onClick={() => window.location.reload()}
-            className="mt-5 px-4 py-2.5 rounded-lg bg-app-accent text-white text-sm font-medium hover:bg-app-accentHover transition-colors"
+            className="mt-5 px-4 py-2.5 rounded-lg bg-app-accent text-app-accentInk text-sm font-medium hover:bg-app-accentHover transition-colors"
           >
             Reload
           </button>

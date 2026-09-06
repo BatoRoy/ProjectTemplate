@@ -59,7 +59,7 @@ export function TimePicker({
               <button
                 key={mer}
                 onClick={() => setMeridiem(mer === 'PM')}
-                className={clsx('px-2 py-1 rounded-md text-sm transition-colors', active ? 'bg-app-accent text-white' : 'text-app-subtext hover:bg-app-card')}
+                className={clsx('px-2 py-1 rounded-md text-sm transition-colors', active ? 'bg-app-accent text-app-accentInk' : 'text-app-subtext hover:bg-app-card')}
               >
                 {mer}
               </button>
@@ -98,7 +98,7 @@ function Column({ items, value, label, format, onPick }: {
               key={it}
               data-active={active}
               onClick={() => onPick(it)}
-              className={clsx('px-2 py-1 rounded-md text-sm text-center transition-colors', active ? 'bg-app-accent text-white' : 'text-app-subtext hover:bg-app-card')}
+              className={clsx('px-2 py-1 rounded-md text-sm text-center transition-colors', active ? 'bg-app-accent text-app-accentInk' : 'text-app-subtext hover:bg-app-card')}
             >
               {format(it)}
             </button>

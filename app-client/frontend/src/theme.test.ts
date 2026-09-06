@@ -9,12 +9,19 @@ import { resolve } from 'node:path'
 // (jsdom serves import.meta.url over http, so resolve from the vitest root.)
 const css = readFileSync(resolve(process.cwd(), 'src/index.css'), 'utf8')
 
-// Grabs the declaration block for a selector, e.g. `[data-theme="dim"]`.
-function block(selector: string): string {
-  const start = css.indexOf(selector)
-  expect(start, `selector ${selector} missing from index.css`).toBeGreaterThan(-1)
-  const open = css.indexOf('{', start)
-  return css.slice(open, css.indexOf('}', open))
+// Every declaration block for a selector. A selector can legitimately appear
+// more than once — BatoHealth declares its theme tokens in one block and its
+// chart ramp under the same selector further down — so we collect them all and
+// let the caller assert that one of them carries the declaration.
+function blocks(selector: string): string[] {
+  const found: string[] = []
+  for (let i = css.indexOf(selector); i !== -1; i = css.indexOf(selector, i + 1)) {
+    const open = css.indexOf('{', i)
+    if (open === -1) break
+    found.push(css.slice(open, css.indexOf('}', open)))
+  }
+  expect(found.length, `selector ${selector} missing from index.css`).toBeGreaterThan(0)
+  return found
 }
 
 describe('index.css theme blocks', () => {
@@ -23,7 +30,8 @@ describe('index.css theme blocks', () => {
     ['[data-theme="dim"]', 'dark'],
     ['[data-theme="light"]', 'light'],
   ])('%s declares color-scheme: %s', (selector, scheme) => {
-    expect(block(selector)).toMatch(new RegExp(`color-scheme:\\s*${scheme}`))
+    const re = new RegExp(`color-scheme:\\s*${scheme}`)
+    expect(blocks(selector).some(b => re.test(b))).toBe(true)
   })
 
   it('tints native controls with the accent', () => {

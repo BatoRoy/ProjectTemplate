@@ -111,7 +111,7 @@ export function Calendar({
               className={clsx(
                 'relative h-8 text-sm rounded-md transition-colors flex items-center justify-center',
                 dis && 'opacity-30 cursor-not-allowed',
-                (sel || endpoint) && 'bg-app-accent text-white font-medium',
+                (sel || endpoint) && 'bg-app-accent text-app-accentInk font-medium',
                 between && 'bg-app-accent/15 text-app-accentBright rounded-none',
                 !sel && !endpoint && !between && !dis && (dim ? 'text-app-muted hover:bg-app-card' : 'text-app-subtext hover:bg-app-card'),
                 !sel && !endpoint && isToday(d) && 'ring-1 ring-app-accent/50',

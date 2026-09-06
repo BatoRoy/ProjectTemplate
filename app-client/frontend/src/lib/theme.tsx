@@ -69,6 +69,48 @@ function applyTheme(id: string): void {
   document.documentElement.setAttribute('data-theme', id)
 }
 
+// WCAG relative luminance, then the standard contrast ratio.
+const luminance = ({ r, g, b }: RGB): number => {
+  const ch = (v: number) => {
+    const s = v / 255
+    return s <= 0.03928 ? s / 12.92 : Math.pow((s + 0.055) / 1.055, 2.4)
+  }
+  return 0.2126 * ch(r) + 0.7152 * ch(g) + 0.0722 * ch(b)
+}
+const contrast = (a: RGB, b: RGB): number => {
+  const [hi, lo] = [luminance(a), luminance(b)].sort((x, y) => y - x)
+  return (hi + 0.05) / (lo + 0.05)
+}
+
+const INK_LIGHT: RGB = { r: 255, g: 255, b: 255 }
+// The softest near-black that still clears AA on *every* accent in the suite,
+// found by sweeping candidates against all 26. Anything lighter and the two
+// mid-tone accents (BatoHub #6366f1, bato-template #8b5cf6) fall short: neither
+// white nor a lighter ink reaches 4.5:1 on them, because they sit near the
+// luminance crossover where both inks are mediocre. Pure #000 would also work;
+// this is two steps softer at no cost to the ratio.
+const INK_DARK: RGB = { r: 6, g: 6, b: 9 }
+
+/**
+ * Pick the readable foreground for text sitting on a solid accent.
+ *
+ * The house rule used to be "solid accent always pairs with hardcoded
+ * `text-white`". That was written for Tailwind-600-ish accents and fails badly
+ * on the bright ones: measured white-on-accent was 1.82:1 for BatoAI, 1.86:1
+ * for BatoShare, 1.92:1 for BatoBrowse — against a 4.5:1 AA target. 25 of the
+ * suite's 26 accents failed, 15 of them below even the 3:1 large-text floor, and
+ * BatoGen only passed because its accent was deliberately darkened to #616a00,
+ * which in turn made its icon glyph muddy.
+ *
+ * Both states are scored, not just the resting fill, because on dark themes
+ * `hover` *lightens* the accent — so hover, not rest, is the binding constraint.
+ * We take whichever ink has the better worst case across the two.
+ */
+function inkFor(base: RGB, hover: RGB): RGB {
+  const score = (ink: RGB) => Math.min(contrast(ink, base), contrast(ink, hover))
+  return score(INK_LIGHT) >= score(INK_DARK) ? INK_LIGHT : INK_DARK
+}
+
 // Accent is theme-independent, but its derived shades flip direction by theme:
 // on dark backgrounds the bright/hover variants lighten; on light they darken.
 function applyAccent(hex: string, isLight: boolean): void {
@@ -79,7 +121,10 @@ function applyAccent(hex: string, isLight: boolean): void {
   root.style.setProperty('--app-accent', channels(base))
   root.style.setProperty('--app-accent-hover', channels(hover))
   root.style.setProperty('--app-accent-bright', channels(bright))
+  root.style.setProperty('--app-accent-ink', channels(inkFor(base, hover)))
 }
+
+export { contrast, inkFor, parseHex, mixWhite, mixBlack }
 
 // Toggles global text selection (see [data-select="on"] body in index.css).
 function applyTextSelect(enabled: boolean): void {

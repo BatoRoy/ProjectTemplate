@@ -36,7 +36,7 @@ export function Stepper({ steps, current, orientation = 'horizontal', onStepClic
                 onClick={() => onStepClick?.(i)}
                 className={clsx(
                   'w-8 h-8 rounded-full flex items-center justify-center text-xs font-semibold border-2 transition-colors flex-shrink-0',
-                  complete && 'bg-app-accent border-app-accent text-white',
+                  complete && 'bg-app-accent border-app-accent text-app-accentInk',
                   active && 'border-app-accent text-app-accentBright',
                   !complete && !active && 'border-app-border text-app-muted',
                   onStepClick && 'cursor-pointer',

@@ -16,6 +16,11 @@
   --app-accent-hover:  140 82 239;
   --app-accent-bright: 179 141 245;
 
+  /* Foreground for text on a solid accent. Overwritten at runtime by
+     applyAccent(), which picks white or near-black by measured contrast
+     against both the accent and its hover shade. This literal is only the
+     pre-JS default, matching the fallback accent above. */
+  --app-accent-ink:    255 255 255;
   /* Tints every native control the UA paints for us (checkbox, radio,
      progress, Firefox range) with the app accent. */
   accent-color: rgb(var(--app-accent));

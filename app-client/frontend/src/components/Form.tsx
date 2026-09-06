@@ -68,7 +68,7 @@ export function Checkbox({ checked, onChange, label, disabled, indeterminate, cl
           'w-4 h-4 rounded border flex items-center justify-center transition-colors flex-shrink-0',
           'focus:outline-none focus-visible:ring-2 focus-visible:ring-app-accent/50 focus-visible:ring-offset-0',
           filled
-            ? 'bg-app-accent border-app-accent text-white'
+            ? 'bg-app-accent border-app-accent text-app-accentInk'
             : 'bg-app-surface border-app-border hover:border-app-accent/60',
         )}
       >

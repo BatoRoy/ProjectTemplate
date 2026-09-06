@@ -18,14 +18,17 @@ export function ConfirmDialog({
   title, message, confirmLabel = 'Confirm', cancelLabel = 'Cancel',
   danger, loading, onConfirm, onClose,
 }: ConfirmDialogProps) {
+  // Only Enter. Escape (plus the focus trap, backdrop dismissal and the
+  // dialog role) now lives in <Modal>, where every dialog gets it rather than
+  // just this one — this hook used to be the sole reason the base Modal's
+  // missing keyboard support went unnoticed.
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') onClose()
       if (e.key === 'Enter') onConfirm()
     }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
-  }, [onConfirm, onClose])
+  }, [onConfirm])
 
   return (
     <Modal title={title} onClose={onClose} width="max-w-sm">
