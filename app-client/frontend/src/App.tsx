@@ -38,16 +38,17 @@ function Shell() {
 
   return (
     <ErrorBoundary>
-      <div className="flex h-screen text-app-text">
+      <div className="flex h-screen bg-app-bg text-app-text">
         <Sidebar
           view={view}
           onNavigate={setView}
           onOpenOptions={() => setShowOptions(true)}
           onOpenAbout={() => setShowAbout(true)}
+          onOpenPalette={() => setShowPalette(true)}
         />
 
         <main className="flex-1 overflow-y-auto">
-          {view === 'home' && <HomePage toast={toast} />}
+          {view === 'home' && <HomePage toast={toast} onOpenPalette={() => setShowPalette(true)} />}
           {view === 'examples' && <ShowcasePage toast={toast} />}
         </main>
       </div>

@@ -2,15 +2,16 @@
 //   import { Button, DatePicker, KanbanBoard, useToast } from '../components'
 
 // ── Core / overlays ─────────────────────────────────────────
-export { Modal, Input, Button } from './Modal'
+export { Modal, Input, Button, focusRing } from './Modal'
 export { ToastContainer } from './Toast'
 export { ContextMenu } from './ContextMenu'
 export { Dropdown, Select } from './Dropdown'
-export { Tooltip } from './Tooltip'
+export { Tooltip, RailTip } from './Tooltip'
 export { ConfirmDialog } from './ConfirmDialog'
 export { Tabs } from './Tabs'
 export { ErrorBoundary } from './ErrorBoundary'
 export { Sidebar } from './Sidebar'
+export { AppMark } from './AppMark'
 export { AppOptionsModal } from './AppOptionsModal'
 export { ServerUrlCard } from './ServerUrlCard'
 export { AboutDialog } from './AboutDialog'

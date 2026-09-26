@@ -114,7 +114,7 @@ function XYChart({ series, height = 200, area, xType = 'number', formatX, format
         </svg>
       )}
       {hover != null && ref0[hover] && (
-        <div className="absolute top-2 right-2 bg-app-card border border-app-border rounded-md px-2 py-1 text-xs pointer-events-none shadow-lg">
+        <div className="absolute top-2 right-2 bg-app-card border border-app-lineStrong rounded-md px-2 py-1 text-xs pointer-events-none shadow-app-lg">
           <div className="text-app-muted">{fx(xv(ref0[hover]))}</div>
           {series.map((s, si) => s.data[hover] && (
             <div key={si} className="flex items-center gap-1.5 text-app-text">
@@ -180,7 +180,7 @@ export function BarChart({ data, height = 200, formatY, className }: BarChartPro
         </svg>
       )}
       {hover != null && data[hover] && (
-        <div className="absolute top-2 right-2 bg-app-card border border-app-border rounded-md px-2 py-1 text-xs pointer-events-none shadow-lg text-app-text">
+        <div className="absolute top-2 right-2 bg-app-card border border-app-lineStrong rounded-md px-2 py-1 text-xs pointer-events-none shadow-app-lg text-app-text">
           {data[hover].label}: {fy(data[hover].value)}
         </div>
       )}

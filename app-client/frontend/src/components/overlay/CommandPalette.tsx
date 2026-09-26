@@ -59,12 +59,12 @@ export function CommandPalette({ open, onClose, commands, placeholder = 'Type a 
   let idx = -1
 
   return createPortal(
-    <div className="fixed inset-0 z-50 flex items-start justify-center pt-[12vh] bg-black/60 backdrop-blur-sm" onClick={onClose}>
+    <div className="fixed inset-0 z-50 flex items-start justify-center pt-[12vh] bg-black/50 backdrop-blur-sm animate-fade-in" onClick={onClose}>
       <div
-        className="w-full max-w-lg mx-4 bg-app-card border border-app-border rounded-xl shadow-2xl overflow-hidden animate-scale-in"
+        className="w-full max-w-lg mx-4 bg-app-card rounded-2xl shadow-app-lg overflow-hidden animate-scale-in"
         onClick={e => e.stopPropagation()}
       >
-        <div className="flex items-center gap-2.5 px-4 border-b border-app-border">
+        <div className="flex items-center gap-2.5 px-4 border-b border-app-line">
           <Search size={16} className="text-app-muted flex-shrink-0" />
           <input
             autoFocus
@@ -75,7 +75,7 @@ export function CommandPalette({ open, onClose, commands, placeholder = 'Type a 
             className="flex-1 bg-transparent py-3.5 text-sm text-app-text placeholder:text-app-muted focus:outline-none"
           />
         </div>
-        <div ref={listRef} className="max-h-80 overflow-y-auto py-2">
+        <div ref={listRef} className="max-h-80 overflow-y-auto p-2">
           {filtered.length === 0 && <div className="px-4 py-6 text-center text-sm text-app-muted">No commands found</div>}
           {filtered.map(c => {
             idx++
@@ -85,17 +85,17 @@ export function CommandPalette({ open, onClose, commands, placeholder = 'Type a 
             lastGroup = c.group
             return (
               <div key={c.id}>
-                {showGroup && <div className="px-4 pt-2 pb-1 text-xs font-semibold text-app-muted uppercase tracking-wider">{c.group}</div>}
+                {showGroup && <div className="px-2.5 pt-2.5 pb-1 text-[11px] font-medium text-app-muted">{c.group}</div>}
                 <button
                   data-active={i === active}
                   onMouseEnter={() => setActive(i)}
                   onClick={() => run(c)}
                   className={clsx(
-                    'w-full flex items-center gap-3 px-4 py-2 text-sm text-left transition-colors',
-                    i === active ? 'bg-app-accent/15 text-app-accentBright' : 'text-app-subtext',
+                    'w-full flex items-center gap-3 px-2.5 h-9 rounded-lg text-[13px] text-left transition-colors',
+                    i === active ? 'bg-app-text/[0.07] text-app-text' : 'text-app-subtext',
                   )}
                 >
-                  {Icon && <Icon size={15} className="flex-shrink-0" />}
+                  {Icon && <Icon size={15} className={clsx('flex-shrink-0', i === active ? 'text-app-accentBright' : 'text-app-muted')} />}
                   <span className="flex-1 truncate">{c.label}</span>
                   {c.hint && <span className="text-xs text-app-muted">{c.hint}</span>}
                 </button>

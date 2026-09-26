@@ -39,7 +39,7 @@ export function EditorTabs({ tabs, activeId, onActivate, onClose, onReorder, onA
         </SortableContext>
       </DndContext>
       {onAdd && (
-        <button onClick={onAdd} className="flex-shrink-0 px-2.5 text-app-muted hover:text-app-text hover:bg-app-card/50 transition-colors" title="New tab">
+        <button onClick={onAdd} className="flex-shrink-0 px-2.5 text-app-muted hover:text-app-text hover:bg-app-text/[0.06] transition-colors" title="New tab">
           <Plus size={15} />
         </button>
       )}
@@ -61,7 +61,7 @@ function Tab({ tab, active, onActivate, onClose }: {
       onClick={() => onActivate(tab.id)}
       className={clsx(
         'group relative flex items-center gap-2 px-3 py-2 text-sm whitespace-nowrap border-r border-app-border cursor-pointer select-none transition-colors',
-        active ? 'bg-app-bg text-app-text' : 'text-app-muted hover:text-app-text hover:bg-app-card/40',
+        active ? 'bg-app-bg text-app-text' : 'text-app-muted hover:text-app-text hover:bg-app-text/[0.06]',
         isDragging && 'opacity-60',
       )}
     >

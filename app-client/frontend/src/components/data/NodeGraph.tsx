@@ -12,7 +12,7 @@ import { useTheme } from '../../lib/theme'
 // A themed default node — use `type: 'themed'` on your nodes to get this look.
 function ThemedNode({ data }: NodeProps) {
   return (
-    <div className="bg-app-card border border-app-border rounded-lg px-3.5 py-2 text-sm text-app-text shadow-md min-w-[7rem] text-center">
+    <div className="bg-app-card border border-app-border rounded-lg px-3.5 py-2 text-sm text-app-text shadow-app-md min-w-[7rem] text-center">
       <Handle type="target" position={Position.Left} className="!bg-app-accent !border-app-bg" />
       {data.label as ReactNode}
       <Handle type="source" position={Position.Right} className="!bg-app-accent !border-app-bg" />

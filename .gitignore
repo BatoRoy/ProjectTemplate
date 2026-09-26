@@ -54,4 +54,5 @@ tmp/
 # that is not re-included here is missing from every app the template creates.
 tools/*
 !tools/check-desktop-manifest.mjs
+!tools/check-contrast.mjs
 *.AppImage

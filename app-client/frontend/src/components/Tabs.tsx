@@ -13,11 +13,11 @@ interface TabsProps {
   className?: string
 }
 
-// Segmented tab bar using the active-pill style shared with the Scale/Quality
-// selectors in AppOptionsModal. Render your own panels keyed off `value`.
+// Segmented tab bar: the same selected style as <SegmentedControl> (and the
+// App Options selectors), full-width. Render your own panels keyed off `value`.
 export function Tabs({ tabs, value, onChange, className }: TabsProps) {
   return (
-    <div className={clsx('flex gap-1 p-1 bg-app-surface border border-app-border rounded-lg', className)} role="tablist">
+    <div className={clsx('flex gap-1 p-1 bg-app-bg/50 border border-app-line rounded-xl', className)} role="tablist">
       {tabs.map(tab => {
         const active = tab.id === value
         return (
@@ -28,10 +28,11 @@ export function Tabs({ tabs, value, onChange, className }: TabsProps) {
             aria-selected={active}
             onClick={() => onChange(tab.id)}
             className={clsx(
-              'flex-1 py-1.5 px-3 rounded-md text-sm font-medium transition-colors',
+              'flex-1 h-8 px-3 rounded-lg text-[13px] font-medium transition-colors',
+              'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-app-accentBright',
               active
-                ? 'bg-app-accent/15 text-app-accentBright'
-                : 'text-app-muted hover:text-app-text',
+                ? 'bg-app-accent/15 text-app-accentBright ring-1 ring-inset ring-app-accent/40 [&_.text-app-muted]:text-app-accentBright'
+                : 'text-app-subtext hover:text-app-text hover:bg-app-text/[0.05]',
             )}
           >
             {tab.label}

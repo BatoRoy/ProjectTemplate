@@ -7,6 +7,7 @@ import {
 import clsx from 'clsx'
 import { SegmentedControl } from '../layout/SegmentedControl'
 import type { CalendarEvent } from '../../types'
+import { useTheme, readableTextFor } from '../../lib/theme'
 
 type View = 'month' | 'week'
 type WeekDay = 0 | 1 | 2 | 3 | 4 | 5 | 6
@@ -41,9 +42,9 @@ export function CalendarView({
       {/* Toolbar */}
       <div className="flex items-center justify-between mb-4 flex-shrink-0">
         <div className="flex items-center gap-2">
-          <button onClick={() => move(-1)} className="p-1.5 rounded-md text-app-muted hover:text-app-text hover:bg-app-card"><ChevronLeft size={16} /></button>
-          <button onClick={() => setCursor(new Date())} className="px-3 py-1.5 rounded-md text-sm text-app-subtext hover:text-app-text hover:bg-app-card border border-app-border">Today</button>
-          <button onClick={() => move(1)} className="p-1.5 rounded-md text-app-muted hover:text-app-text hover:bg-app-card"><ChevronRight size={16} /></button>
+          <button onClick={() => move(-1)} className="p-1.5 rounded-md text-app-muted hover:text-app-text hover:bg-app-text/[0.06]"><ChevronLeft size={16} /></button>
+          <button onClick={() => setCursor(new Date())} className="px-3 py-1.5 rounded-md text-sm text-app-subtext hover:text-app-text bg-app-text/[0.04] hover:bg-app-text/[0.08] border border-app-lineStrong">Today</button>
+          <button onClick={() => move(1)} className="p-1.5 rounded-md text-app-muted hover:text-app-text hover:bg-app-text/[0.06]"><ChevronRight size={16} /></button>
           <h2 className="text-sm font-semibold text-app-text ml-2">
             {format(cursor, view === 'month' ? 'MMMM yyyy' : "'Week of' MMM d, yyyy")}
           </h2>
@@ -68,6 +69,8 @@ function MonthGrid({ cursor, weekStartsOn, eventsOn, onEventClick, onDayClick }:
   eventsOn: (d: Date) => CalendarEvent[]
   onEventClick?: (e: CalendarEvent) => void; onDayClick?: (d: Date) => void
 }) {
+  // Custom event colors are made readable the same way the accent is.
+  const { accent, theme } = useTheme()
   const start = startOfWeek(startOfMonth(cursor), { weekStartsOn })
   const end = endOfWeek(endOfMonth(cursor), { weekStartsOn })
   const days = eachDayOfInterval({ start, end })
@@ -86,7 +89,7 @@ function MonthGrid({ cursor, weekStartsOn, eventsOn, onEventClick, onDayClick }:
             <button
               key={day.toISOString()}
               onClick={() => onDayClick?.(day)}
-              className="text-left border-b border-r border-app-border last:border-r-0 p-1.5 min-h-[5rem] hover:bg-app-card/40 transition-colors align-top"
+              className="text-left border-b border-r border-app-border last:border-r-0 p-1.5 min-h-[5rem] hover:bg-app-text/[0.06] transition-colors align-top"
             >
               <span className={clsx(
                 'inline-flex items-center justify-center w-6 h-6 rounded-full text-xs mb-1',
@@ -100,7 +103,7 @@ function MonthGrid({ cursor, weekStartsOn, eventsOn, onEventClick, onDayClick }:
                     key={ev.id}
                     onClick={e => { e.stopPropagation(); onEventClick?.(ev) }}
                     className="truncate text-xs px-1.5 py-0.5 rounded bg-app-accent/15 text-app-accentBright hover:bg-app-accent/25"
-                    style={ev.color ? { background: `${ev.color}26`, color: ev.color } : undefined}
+                    style={ev.color ? { background: `${ev.color}26`, color: readableTextFor(ev.color, accent, theme) } : undefined}
                   >
                     {ev.title}
                   </div>
@@ -118,6 +121,7 @@ function MonthGrid({ cursor, weekStartsOn, eventsOn, onEventClick, onDayClick }:
 function WeekGrid({ cursor, weekStartsOn, events, onEventClick }: {
   cursor: Date; weekStartsOn: WeekDay; events: CalendarEvent[]; onEventClick?: (e: CalendarEvent) => void
 }) {
+  const { accent, theme } = useTheme()
   const start = startOfWeek(cursor, { weekStartsOn })
   const days = eachDayOfInterval({ start, end: endOfWeek(cursor, { weekStartsOn }) })
   const hours = Array.from({ length: 24 }, (_, i) => i)
@@ -159,10 +163,10 @@ function WeekGrid({ cursor, weekStartsOn, events, onEventClick }: {
                       key={ev.id}
                       onClick={() => onEventClick?.(ev)}
                       className="absolute left-1 right-1 rounded px-1.5 py-0.5 text-xs overflow-hidden cursor-pointer bg-app-accent/20 text-app-accentBright border-l-2 border-app-accent hover:bg-app-accent/30"
-                      style={{ top, height: dur, ...(ev.color ? { background: `${ev.color}33`, color: ev.color, borderColor: ev.color } : {}) }}
+                      style={{ top, height: dur, ...(ev.color ? { background: `${ev.color}33`, color: readableTextFor(ev.color, accent, theme), borderColor: ev.color } : {}) }}
                     >
                       <div className="font-medium truncate">{ev.title}</div>
-                      <div className="opacity-70">{format(ev.start, 'HH:mm')}</div>
+                      <div className="text-[11px]">{format(ev.start, 'HH:mm')}</div>
                     </div>
                   )
                 })}

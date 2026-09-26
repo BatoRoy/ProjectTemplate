@@ -60,7 +60,7 @@ function Row({ id, handle, children }: { id: string; handle: boolean; children: 
       style={{ transform: CSS.Transform.toString(transform), transition }}
       className={clsx(
         'flex items-center gap-2 bg-app-card border border-app-border rounded-lg px-3 py-2.5',
-        isDragging && 'opacity-50 shadow-lg z-10 relative',
+        isDragging && 'opacity-50 shadow-app-lg z-10 relative',
       )}
       {...attributes}
       {...(handle ? {} : listeners)}

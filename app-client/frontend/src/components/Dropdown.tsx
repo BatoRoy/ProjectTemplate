@@ -73,8 +73,9 @@ export function Dropdown({ trigger, items, align = 'left', className }: Dropdown
         type="button"
         onClick={() => { setActiveIndex(-1); setOpen(o => !o) }}
         className={clsx(
-          'flex items-center gap-2 px-3 py-2 rounded-lg border border-app-border text-sm',
-          'text-app-subtext hover:text-app-text hover:border-app-accent/50 transition-colors',
+          'flex items-center gap-2 px-3 py-2 rounded-lg border border-app-control bg-app-bg/50 text-sm',
+          'text-app-subtext hover:text-app-text hover:border-app-accentBright transition-colors',
+          'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-app-accentBright',
           className,
         )}
       >

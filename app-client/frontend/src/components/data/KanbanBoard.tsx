@@ -104,7 +104,7 @@ function SortableCard({ card, renderCard }: { card: KanbanCard; renderCard?: (c:
 function CardBody({ card, renderCard, dragging }: { card: KanbanCard; renderCard?: (c: KanbanCard) => ReactNode; dragging?: boolean }) {
   if (renderCard) return <>{renderCard(card)}</>
   return (
-    <div className={clsx('bg-app-card border border-app-border rounded-lg px-3 py-2.5 cursor-grab active:cursor-grabbing', dragging && 'shadow-xl rotate-2')}>
+    <div className={clsx('bg-app-card border border-app-border rounded-lg px-3 py-2.5 cursor-grab active:cursor-grabbing', dragging && 'shadow-app-lg rotate-2')}>
       <div className="text-sm text-app-text font-medium">{card.title}</div>
       {card.description && <div className="text-xs text-app-muted mt-1">{card.description}</div>}
     </div>

@@ -1,6 +1,9 @@
 import { useState } from 'react'
 import { Check, Plug, Save } from 'lucide-react'
+import clsx from 'clsx'
 import { getBackendUrl, setBackendUrl, testConnection, DEFAULT_BACKEND } from '../lib/bridge'
+import { Button } from './Modal'
+import { controlClasses } from './inputs/Field'
 
 // Server-address section for App Options. For apps whose backend runs as a
 // standalone daemon (fixed port claimed in BatoApps PORTS.md): lets the user
@@ -27,47 +30,30 @@ export function ServerUrlCard() {
   }
 
   return (
-    <div>
-      <h3 className="text-xs font-semibold text-app-subtext uppercase tracking-wider mb-3">Server</h3>
-      <div className="flex items-center gap-1.5">
+    <div className="py-4 space-y-2">
+      <label htmlFor="server-url" className="block text-[13px] font-medium text-app-text">Server address</label>
+      <div className="flex items-center gap-2">
         <input
+          id="server-url"
           type="text"
           value={url}
           onChange={e => { setUrl(e.target.value); setTest('idle') }}
           placeholder={DEFAULT_BACKEND}
           spellCheck={false}
-          className="flex-1 min-w-0 px-2.5 py-2 text-xs mono-text rounded-lg bg-app-bg border border-app-border
-                     text-app-text placeholder-app-muted focus:outline-none focus:border-app-accent/60"
+          className={clsx(controlClasses(), 'h-9 px-3 font-mono text-xs')}
         />
-        <button
-          onClick={runTest}
-          disabled={test === 'testing'}
-          title="Test connection"
-          className="px-2.5 py-2 rounded-lg border border-app-border text-app-muted hover:text-app-text
-                     hover:border-app-accent/40 disabled:opacity-50 transition-colors"
-        >
-          <Plug size={13} />
-        </button>
-        <button
-          onClick={save}
-          disabled={!dirty && !saved}
-          title="Save"
-          className={`px-2.5 py-2 rounded-lg border transition-colors ${
-            saved
-              ? 'border-transparent bg-app-accent/15 text-app-accentBright'
-              : dirty
-              ? 'border-transparent bg-app-accent text-app-accentInk hover:opacity-90'
-              : 'border-app-border text-app-muted opacity-50 cursor-not-allowed'
-          }`}
-        >
-          {saved ? <Check size={13} /> : <Save size={13} />}
-        </button>
+        <Button variant="secondary" size="icon" className="!h-9 !w-9 flex-shrink-0" onClick={runTest}
+          disabled={test === 'testing'} title="Test connection" aria-label="Test connection">
+          <Plug size={14} />
+        </Button>
+        <Button size="icon" className="!h-9 !w-9 flex-shrink-0" onClick={save}
+          disabled={!dirty && !saved} title="Save" aria-label="Save server address">
+          {saved ? <Check size={14} /> : <Save size={14} />}
+        </Button>
       </div>
-      {test === 'ok' && (
-        <p className="text-xs text-app-green mt-2">Server reached{dirty ? ' — remember to save' : ''}</p>
-      )}
-      {test === 'fail' && <p className="text-xs text-app-red mt-2">No server answered at this address</p>}
-      <p className="text-xs text-app-muted mt-2">
+      {test === 'ok' && <p className="text-xs text-app-green">Server reached{dirty ? ' — remember to save' : ''}</p>}
+      {test === 'fail' && <p className="text-xs text-app-red">No server answered at this address</p>}
+      <p className="text-xs text-app-muted">
         Backend address including port. Saved on this machine — point it at whichever machine runs the server.
       </p>
     </div>

@@ -31,7 +31,7 @@ const Inner = lazy(() => import('./CodeEditorInner'))
 export function CodeEditor({ label, hint, className, height = '16rem', ...props }: CodeEditorProps) {
   return (
     <Field label={label} hint={hint} className={className}>
-      <div className="rounded-lg border border-app-border overflow-hidden">
+      <div className="rounded-lg border border-app-control overflow-hidden">
         <Suspense fallback={<div className="flex items-center justify-center text-app-muted" style={{ height }}><Spinner /></div>}>
           <Inner height={height} {...props} />
         </Suspense>

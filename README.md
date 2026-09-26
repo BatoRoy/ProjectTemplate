@@ -3,11 +3,13 @@
 A starting template for desktop apps: a **Go** backend, an **Electron + React** client, a
 polished theming system, and a version-tagged build/release pipeline.
 
-It ships the look-and-feel ready to go — a clean zinc-based dark UI, theme presets
-(Dark / Dim / Light), Inter + JetBrains Mono, a per-app **accent color** (presets +
-custom), and a self-contained **App Options** panel for theme / accent / UI scale / content
-width / text selection, all persisted. Drop in your pages and backend routes; the chrome
-is done.
+It ships the look-and-feel ready to go — the **Hybrid** style: neutral surfaces with
+hairlines and soft depth, rounded cards, theme presets (Dark / Dim / a soft-gray Light),
+Inter + JetBrains Mono, a per-app **accent color** (presets + custom), and a self-contained
+**App Options** panel for theme / accent / UI scale / content width / text selection, all
+persisted. Colors are **contrast-checked**: text is ≥ 4.5:1 and control edges ≥ 3:1 for
+any accent on any theme (see [Look & contrast](#look--contrast)). Drop in your pages and
+backend routes; the chrome is done.
 
 ## Clients
 
@@ -68,7 +70,7 @@ the store. Start with the renderer-side identity in **`app-client/frontend/src/b
 | `appName`   | Sidebar header, home hero, window title, About dialog                   |
 | `tagline`   | Home hero subtitle + About dialog                                       |
 | `slug`      | localStorage namespace (`<slug>:theme`, …) — **must be unique per app** so apps don't clobber each other's settings inside bato-hub |
-| `accentHex` | Default accent color (sidebar strip, active nav, buttons; users can still change it in App Options) |
+| `accentHex` | Default accent color (app badge, active nav, buttons, focus; users can still change it in App Options) |
 | `icon`      | Sidebar / About badge (any `lucide-react` icon)                          |
 
 The Electron side needs its identity in two places:
@@ -134,10 +136,16 @@ Pushing a `v*.*.*` tag triggers `.github/workflows/release-electron.yml`, which 
 - **Theme engine** lives in `app-client/frontend/src/lib/theme.tsx` and `src/index.css`. Colors
   are CSS variables (`--app-*`) selected by a `data-theme` attribute; Tailwind exposes them as
   `app.*` tokens (e.g. `bg-app-card`, `text-app-text`). The **accent** is a separate runtime
-  dimension: `applyAccent()` derives `--app-accent` / `--app-accent-hover` / `--app-accent-bright`
-  from the chosen hex (preset or custom), lightening on dark themes and darkening on light. Use
-  `bg-app-accent` (+ `hover:bg-app-accentHover`) for solid actions and `bg-app-accent/15
-  text-app-accentBright` for active/soft states. Surfaces are flat — there is no background engine.
+  dimension: `applyAccent()` derives the accent set from the chosen hex (preset or custom) and
+  makes it **contrast-safe** — `--app-accent` / `-hover` are nudged only as far as needed for
+  `--app-accent-ink` to read on them, and `--app-accent-bright` (accent-colored text, icons and
+  focus rings) is adjusted until it reads on every surface. It also re-hues the theme grays to
+  the accent (same lightness), so a warm accent gets warm grays. Use `bg-app-accent text-app-accentInk`
+  (+ `hover:bg-app-accentHover`) for solid actions and `bg-app-accent/10–20
+  text-app-accentBright` for active/soft states. Beyond colors there are `--app-raised` (a step
+  above a card — selected segments and tabs), `--app-control`
+  (≥ 3:1 edges for inputs, switches, checkboxes), `--app-line` / `--app-line-strong` (hairlines),
+  `--app-shadow-sm/md/lg` (elevation) and `--app-content-width` (the "Comfortable" page width).
 - **Native controls** are covered too. Each theme block in `index.css` declares `color-scheme`
   (`dark` for Dark/Dim, `light` for Light) and `:root` sets `accent-color`, which is what keeps the
   browser from painting checkboxes, radios, selects, date pickers and scrollbars in its light-mode
@@ -150,6 +158,29 @@ Pushing a `v*.*.*` tag triggers `.github/workflows/release-electron.yml`, which 
   bridge, typed in `src/lib/electron.d.ts` and implemented in `electron/main.js`.
 - **Backend** uses a plain `http.ServeMux` with a CORS middleware
   (`app-server/internal/api/server.go`). Add routes in `registerRoutes`.
+
+## Look & contrast
+
+The palette, component styles and contrast rules are one system:
+
+- **Tokens, not raw colors.** Build UI from the `--app-*` tokens and kit components.
+  Page wrappers use `max-w-[var(--app-content-width)]` (unless the user picked Full width),
+  input edges `border-app-control`, focus rings `ring-app-accentBright` (or the exported
+  `focusRing`), hover washes `hover:bg-app-text/[0.06]`. `text-app-muted` is guaranteed on the
+  plain page, surfaces and cards; on a tinted wash use `text-app-subtext`. For text drawn in a color you supply
+  (an event color, a chart series) use `readableTextFor()`, and `inkOn()` for text on a solid
+  color you supply — both in `lib/theme.tsx`.
+- **`make test`** includes `lib/palette.test.ts`, which checks the palette maths for every
+  suite accent on every theme: text ≥ 4.5:1 on page, surfaces, cards and accent tints; ink on
+  the accent ≥ 4.5:1; status colors readable on their badges; `--app-control` ≥ 3:1.
+- **`make check-contrast`** checks what actually renders: it builds the client, opens it in
+  Electron and, for every theme × accent, measures every visible text node and every resting
+  control edge on the home page, App Options and each Examples tab. `ACCENT=#hex` checks one
+  accent (your app's), `QUICK=1` four representative ones. Failures print the ratio, where,
+  and an element hint. Add your own pages to it in `tools/check-contrast.mjs`.
+
+Porting this look into an app created from an older template is covered step by step in
+**[STYLE-MIGRATION.md](STYLE-MIGRATION.md)**.
 
 ## Component kit
 
@@ -168,7 +199,9 @@ import { Button, DatePicker, KanbanBoard, useToast } from '../components'
 
 | Component | Notes |
 |-----------|-------|
-| `Modal`, `Input`, `Button` | Base overlay + form atoms |
+| `Modal`, `Input`, `Button` | Base overlay + form atoms. `Button` variants: `primary` (the main action), `secondary` (bordered), `ghost` (borderless, toolbars), `success`, `danger`; sizes `sm`/`md`/`icon` |
+| `AppMark` | The app badge — `brand.icon` on the accent (sidebar, home, About) |
+| `RailTip` | Tooltip for items in a collapsed sidebar (keeps them full-width) |
 | `ContextMenu` + `useContextMenu` | Right-click menu, viewport-clamped |
 | `Dropdown`, `Select` | Anchored action menu / value picker |
 | `Popover` | Anchored portal panel (base for pickers/menus) |
@@ -360,6 +393,10 @@ git diff cf60a2e..HEAD                     # optionally: -- <path> to narrow it 
 Port the pieces you want by hand — or hand the diff to Claude and ask it to apply what's
 relevant, skipping your customized files (`brand.ts`, `identity.js`, identity fields in
 `package.json`, your own pages). Afterwards run `make dev-setup && make lint && make test`.
+
+The **Hybrid restyle** is a larger port with its own guide — which files to take, which API
+changes to handle (e.g. the `ghost` → `secondary` button rename) and how to check the result:
+**[STYLE-MIGRATION.md](STYLE-MIGRATION.md)**.
 If you port a large batch, update the SHA in `.template` so the next diff starts there.
 
 # Publishing a backend service to bato

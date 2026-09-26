@@ -73,7 +73,7 @@ export function VolumeControl({
         className={clsx(
           'shrink-0 grid place-items-center w-8 h-8 rounded-md text-app-subtext',
           'transition-colors',
-          !disabled && 'hover:bg-app-card hover:text-app-text cursor-pointer',
+          !disabled && 'hover:bg-app-text/[0.06] hover:text-app-text cursor-pointer',
           isMuted && !disabled && 'text-app-accentBright',
         )}
       >

@@ -43,7 +43,7 @@ export function ShowcasePage({ toast }: ShowcasePageProps) {
   const [section, setSection] = useState('inputs')
   const { wide } = useTheme()
   return (
-    <div className={clsx('mx-auto p-6 space-y-6', wide ? 'max-w-none' : 'max-w-3xl')}>
+    <div className={clsx('mx-auto p-6 space-y-6', wide ? 'max-w-none' : 'max-w-[var(--app-content-width)]')}>
       <div>
         <h1 className="text-xl font-semibold text-app-text">Component kit</h1>
         <p className="text-sm text-app-subtext mt-1">A library for building almost any app — themed by the active accent.</p>
@@ -334,7 +334,7 @@ function FeedbackSection({ toast }: ShowcasePageProps) {
       <Card title="Stepper">
         <Stepper steps={[{ id: '1', label: 'Account' }, { id: '2', label: 'Profile' }, { id: '3', label: 'Done' }]} current={step} onStepClick={setStep} />
         <div className="flex gap-2 mt-4">
-          <Button variant="ghost" onClick={() => setStep(s => Math.max(0, s - 1))}>Back</Button>
+          <Button variant="secondary" onClick={() => setStep(s => Math.max(0, s - 1))}>Back</Button>
           <Button onClick={() => setStep(s => Math.min(2, s + 1))}>Next</Button>
         </div>
       </Card>
@@ -371,8 +371,11 @@ function LayoutSection({ toast }: ShowcasePageProps) {
           <Stack direction="row" gap={3} align="center">
             <div className="text-sm text-app-subtext">Divider</div>
             <Divider orientation="vertical" />
-            <Center className="h-10 w-20 rounded-md bg-app-card text-xs text-app-muted">Center</Center>
-            <AspectRatio ratio={16 / 9} className="w-28 rounded-md bg-app-card"><Center className="h-full text-xs text-app-muted">16:9</Center></AspectRatio>
+            <Center className="h-10 w-20 rounded-md bg-app-text/[0.06] text-xs text-app-subtext">Center</Center>
+            {/* AspectRatio fills its parent's width, so size the wrapper. */}
+            <div className="w-28">
+              <AspectRatio ratio={16 / 9} className="rounded-md bg-app-text/[0.06]"><Center className="h-full text-xs text-app-subtext">16:9</Center></AspectRatio>
+            </div>
           </Stack>
           <Divider label="section" />
           <Container size="sm" padded={false}><div className="text-xs text-app-muted text-center">Container (max-width, centered)</div></Container>
@@ -438,7 +441,7 @@ function LayoutSection({ toast }: ShowcasePageProps) {
             sidebar={<div className="w-40 bg-app-bg border-r border-app-border p-3 text-sm text-app-muted space-y-2"><div>Nav item</div><div>Nav item</div></div>}
             footer={<div className="px-4 py-2 text-xs text-app-muted">Footer</div>}
           >
-            <div className="p-4 text-sm text-app-subtext">Scrollable content region. <Button variant="ghost" className="ml-1 !py-1 !px-2" onClick={() => toast('AppShell action', 'info')}>Action</Button></div>
+            <div className="p-4 text-sm text-app-subtext">Scrollable content region. <Button variant="secondary" className="ml-1 !py-1 !px-2" onClick={() => toast('AppShell action', 'info')}>Action</Button></div>
           </AppShell>
         </div>
       </Card>
@@ -511,17 +514,13 @@ function OverlaysSection({ toast }: ShowcasePageProps) {
             { label: 'Edit', icon: Pencil, onClick: () => toast('Edit', 'info') },
             { label: 'Delete', icon: Trash2, danger: true, onClick: () => toast('Deleted', 'error') },
           ]} />
-          <Tooltip content="A helpful hint"><Button variant="ghost">Hover me</Button></Tooltip>
+          <Tooltip content="A helpful hint"><Button variant="secondary">Hover me</Button></Tooltip>
           <Button variant="danger" onClick={() => setConfirm(true)}>Confirm dialog</Button>
-          <Button variant="ghost" onClick={() => setDrawer(true)}>Open drawer</Button>
-          <Button variant="ghost" onClick={() => setPalette(true)}>Command palette</Button>
-          <button
-            ref={popRef}
-            onClick={() => setPop(o => !o)}
-            className="px-4 py-2.5 rounded-lg border border-app-border text-sm text-app-subtext hover:text-app-text"
-          >
+          <Button variant="secondary" onClick={() => setDrawer(true)}>Open drawer</Button>
+          <Button variant="secondary" onClick={() => setPalette(true)}>Command palette</Button>
+          <Button ref={popRef} variant="secondary" onClick={() => setPop(o => !o)}>
             Popover
-          </button>
+          </Button>
           <Popover anchorRef={popRef} open={pop} onClose={() => setPop(false)} className="p-3 w-48">
             <p className="text-sm text-app-subtext">Anchored popover content. Dismisses on outside-click or Escape.</p>
           </Popover>
@@ -670,7 +669,7 @@ function DataSection({ toast }: ShowcasePageProps) {
 
       <Card title="Node graph">
         <NodeGraph defaultNodes={nodes} defaultEdges={edges} height={320} />
-        <p className="text-xs text-app-muted mt-2">Drag nodes, pan/zoom, and connect handles. <Button variant="ghost" className="ml-1 !py-1 !px-2" onClick={() => toast('Tip: drag from a node handle', 'info')}>Tip</Button></p>
+        <p className="text-xs text-app-muted mt-2">Drag nodes, pan/zoom, and connect handles. <Button variant="secondary" className="ml-1 !py-1 !px-2" onClick={() => toast('Tip: drag from a node handle', 'info')}>Tip</Button></p>
       </Card>
     </div>
   )

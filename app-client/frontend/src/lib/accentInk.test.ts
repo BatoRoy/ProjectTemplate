@@ -2,21 +2,12 @@ import { describe, it, expect } from 'vitest'
 
 import { contrast, inkFor, parseHex, mixWhite, mixBlack } from './theme'
 
-// Every accent in bato/icons/generate.py ACCENTS, which is canonical — each
-// app's brand.ts follows it. Measured against hardcoded white, 25 of these 26
-// failed WCAG AA and 15 fell below even the 3:1 large-text floor, which is what
-// `--app-accent-ink` exists to fix.
-const ACCENTS: Record<string, string> = {
-  ProximityMusic: '#ef4444', BatoMusic: '#f97316', BatoRemote: '#f59e0b',
-  NotEnoughMods: '#84cc16', BatoStore: '#22c55e', BatoMidi: '#10b981',
-  BatoFile: '#06b6d4', BatoDisplay: '#3b82f6', BatoHub: '#6366f1',
-  BatoHome: '#14b8a6', BatoTemplate: '#8b5cf6', TheHopper: '#d946ef',
-  TheWatcher: '#f43f5e', BatoGit: '#f05133', BatoSound: '#0ea5e9',
-  BatoFetch: '#a855f7', BatoDeck: '#ec4899', BatoCompose: '#2496ed',
-  BatoBrowse: '#eab308', BatoShare: '#2dd4bf', BatoEdit: '#e347c4',
-  BatoHealth: '#35c322', BatoScribe: '#14b8a6', BatoMoney: '#21c432',
-  BatoAI: '#70d836', BatoGen: '#616a00',
-}
+import { SUITE_ACCENTS } from '../test/suiteAccents'
+
+// Measured against hardcoded white, 25 of these 26 failed WCAG AA and 15 fell
+// below even the 3:1 large-text floor, which is what `--app-accent-ink` exists
+// to fix.
+const ACCENTS = SUITE_ACCENTS
 
 const WHITE = { r: 255, g: 255, b: 255 }
 
@@ -50,13 +41,11 @@ describe('accent ink', () => {
   })
 
   // Light themes are the harder case, and three accents cannot reach 4.5:1 with
-  // *any* ink: BatoHub #6366f1 (4.47), BatoFetch #a855f7 (4.43) and
-  // bato-template #8b5cf6 (4.23). They sit at the luminance crossover where
-  // white and near-black are both mediocre, so the ceiling is the accent's own
-  // lightness, not the ink. Closing that last gap would mean darkening the
-  // accent for solid fills — a visual-identity change, not a token change.
-  // Everything still clears the 3:1 large-text floor, up from 15 accents that
-  // previously failed even that.
+  // *any* ink on the raw accent: BatoHub #6366f1 (4.47), BatoFetch #a855f7
+  // (4.43) and bato-template #8b5cf6 (4.23). They sit at the luminance
+  // crossover where white and near-black are both mediocre. applyAccent closes
+  // that gap by nudging the fill itself (readableFill — see palette.test.ts,
+  // which asserts 4.5:1 everywhere); this test covers the ink choice alone.
   it('clears the 3:1 floor on every suite accent, on light themes', () => {
     const failures: string[] = []
     for (const [app, hex] of Object.entries(ACCENTS)) {

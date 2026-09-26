@@ -2,6 +2,7 @@ import { useMemo } from 'react'
 import { format } from 'date-fns'
 import clsx from 'clsx'
 import type { TimelineItem } from '../../types'
+import { inkOn } from '../../lib/theme'
 
 interface TimelineProps {
   items: TimelineItem[]
@@ -77,11 +78,13 @@ export function Timeline({ items, start, end, onItemClick, axisFormat = 'MMM d',
                       key={it.id}
                       onClick={() => onItemClick?.(it)}
                       title={`${it.label} · ${format(it.start, 'PP')} → ${format(it.end, 'PP')}`}
-                      className="absolute h-7 rounded-md px-2 flex items-center text-xs font-medium truncate text-white hover:brightness-110 transition-all"
+                      className="absolute h-7 rounded-md px-2 flex items-center text-xs font-medium truncate hover:brightness-110 transition-all"
                       style={{
                         left: `${pct(it.start.getTime())}%`,
                         width: `${Math.max(2, pct(it.end.getTime()) - pct(it.start.getTime()))}%`,
                         background: it.color ?? 'rgb(var(--app-accent))',
+                        // Readable label on whatever fill the bar has.
+                        color: it.color ? inkOn(it.color) : 'rgb(var(--app-accent-ink))',
                         top: '0.5rem',
                       }}
                     >

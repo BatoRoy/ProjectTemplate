@@ -16,6 +16,7 @@ export default {
           bg:          'rgb(var(--app-bg)           / <alpha-value>)',
           surface:     'rgb(var(--app-surface)      / <alpha-value>)',
           card:        'rgb(var(--app-card)         / <alpha-value>)',
+          raised:      'rgb(var(--app-raised)       / <alpha-value>)',
           border:      'rgb(var(--app-border)       / <alpha-value>)',
           accent:      'rgb(var(--app-accent)       / <alpha-value>)',
           accentHover: 'rgb(var(--app-accent-hover) / <alpha-value>)',
@@ -27,7 +28,21 @@ export default {
           muted:       'rgb(var(--app-muted)        / <alpha-value>)',
           text:        'rgb(var(--app-text)         / <alpha-value>)',
           subtext:     'rgb(var(--app-subtext)      / <alpha-value>)',
+          // Boundary of interactive controls — input borders, switch track,
+          // checkbox/radio edges. ≥ 3:1 against cards (see index.css).
+          control:     'rgb(var(--app-control)      / <alpha-value>)',
+          // Hairlines between surfaces. The variables carry their own alpha
+          // ("r g b / a"), so these take no /opacity modifier.
+          line:        'rgb(var(--app-line))',
+          lineStrong:  'rgb(var(--app-line-strong))',
         }
+      },
+      boxShadow: {
+        // Layered, theme-tuned elevation: sm for buttons/segments, md for
+        // cards, lg for dialogs and popovers.
+        'app-sm': 'var(--app-shadow-sm)',
+        'app-md': 'var(--app-shadow-md)',
+        'app-lg': 'var(--app-shadow-lg)',
       },
       fontFamily: {
         mono: ['"JetBrains Mono"', '"Fira Code"', 'monospace'],

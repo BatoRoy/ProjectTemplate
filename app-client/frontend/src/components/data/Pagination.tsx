@@ -30,7 +30,7 @@ export function Pagination({ page, pageCount, onChange, siblings = 1, className 
 
   return (
     <div className={clsx('flex items-center gap-1', className)}>
-      <button onClick={() => onChange(page - 1)} disabled={page <= 1} className={clsx(btn, 'text-app-muted hover:text-app-text hover:bg-app-card disabled:opacity-40 disabled:hover:bg-transparent')}>
+      <button onClick={() => onChange(page - 1)} disabled={page <= 1} className={clsx(btn, 'text-app-muted hover:text-app-text hover:bg-app-text/[0.06] disabled:opacity-40 disabled:hover:bg-transparent')}>
         <ChevronLeft size={15} />
       </button>
       {pages.map((p, i) =>
@@ -40,13 +40,13 @@ export function Pagination({ page, pageCount, onChange, siblings = 1, className 
           <button
             key={p}
             onClick={() => onChange(p)}
-            className={clsx(btn, p === page ? 'bg-app-accent text-app-accentInk font-medium' : 'text-app-subtext hover:text-app-text hover:bg-app-card')}
+            className={clsx(btn, p === page ? 'bg-app-accent text-app-accentInk font-medium' : 'text-app-subtext hover:text-app-text hover:bg-app-text/[0.06]')}
           >
             {p}
           </button>
         ),
       )}
-      <button onClick={() => onChange(page + 1)} disabled={page >= pageCount} className={clsx(btn, 'text-app-muted hover:text-app-text hover:bg-app-card disabled:opacity-40 disabled:hover:bg-transparent')}>
+      <button onClick={() => onChange(page + 1)} disabled={page >= pageCount} className={clsx(btn, 'text-app-muted hover:text-app-text hover:bg-app-text/[0.06] disabled:opacity-40 disabled:hover:bg-transparent')}>
         <ChevronRight size={15} />
       </button>
     </div>

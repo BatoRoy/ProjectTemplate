@@ -77,11 +77,11 @@ export function Calendar({
     <div className={clsx('select-none w-64', className)}>
       {/* Header */}
       <div className="flex items-center justify-between mb-3">
-        <button onClick={() => setMonth(addMonths(viewMonth, -1))} className="p-1 rounded-md text-app-muted hover:text-app-text hover:bg-app-card">
+        <button onClick={() => setMonth(addMonths(viewMonth, -1))} className="p-1 rounded-md text-app-muted hover:text-app-text hover:bg-app-text/[0.06]">
           <ChevronLeft size={16} />
         </button>
         <span className="text-sm font-medium text-app-text">{format(viewMonth, 'MMMM yyyy')}</span>
-        <button onClick={() => setMonth(addMonths(viewMonth, 1))} className="p-1 rounded-md text-app-muted hover:text-app-text hover:bg-app-card">
+        <button onClick={() => setMonth(addMonths(viewMonth, 1))} className="p-1 rounded-md text-app-muted hover:text-app-text hover:bg-app-text/[0.06]">
           <ChevronRight size={16} />
         </button>
       </div>
@@ -113,8 +113,8 @@ export function Calendar({
                 dis && 'opacity-30 cursor-not-allowed',
                 (sel || endpoint) && 'bg-app-accent text-app-accentInk font-medium',
                 between && 'bg-app-accent/15 text-app-accentBright rounded-none',
-                !sel && !endpoint && !between && !dis && (dim ? 'text-app-muted hover:bg-app-card' : 'text-app-subtext hover:bg-app-card'),
-                !sel && !endpoint && isToday(d) && 'ring-1 ring-app-accent/50',
+                !sel && !endpoint && !between && !dis && (dim ? 'text-app-muted hover:bg-app-text/[0.06]' : 'text-app-subtext hover:bg-app-text/[0.06]'),
+                !sel && !endpoint && isToday(d) && 'ring-1 ring-app-accentBright',
               )}
             >
               {format(d, 'd')}

@@ -77,8 +77,8 @@ export function Combobox<T extends string | number>({
               onChange={e => { setQuery(e.target.value); setActive(0) }}
               onKeyDown={onKeyDown}
               placeholder={searchPlaceholder}
-              className="w-full bg-app-surface border border-app-border rounded-md pl-8 pr-2 py-1.5 text-sm text-app-text
-                         placeholder:text-app-muted focus:outline-none focus:border-app-accent"
+              className="w-full bg-app-bg/50 border border-app-control rounded-md pl-8 pr-2 py-1.5 text-sm text-app-text
+                         placeholder:text-app-muted focus:outline-none focus:border-app-accentBright focus:ring-4 focus:ring-app-accent/15"
             />
           </div>
         </div>

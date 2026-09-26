@@ -26,12 +26,12 @@ export const MenuList = forwardRef<HTMLDivElement, MenuListProps>(function MenuL
     <div
       ref={ref}
       role="menu"
-      className="bg-app-card border border-app-border rounded-lg shadow-2xl py-1
+      className="bg-app-card border border-app-lineStrong rounded-xl shadow-app-lg p-1
                  min-w-[12rem] text-sm animate-scale-in overflow-hidden"
     >
       {items.map((item, i) => {
         if (!isAction(item)) {
-          return <div key={i} className="my-1 border-t border-app-border" role="separator" />
+          return <div key={i} className="my-1 -mx-1 border-t border-app-line" role="separator" />
         }
         const Icon = item.icon
         const active = i === activeIndex
@@ -44,11 +44,11 @@ export const MenuList = forwardRef<HTMLDivElement, MenuListProps>(function MenuL
             onMouseEnter={() => onHover?.(i)}
             onClick={() => !item.disabled && onSelect(item)}
             className={clsx(
-              'w-full flex items-center gap-2.5 px-3 py-1.5 text-left transition-colors',
+              'w-full flex items-center gap-2.5 px-2.5 h-8 rounded-md text-[13px] text-left transition-colors',
               item.disabled && 'opacity-40 cursor-not-allowed',
               !item.disabled && item.danger && 'text-app-red',
               !item.disabled && !item.danger && 'text-app-subtext',
-              !item.disabled && active && (item.danger ? 'bg-app-red/10 text-app-red' : 'bg-app-accent/15 text-app-accentBright'),
+              !item.disabled && active && (item.danger ? 'bg-app-red/10 text-app-red' : 'bg-app-text/[0.07] text-app-text'),
             )}
           >
             {Icon && <Icon size={15} className="flex-shrink-0" />}

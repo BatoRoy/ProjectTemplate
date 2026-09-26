@@ -45,7 +45,7 @@ export function Drawer({ open, onClose, side = 'right', title, children, size = 
     <div className="fixed inset-0 z-40">
       <div className="absolute inset-0 bg-black/60 backdrop-blur-sm animate-fade-in" onClick={onClose} />
       <div
-        className={clsx('absolute bg-app-card border-app-border shadow-2xl flex flex-col', panelBase[side], enter[side])}
+        className={clsx('absolute bg-app-card border-app-lineStrong shadow-app-lg flex flex-col', panelBase[side], enter[side])}
         style={horizontal ? { width: size } : { height: size }}
       >
         {title && (

@@ -150,7 +150,7 @@ export function Dashboard({ widgetTypes, defaultItems = [], storageKey, cols = 1
               key={it.id}
               className={clsx(
                 'absolute bg-app-card border rounded-lg overflow-hidden flex flex-col',
-                dragging ? 'border-app-accent shadow-xl z-10 select-none' : 'border-app-border',
+                dragging ? 'border-app-accent shadow-app-lg z-10 select-none' : 'border-app-border',
                 !dragging && 'transition-[left,top,width,height] duration-150',
               )}
               style={{

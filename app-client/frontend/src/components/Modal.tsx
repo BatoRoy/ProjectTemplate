@@ -1,12 +1,18 @@
-import { useCallback, useEffect, useId, useRef } from 'react'
+import { forwardRef, useCallback, useEffect, useId, useRef } from 'react'
 import type { ReactNode, ButtonHTMLAttributes, InputHTMLAttributes } from 'react'
 import { X } from 'lucide-react'
+import clsx from 'clsx'
+import { Field, controlClasses, sizeClasses } from './inputs/Field'
 
 interface ModalProps {
   title: string
   onClose: () => void
   children: ReactNode
   width?: string
+  /** One line under the title. */
+  description?: ReactNode
+  /** Shown left of the title, e.g. <AppMark size={40} />. */
+  icon?: ReactNode
 }
 
 // Everything focusable, in DOM order. Used to wrap Tab at both ends so focus
@@ -37,7 +43,7 @@ const stack: symbol[] = []
  * could open the settings dialog in almost every app in the suite and have no
  * way to close it.
  */
-export function Modal({ title, onClose, children, width = 'max-w-md' }: ModalProps) {
+export function Modal({ title, onClose, children, width = 'max-w-md', description, icon }: ModalProps) {
   const panel = useRef<HTMLDivElement>(null)
   const titleId = useId()
   const token = useRef(Symbol('modal'))
@@ -130,7 +136,7 @@ export function Modal({ title, onClose, children, width = 'max-w-md' }: ModalPro
 
   return (
     <div
-      className="fixed inset-0 z-40 flex items-center justify-center bg-black/60 backdrop-blur-sm"
+      className="fixed inset-0 z-40 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm animate-fade-in"
       onMouseDown={onBackdropDown}
       onMouseUp={onBackdropUp}
     >
@@ -140,19 +146,19 @@ export function Modal({ title, onClose, children, width = 'max-w-md' }: ModalPro
         aria-modal="true"
         aria-labelledby={titleId}
         tabIndex={-1}
-        className={`bg-app-card border border-app-border rounded-xl shadow-2xl w-full mx-4 ${width} animate-fade-in outline-none`}
+        className={`w-full ${width} max-h-[85vh] flex flex-col bg-app-card rounded-2xl shadow-app-lg animate-scale-in outline-none`}
       >
-        <div className="flex items-center justify-between px-5 py-4 border-b border-app-border">
-          <h2 id={titleId} className="text-sm font-semibold text-app-text">{title}</h2>
-          <button
-            onClick={onClose}
-            aria-label="Close dialog"
-            className="text-app-muted hover:text-app-text transition-colors rounded focus:outline-none focus-visible:ring-2 focus-visible:ring-app-accent"
-          >
+        <div className="flex items-start gap-4 px-6 pt-5 pb-4 border-b border-app-line">
+          {icon}
+          <div className="flex-1 min-w-0 self-center">
+            <h2 id={titleId} className="text-base font-semibold text-app-text">{title}</h2>
+            {description && <p className="text-[13px] text-app-subtext mt-0.5">{description}</p>}
+          </div>
+          <Button variant="ghost" size="icon" onClick={onClose} aria-label="Close dialog" className="-mr-2 flex-shrink-0">
             <X size={16} />
-          </button>
+          </Button>
         </div>
-        <div className="p-5">{children}</div>
+        <div className="flex-1 overflow-y-auto px-6 py-5">{children}</div>
       </div>
     </div>
   )
@@ -160,42 +166,73 @@ export function Modal({ title, onClose, children, width = 'max-w-md' }: ModalPro
 
 interface InputProps extends InputHTMLAttributes<HTMLInputElement> {
   label?: string
+  hint?: ReactNode
 }
 
-export function Input({ label, ...props }: InputProps) {
+// The quick text field. Same look as <TextField> (inputs/TextField.tsx), which
+// adds error, sizes, adornments and clearing.
+export function Input({ label, hint, id, className, ...props }: InputProps) {
+  const autoId = useId()
+  const inputId = id ?? autoId
   return (
-    <div className="flex flex-col gap-1">
-      {label && <label className="text-xs text-app-subtext font-medium">{label}</label>}
-      <input
-        className="bg-app-surface border border-app-border rounded-lg px-3 py-2 text-sm text-app-text
-                   placeholder:text-app-muted focus:outline-none focus:border-app-accent transition-colors"
-        {...props}
-      />
-    </div>
+    <Field label={label} hint={hint} htmlFor={inputId}>
+      <input id={inputId} className={clsx(controlClasses(), sizeClasses.md, className)} {...props} />
+    </Field>
   )
 }
 
-type ButtonVariant = 'primary' | 'danger' | 'ghost' | 'success'
+// ── Button ──────────────────────────────────────────────────
+// primary    the one main action — solid accent
+// secondary  other actions — bordered, neutral
+// ghost      low-emphasis and toolbar actions — no border until hovered
+// success / danger  confirmations and destructive actions
+type ButtonVariant = 'primary' | 'secondary' | 'ghost' | 'success' | 'danger'
+type ButtonSize = 'sm' | 'md' | 'icon'
 
 interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
   variant?: ButtonVariant
+  size?: ButtonSize
   loading?: boolean
   children?: ReactNode
   className?: string
 }
 
-export function Button({ children, variant = 'primary', disabled, loading, className = '', ...props }: ButtonProps) {
-  const base = 'flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg text-sm font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed'
-  const variants: Record<ButtonVariant, string> = {
-    primary: 'bg-app-accent text-app-accentInk hover:bg-app-accentHover',
-    danger:  'bg-app-red/15 text-app-red border border-app-red/30 hover:bg-app-red/25',
-    ghost:   'border border-app-border text-app-subtext hover:text-app-text hover:border-app-accent/50',
-    success: 'bg-app-green/15 text-app-green border border-app-green/30 hover:bg-app-green/25',
-  }
+const buttonVariants: Record<ButtonVariant, string> = {
+  primary:   'bg-app-accent text-app-accentInk hover:bg-app-accentHover shadow-[inset_0_1px_0_rgb(255_255_255/0.16),0_1px_2px_rgb(0_0_0/0.2)]',
+  secondary: 'bg-app-text/[0.04] text-app-text border border-app-lineStrong shadow-app-sm hover:bg-app-text/[0.08]',
+  ghost:     'text-app-subtext hover:text-app-text hover:bg-app-text/[0.06]',
+  success:   'bg-app-green/10 text-app-green border border-app-green/25 hover:bg-app-green/15',
+  danger:    'bg-app-red/10 text-app-red border border-app-red/25 hover:bg-app-red/15',
+}
+
+const buttonSizes: Record<ButtonSize, string> = {
+  sm:   'h-8 px-3 text-xs',
+  md:   'h-9 px-4 text-[13px]',
+  icon: 'h-8 w-8',
+}
+
+// Shared keyboard focus ring: the contrast-safe accent, offset from the control.
+export const focusRing =
+  'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-app-accentBright focus-visible:ring-offset-2 focus-visible:ring-offset-app-bg'
+
+// Forwards its ref, so a Button can anchor a Popover or Dropdown directly.
+export const Button = forwardRef<HTMLButtonElement, ButtonProps>(function Button(
+  { children, variant = 'primary', size = 'md', disabled, loading, className, ...props },
+  ref,
+) {
   return (
-    <button className={`${base} ${variants[variant]} ${className}`} disabled={disabled || loading} {...props}>
+    <button
+      ref={ref}
+      className={clsx(
+        'inline-flex items-center justify-center gap-2 rounded-lg font-medium whitespace-nowrap',
+        'transition-[background-color,border-color,color] duration-150 disabled:opacity-50 disabled:cursor-not-allowed',
+        buttonSizes[size], buttonVariants[variant], focusRing, className,
+      )}
+      disabled={disabled || loading}
+      {...props}
+    >
       {loading && <span className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin" />}
       {children}
     </button>
   )
-}
+})

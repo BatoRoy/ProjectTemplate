@@ -42,7 +42,7 @@ export function FileDropzone({ onFiles, onPaths, accept, multiple = true, hint, 
       }}
       className={clsx(
         'flex flex-col items-center justify-center gap-2 py-8 px-6 rounded-xl border-2 border-dashed cursor-pointer text-center transition-colors',
-        over ? 'border-app-accent bg-app-accent/5' : 'border-app-border hover:border-app-accent/50',
+        over ? 'border-app-accentBright bg-app-accent/5' : 'border-app-control hover:border-app-accentBright',
         className,
       )}
     >

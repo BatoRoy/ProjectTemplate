@@ -58,8 +58,8 @@ export function OtpInput({ value, onChange, length = 6, numeric = true, onComple
           onChange={e => setChar(i, e.target.value.slice(-1))}
           onKeyDown={e => onKeyDown(i, e)}
           onPaste={onPaste}
-          className="w-10 h-11 text-center text-lg font-medium bg-app-surface border border-app-border rounded-lg
-                     text-app-text focus:outline-none focus:border-app-accent transition-colors"
+          className="w-10 h-11 text-center text-lg font-medium bg-app-bg/50 border border-app-control rounded-lg
+                     text-app-text focus:outline-none focus:border-app-accentBright focus:ring-4 focus:ring-app-accent/15 transition-[border-color,box-shadow]"
         />
       ))}
     </div>

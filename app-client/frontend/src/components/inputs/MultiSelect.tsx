@@ -76,8 +76,8 @@ export function MultiSelect<T extends string | number>({
               value={query}
               onChange={e => setQuery(e.target.value)}
               placeholder={searchPlaceholder}
-              className="w-full bg-app-surface border border-app-border rounded-md pl-8 pr-2 py-1.5 text-sm text-app-text
-                         placeholder:text-app-muted focus:outline-none focus:border-app-accent"
+              className="w-full bg-app-bg/50 border border-app-control rounded-md pl-8 pr-2 py-1.5 text-sm text-app-text
+                         placeholder:text-app-muted focus:outline-none focus:border-app-accentBright focus:ring-4 focus:ring-app-accent/15"
             />
           </div>
         </div>
@@ -92,14 +92,14 @@ export function MultiSelect<T extends string | number>({
                 disabled={opt.disabled}
                 onClick={() => toggle(opt)}
                 className={clsx(
-                  'w-full flex items-center gap-2.5 px-3 py-1.5 text-sm text-left transition-colors hover:bg-app-card',
+                  'w-full flex items-center gap-2.5 px-3 py-1.5 text-sm text-left transition-colors hover:bg-app-text/[0.06]',
                   opt.disabled && 'opacity-40 cursor-not-allowed',
                   isSel ? 'text-app-accentBright' : 'text-app-subtext',
                 )}
               >
                 <span className={clsx(
                   'w-4 h-4 rounded border flex items-center justify-center flex-shrink-0',
-                  isSel ? 'bg-app-accent border-app-accent text-app-accentInk' : 'border-app-border',
+                  isSel ? 'bg-app-accent border-app-accent text-app-accentInk' : 'border-app-control',
                 )}>
                   {isSel && <Check size={11} strokeWidth={3} />}
                 </span>

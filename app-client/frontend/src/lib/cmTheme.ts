@@ -24,6 +24,9 @@ export function buildCmTheme(isLight: boolean): Extension {
       lineHighlight: rgba('--app-border', 0.35),
       gutterBackground: rgb('--app-surface'),
       gutterForeground: rgb('--app-muted'),
+      // The current line's number sits on the lineHighlight tint, where muted
+      // text dips just under 4.5:1; subtext keeps it readable (and marks it).
+      gutterActiveForeground: rgb('--app-subtext'),
       gutterBorder: 'transparent',
     },
     styles: [
@@ -38,7 +41,7 @@ export function buildCmTheme(isLight: boolean): Extension {
       { tag: [t.propertyName, t.variableName], color: rgb('--app-text') },
       { tag: [t.punctuation, t.bracket, t.separator], color: rgb('--app-subtext') },
       { tag: [t.heading], color: rgb('--app-accent-bright') },
-      { tag: [t.link, t.url], color: rgb('--app-accent') },
+      { tag: [t.link, t.url], color: rgb('--app-accent-bright') },
     ],
   })
 }

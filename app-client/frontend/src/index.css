@@ -3,11 +3,25 @@
 @tailwind utilities;
 
 /* ─────────────────────────────────────────────────────────────
-   Theme tokens. Colors are space-separated RGB channels so Tailwind
-   can apply alpha: rgb(var(--app-card) / <alpha-value>) → bg-app-card/50.
-   Theme palettes are set here by [data-theme]; the accent trio
-   (--app-accent / -hover / -bright) is set at runtime by applyAccent()
-   in lib/theme.tsx (the values below are just a no-flash default).
+   Theme tokens (the "Hybrid" look). Colors are space-separated RGB channels
+   so Tailwind can apply alpha: rgb(var(--app-card) / <alpha-value>) →
+   bg-app-card/50. Palettes are set here per [data-theme].
+
+   applyAccent() in lib/theme.tsx rewrites some of these at runtime, inline
+   on <html>:
+     • the accent set (--app-accent / -hover / -bright / -ink), made
+       contrast-safe for the chosen accent — see the comment there;
+     • the neutrals (--app-bg … --app-muted), re-hued toward the accent at the
+       same lightness, so a warm accent gets warm grays. Its NEUTRALS table is
+       these values in OKLCH — change both together.
+   The literals below are the pre-JS defaults (and what jsdom tests see).
+
+   --app-raised is a step above a card: the selected chip of a segmented
+   control or tab bar, sitting on a card.
+
+   Contrast (WCAG AA), checked for every suite accent by `make check-contrast`:
+     text on bg/surface/card/raised ≥ 4.5:1, including --app-muted;
+     --app-control (input borders, switch/checkbox/radio edges) ≥ 3:1.
    ───────────────────────────────────────────────────────────── */
 
 :root {
@@ -24,55 +38,98 @@
   /* Tints every native control the UA paints for us (checkbox, radio,
      progress, Firefox range) with the app accent. */
   accent-color: rgb(var(--app-accent));
+
+  /* Max width of page content under App Options → Content width
+     "Comfortable". Pages use max-w-[var(--app-content-width)] so every page
+     shares one width; "Full width" drops the cap. */
+  --app-content-width: 56rem;
 }
 
-/* ── Dark theme (default) — lifted zinc ──────────────────────── */
+/* ── Dark theme (default) ───────────────────────────────────── */
 :root, [data-theme="dark"] {
   /* color-scheme is what stops native widgets — checkboxes, radios, selects,
      date pickers, scrollbars — from rendering with the browser's light-mode
      chrome (the classic white checkbox on a dark background). Every theme
      block below must declare it. */
   color-scheme: dark;
-  --app-bg:      22 22 25;
-  --app-surface: 29 29 33;
-  --app-card:    33 33 38;
-  --app-border:  54 54 60;
-  --app-text:    250 250 250;
+  --app-bg:      20 20 22;
+  --app-surface: 25 25 28;
+  --app-card:    29 29 33;
+  --app-raised:  36 36 41;
+  --app-border:  47 47 53;
+  --app-text:    244 244 245;
   --app-subtext: 161 161 170;
-  --app-muted:   113 113 122;
+  --app-muted:   143 144 154;
   --app-green:   52 211 153;
   --app-red:     248 113 113;
   --app-yellow:  251 191 36;
+
+  /* Boundary of interactive controls (input borders, switch track, checkbox
+     and radio edges): ≥ 3:1 against cards, unlike the decorative hairlines. */
+  --app-control: 106 106 116;
+
+  /* Hairlines between surfaces: translucent, so one value works on every
+     surface. Full "r g b / a" form — use as border-app-line (no /alpha). */
+  --app-line:        255 255 255 / 0.07;
+  --app-line-strong: 255 255 255 / 0.11;
+
+  --app-shadow-sm: 0 1px 2px rgb(0 0 0 / 0.35);
+  --app-shadow-md: 0 1px 2px rgb(0 0 0 / 0.3), 0 8px 24px -8px rgb(0 0 0 / 0.5),
+                   inset 0 1px 0 rgb(255 255 255 / 0.03);
+  --app-shadow-lg: 0 24px 64px -12px rgb(0 0 0 / 0.7), 0 0 0 1px rgb(255 255 255 / 0.06);
 }
 
 /* ── Dim theme (lifted one more step) ───────────────────────── */
 [data-theme="dim"] {
   color-scheme: dark;
-  --app-bg:      29 29 33;
-  --app-surface: 36 36 41;
-  --app-card:    40 40 46;
-  --app-border:  63 63 70;
-  --app-text:    250 250 250;
-  --app-subtext: 168 168 176;
-  --app-muted:   122 122 131;
+  --app-bg:      27 27 31;
+  --app-surface: 33 33 38;
+  --app-card:    38 38 44;
+  --app-raised:  44 45 51;
+  --app-border:  58 58 65;
+  --app-text:    244 244 245;
+  --app-subtext: 170 170 178;
+  --app-muted:   151 151 161;
   --app-green:   52 211 153;
-  --app-red:     248 113 113;
+  --app-red:     251 138 138;
   --app-yellow:  251 191 36;
+
+  --app-control: 117 117 127;
+
+  --app-line:        255 255 255 / 0.08;
+  --app-line-strong: 255 255 255 / 0.13;
+
+  --app-shadow-sm: 0 1px 2px rgb(0 0 0 / 0.35);
+  --app-shadow-md: 0 1px 2px rgb(0 0 0 / 0.25), 0 8px 24px -8px rgb(0 0 0 / 0.4),
+                   inset 0 1px 0 rgb(255 255 255 / 0.04);
+  --app-shadow-lg: 0 24px 64px -12px rgb(0 0 0 / 0.7), 0 0 0 1px rgb(255 255 255 / 0.06);
 }
 
-/* ── Light theme (zinc light scale) ─────────────────────────── */
+/* ── Light theme — soft gray, never pure white ──────────────── */
 [data-theme="light"] {
   color-scheme: light;
-  --app-bg:      250 250 250;
-  --app-surface: 255 255 255;
-  --app-card:    255 255 255;
-  --app-border:  228 228 231;
+  --app-bg:      223 223 225;
+  --app-surface: 233 233 235;
+  --app-card:    233 233 235;
+  --app-raised:  244 244 245;
+  --app-border:  204 204 207;
   --app-text:    24 24 27;
-  --app-subtext: 82 82 91;
-  --app-muted:   161 161 170;
-  --app-green:   5 150 105;
-  --app-red:     220 38 38;
-  --app-yellow:  217 119 6;
+  --app-subtext: 71 71 79;
+  --app-muted:   91 91 100;
+  /* Deeper than Tailwind's 600s: those fell to 2.4–3.5:1 as badge and
+     button text on this gray. */
+  --app-green:   3 102 68;
+  --app-red:     178 26 26;
+  --app-yellow:  124 80 0;
+
+  --app-control: 123 123 132;
+
+  --app-line:        0 0 0 / 0.07;
+  --app-line-strong: 0 0 0 / 0.12;
+
+  --app-shadow-sm: 0 1px 2px rgb(16 16 24 / 0.06);
+  --app-shadow-md: 0 1px 2px rgb(16 16 24 / 0.05), 0 4px 12px -4px rgb(16 16 24 / 0.06);
+  --app-shadow-lg: 0 24px 48px -12px rgb(16 16 24 / 0.2), 0 0 0 1px rgb(0 0 0 / 0.06);
 }
 
 * {
@@ -120,7 +177,9 @@ input[type='range'] {
   appearance: none;
   height: 4px;
   border-radius: 2px;
-  background: rgb(var(--app-border));
+  /* --app-control, not --app-border: the track is what shows the range, so it
+     is held to the 3:1 non-text contrast of other control boundaries. */
+  background: rgb(var(--app-control));
   outline: none;
   cursor: pointer;
   width: 100%;
@@ -136,6 +195,11 @@ input[type='range']::-webkit-slider-thumb {
 }
 input[type='range']::-webkit-slider-thumb:hover {
   transform: scale(1.2);
+}
+/* outline: none above removes the UA focus ring; put a token-colored one on
+   the thumb so keyboard users can still see which slider has focus. */
+input[type='range']:focus-visible::-webkit-slider-thumb {
+  box-shadow: 0 0 0 2px rgb(var(--app-bg)), 0 0 0 4px rgb(var(--app-accent-bright));
 }
 
 /* ── Native checkbox / radio ─────────────────────────────────
@@ -155,9 +219,10 @@ input[type='radio'] {
   width: 1rem;
   height: 1rem;
   margin: 0;
-  border: 1px solid rgb(var(--app-border));
+  border: 1px solid rgb(var(--app-control));
   background-color: rgb(var(--app-surface));
-  color: #fff;
+  /* The tick is drawn in currentColor on the accent fill. */
+  color: rgb(var(--app-accent-ink));
   cursor: pointer;
   transition: background-color 0.15s, border-color 0.15s;
 }
@@ -173,7 +238,7 @@ input[type='radio']:hover:not(:disabled) {
 }
 input[type='checkbox']:focus-visible,
 input[type='radio']:focus-visible {
-  outline: 2px solid rgb(var(--app-accent) / 0.5);
+  outline: 2px solid rgb(var(--app-accent-bright));
   outline-offset: 2px;
 }
 input[type='checkbox']:disabled,

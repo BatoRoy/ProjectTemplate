@@ -21,7 +21,7 @@ export function Collapsible({ title, children, defaultOpen = false, open, onOpen
     <div className="border border-app-border rounded-lg overflow-hidden">
       <button
         onClick={toggle}
-        className="w-full flex items-center justify-between px-4 py-3 text-sm font-medium text-app-text hover:bg-app-card/60 transition-colors"
+        className="w-full flex items-center justify-between px-4 py-3 text-sm font-medium text-app-text hover:bg-app-text/[0.06] transition-colors"
       >
         {title}
         <ChevronDown size={16} className={clsx('text-app-muted transition-transform', isOpen && 'rotate-180')} />

@@ -1,35 +1,43 @@
 import type { ReactNode, TextareaHTMLAttributes } from 'react'
 import { Check, Minus } from 'lucide-react'
 import clsx from 'clsx'
+import { focusRing } from './Modal'
+import { controlClasses } from './inputs/Field'
 
 // Form controls that complement <Input> / <Button> in Modal.tsx. All theme-aware
-// via the --app-* tokens.
+// via the --app-* tokens. Unselected edges and the switch's off track use
+// --app-control (≥ 3:1), so the control is findable before it's touched.
 
 // ── Switch ──────────────────────────────────────────────────
 interface SwitchProps {
   checked: boolean
   onChange: (checked: boolean) => void
   label?: ReactNode
+  /** Accessible name when there's no visible `label` (e.g. a settings row
+      that shows its label elsewhere). */
+  ariaLabel?: string
   disabled?: boolean
 }
 
-export function Switch({ checked, onChange, label, disabled }: SwitchProps) {
+export function Switch({ checked, onChange, label, ariaLabel, disabled }: SwitchProps) {
   return (
     <label className={clsx('flex items-center gap-2.5 select-none', disabled ? 'opacity-50' : 'cursor-pointer')}>
       <button
         type="button"
         role="switch"
         aria-checked={checked}
+        aria-label={label ? undefined : ariaLabel}
         disabled={disabled}
         onClick={() => onChange(!checked)}
         className={clsx(
-          'relative w-9 h-5 rounded-full transition-colors flex-shrink-0',
-          checked ? 'bg-app-accent' : 'bg-app-border',
+          'relative w-9 h-5 rounded-full transition-colors duration-200 flex-shrink-0',
+          checked ? 'bg-app-accent' : 'bg-app-control',
+          focusRing,
         )}
       >
         <span
           className={clsx(
-            'absolute top-0.5 left-0.5 w-4 h-4 rounded-full bg-white shadow transition-transform',
+            'absolute top-0.5 left-0.5 w-4 h-4 rounded-full bg-white shadow-[0_1px_3px_rgb(0_0_0/0.3)] transition-transform duration-200',
             checked && 'translate-x-4',
           )}
         />
@@ -66,10 +74,10 @@ export function Checkbox({ checked, onChange, label, disabled, indeterminate, cl
         onClick={() => onChange(!checked)}
         className={clsx(
           'w-4 h-4 rounded border flex items-center justify-center transition-colors flex-shrink-0',
-          'focus:outline-none focus-visible:ring-2 focus-visible:ring-app-accent/50 focus-visible:ring-offset-0',
+          focusRing,
           filled
             ? 'bg-app-accent border-app-accent text-app-accentInk'
-            : 'bg-app-surface border-app-border hover:border-app-accent/60',
+            : 'bg-app-bg/50 border-app-control hover:border-app-accentBright',
         )}
       >
         {indeterminate ? <Minus size={12} strokeWidth={3} /> : checked && <Check size={12} strokeWidth={3} />}
@@ -109,9 +117,9 @@ export function RadioGroup<T extends string | number>({ value, options, onChange
               disabled={disabled}
               onClick={() => onChange(opt.value)}
               className={clsx(
-                'w-4 h-4 rounded-full border bg-app-surface flex items-center justify-center transition-colors flex-shrink-0',
-                'focus:outline-none focus-visible:ring-2 focus-visible:ring-app-accent/50',
-                active ? 'border-app-accent' : 'border-app-border hover:border-app-accent/60',
+                'w-4 h-4 rounded-full border bg-app-bg/50 flex items-center justify-center transition-colors flex-shrink-0',
+                focusRing,
+                active ? 'border-app-accent' : 'border-app-control hover:border-app-accentBright',
               )}
             >
               {active && <span className="w-2 h-2 rounded-full bg-app-accent" />}
@@ -131,14 +139,9 @@ interface TextareaProps extends TextareaHTMLAttributes<HTMLTextAreaElement> {
 
 export function Textarea({ label, ...props }: TextareaProps) {
   return (
-    <div className="flex flex-col gap-1">
+    <div className="flex flex-col gap-1.5">
       {label && <label className="text-xs text-app-subtext font-medium">{label}</label>}
-      <textarea
-        className="bg-app-surface border border-app-border rounded-lg px-3 py-2 text-sm text-app-text
-                   placeholder:text-app-muted focus:outline-none focus:border-app-accent transition-colors
-                   resize-y min-h-[5rem]"
-        {...props}
-      />
+      <textarea className={clsx(controlClasses(), 'px-3 py-2 text-sm resize-y min-h-[5rem]')} {...props} />
     </div>
   )
 }

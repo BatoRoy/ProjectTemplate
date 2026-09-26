@@ -1,7 +1,7 @@
 .PHONY: all server client client-linux client-windows \
         publish-client stage-server publish-server check-desktop-manifest \
         dev-setup verify-electron dev-server dev-client \
-        docker deploy new-app lint test clean
+        docker deploy new-app lint test check-contrast clean
 
 VERSION := $(shell cat VERSION)
 
@@ -203,6 +203,22 @@ ifneq ($(HAS_ELECTRON),)
 	npm run test --prefix app-client/frontend
 endif
 	cd app-server && go test ./...
+
+# Measure text and control contrast in the rendered client, for every theme ×
+# accent: home, App Options and every Examples tab. Builds first. Fails on any
+# text under 4.5:1 or control edge under 3:1. `make test` covers the palette
+# maths quickly; this checks what actually renders. See tools/check-contrast.mjs.
+#   make check-contrast                  all suite accents + presets
+#   make check-contrast ACCENT=#eab308   one accent (your app's brand.ts)
+#   make check-contrast QUICK=1          four representative accents
+check-contrast:
+ifneq ($(HAS_ELECTRON),)
+	npm run build --prefix app-client/frontend
+	app-client/node_modules/.bin/electron tools/check-contrast.mjs \
+		$(if $(ACCENT),--accent '$(ACCENT)') $(if $(QUICK),--quick)
+else
+	@echo "check-contrast needs the Electron client (app-client/)."
+endif
 
 # ─── Cleanup ─────────────────────────────────────────────────────────────────
 

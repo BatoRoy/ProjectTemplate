@@ -7,46 +7,63 @@ import clsx from 'clsx'
 // ── Card ────────────────────────────────────────────────────
 interface CardProps {
   title?: ReactNode
-  children: ReactNode
+  children?: ReactNode
   className?: string
   /** Optional content rendered on the right of the title row. */
   action?: ReactNode
+  /** Small icon shown in a tile before the title, e.g. <Server size={14} />. */
+  icon?: ReactNode
 }
 
-export function Card({ title, children, action, className }: CardProps) {
+export function Card({ title, children, action, icon, className }: CardProps) {
   return (
-    <div className={clsx('bg-app-card border border-app-border rounded-xl p-5', className)}>
+    <section className={clsx('bg-app-card border border-app-line rounded-2xl shadow-app-md p-5', className)}>
       {(title || action) && (
-        <div className="flex items-center justify-between mb-3">
-          {title && <h3 className="text-xs font-semibold text-app-subtext uppercase tracking-wider">{title}</h3>}
+        <header className="flex items-center justify-between gap-3 mb-4">
+          <div className="flex items-center gap-2.5 min-w-0">
+            {icon && (
+              <span className="w-7 h-7 flex-shrink-0 rounded-lg bg-app-text/[0.05] text-app-subtext ring-1 ring-inset ring-app-line flex items-center justify-center">
+                {icon}
+              </span>
+            )}
+            {title && <h3 className="text-sm font-semibold text-app-text truncate">{title}</h3>}
+          </div>
           {action}
-        </div>
+        </header>
       )}
       {children}
-    </div>
+    </section>
   )
 }
 
 // ── Badge ───────────────────────────────────────────────────
 type BadgeTone = 'success' | 'error' | 'warning' | 'info' | 'neutral'
 
-const badgeTones: Record<BadgeTone, string> = {
-  success: 'bg-app-green/15 text-app-green',
-  error:   'bg-app-red/15 text-app-red',
-  warning: 'bg-app-yellow/15 text-app-yellow',
-  info:    'bg-app-accent/15 text-app-accentBright',
-  neutral: 'bg-app-border/40 text-app-subtext',
+// Tints are 10%: the status colors are contrast-checked as text on exactly
+// that (lib/palette.test.ts), so keep them in step if you change it.
+const badgeTones: Record<BadgeTone, { box: string; dot: string }> = {
+  success: { box: 'bg-app-green/10 text-app-green ring-app-green/25', dot: 'bg-app-green' },
+  error:   { box: 'bg-app-red/10 text-app-red ring-app-red/25', dot: 'bg-app-red' },
+  warning: { box: 'bg-app-yellow/10 text-app-yellow ring-app-yellow/25', dot: 'bg-app-yellow' },
+  info:    { box: 'bg-app-accent/10 text-app-accentBright ring-app-accent/25', dot: 'bg-app-accent' },
+  neutral: { box: 'bg-app-text/[0.05] text-app-subtext ring-app-lineStrong', dot: 'bg-app-muted' },
 }
 
 interface BadgeProps {
   children: ReactNode
   tone?: BadgeTone
+  /** Leading status dot, e.g. for Online / Offline. */
+  dot?: boolean
   className?: string
 }
 
-export function Badge({ children, tone = 'neutral', className }: BadgeProps) {
+export function Badge({ children, tone = 'neutral', dot, className }: BadgeProps) {
   return (
-    <span className={clsx('px-2.5 py-1 rounded-full text-xs font-medium', badgeTones[tone], className)}>
+    <span className={clsx(
+      'inline-flex items-center gap-1.5 h-6 px-2.5 rounded-full text-xs font-medium ring-1 ring-inset whitespace-nowrap',
+      badgeTones[tone].box, className,
+    )}>
+      {dot && <span className={clsx('w-1.5 h-1.5 rounded-full', badgeTones[tone].dot)} />}
       {children}
     </span>
   )
@@ -73,7 +90,7 @@ interface SkeletonProps {
 }
 
 export function Skeleton({ className }: SkeletonProps) {
-  return <div className={clsx('animate-pulse bg-app-border/40 rounded', className)} />
+  return <div className={clsx('animate-pulse bg-app-text/[0.07] rounded', className)} />
 }
 
 // ── EmptyState ──────────────────────────────────────────────
@@ -88,7 +105,7 @@ export function EmptyState({ icon: Icon, title, subtitle, action }: EmptyStatePr
   return (
     <div className="flex flex-col items-center justify-center text-center py-12 px-6">
       {Icon && (
-        <div className="mb-3 w-12 h-12 rounded-full bg-app-surface border border-app-border flex items-center justify-center">
+        <div className="mb-3 w-12 h-12 rounded-2xl bg-app-text/[0.05] ring-1 ring-inset ring-app-line flex items-center justify-center">
           <Icon size={22} className="text-app-muted" />
         </div>
       )}

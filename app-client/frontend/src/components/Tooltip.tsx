@@ -58,8 +58,8 @@ export function Tooltip({ content, children, side = 'top', delay = 400 }: Toolti
         <div
           ref={tipRef}
           role="tooltip"
-          className="fixed z-50 px-2 py-1 rounded-md bg-app-surface border border-app-border
-                     shadow-lg text-xs text-app-text whitespace-nowrap pointer-events-none animate-fade-in"
+          className="fixed z-50 px-2 py-1 rounded-md bg-app-card border border-app-lineStrong
+                     shadow-app-lg text-xs text-app-text whitespace-nowrap pointer-events-none animate-fade-in"
           style={{ left: coords.x, top: coords.y }}
         >
           {content}
@@ -67,5 +67,18 @@ export function Tooltip({ content, children, side = 'top', delay = 400 }: Toolti
         document.body,
       )}
     </>
+  )
+}
+
+// Tooltip for items in a collapsed sidebar. Tooltip wraps its child in an
+// inline-flex span that shrinks to fit, so inside a plain block a `w-full`
+// button ends up only as wide as its icon. Wrapping it in a flex column
+// stretches the span, and the button with it, to the full rail width —
+// whatever the parent's layout is.
+export function RailTip({ label, children }: { label: ReactNode; children: ReactNode }) {
+  return (
+    <div className="flex flex-col">
+      <Tooltip content={label} side="right">{children}</Tooltip>
+    </div>
   )
 }

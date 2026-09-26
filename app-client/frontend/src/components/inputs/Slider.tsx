@@ -62,7 +62,7 @@ export function Slider({ value, onChange, min = 0, max = 100, step = 1, disabled
       <div
         ref={trackRef}
         onPointerDown={disabled ? undefined : e => { onChange(valueAt(e.clientX)); drag(e) }}
-        className="relative w-full h-1.5 rounded-full bg-app-border cursor-pointer"
+        className="relative w-full h-1.5 rounded-full bg-app-control cursor-pointer"
       >
         <div className="absolute h-full rounded-full bg-app-accent" style={{ width: `${pct(value, min, max)}%` }} />
         {marks && Array.from({ length: Math.floor((max - min) / step) + 1 }, (_, i) => (

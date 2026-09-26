@@ -3,6 +3,7 @@ import type { ReactNode } from 'react'
 import clsx from 'clsx'
 import type { LucideIcon } from 'lucide-react'
 import { brand } from '../../brand'
+import { AppMark } from '../AppMark'
 
 /**
  * Opt in, and only if your app ships a PWA.
@@ -77,16 +78,15 @@ export function ResponsiveShell<T extends string>(props: ResponsiveShellProps<T>
 function Desktop<T extends string>({
   view, onNavigate, items, badges, maxWidth = 'max-w-6xl', children,
 }: ResponsiveShellProps<T>) {
-  const Logo = brand.icon
   return (
     <div className="flex h-[100dvh] bg-app-bg text-app-text">
-      <nav className="flex w-52 shrink-0 flex-col border-r border-app-border bg-app-surface">
-        <div className="flex items-center gap-2 px-4 py-4">
-          <Logo size={18} className="text-app-accentBright" />
+      <nav className="flex w-56 shrink-0 flex-col border-r border-app-line bg-app-bg">
+        <div className="flex h-16 items-center gap-3 px-4">
+          <AppMark />
           <span className="text-sm font-semibold">{brand.appName}</span>
         </div>
 
-        <div className="flex-1 space-y-0.5 px-2">
+        <div className="flex-1 space-y-1 px-3">
           {items.map(({ id, label, icon: Icon }) => {
             const active = view === id
             return (
@@ -94,10 +94,10 @@ function Desktop<T extends string>({
                 key={id}
                 onClick={() => onNavigate(id)}
                 className={clsx(
-                  'flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-sm transition-colors',
+                  'flex w-full items-center gap-2.5 rounded-lg px-3 h-9 text-[13px] transition-colors',
                   active
-                    ? 'bg-app-card font-medium text-app-text'
-                    : 'text-app-subtext hover:bg-app-card/60 hover:text-app-text',
+                    ? 'bg-app-text/[0.07] font-medium text-app-text'
+                    : 'text-app-subtext hover:bg-app-text/[0.06] hover:text-app-text',
                 )}
               >
                 <Icon size={16} strokeWidth={active ? 2.4 : 1.8} className={active ? 'text-app-accentBright' : undefined} />

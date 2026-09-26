@@ -26,11 +26,11 @@ interface DataTableProps<T> {
 const ACTION_TONES = {
   labeled: {
     accent:  'text-app-accentBright bg-app-accent/10 hover:bg-app-accent/20 border-app-accent/20',
-    default: 'text-app-subtext bg-app-card hover:bg-app-border/40 border-app-border',
+    default: 'text-app-subtext bg-app-text/[0.04] hover:bg-app-text/[0.08] border-app-lineStrong',
     danger:  'text-app-red bg-app-red/10 hover:bg-app-red/20 border-app-red/20',
   },
   icon: {
-    accent:  'text-app-accentBright hover:text-app-accent',
+    accent:  'text-app-accentBright hover:bg-app-accent/10',
     default: 'text-app-muted hover:text-app-text',
     danger:  'text-app-muted hover:text-app-red hover:bg-app-red/10',
   },
@@ -117,7 +117,7 @@ export function DataTable<T>({
             value={query}
             onChange={e => { setQuery(e.target.value); setPage(1) }}
             placeholder="Filter…"
-            className="w-full bg-app-surface border border-app-border rounded-lg pl-9 pr-3 py-2 text-sm text-app-text placeholder:text-app-muted focus:outline-none focus:border-app-accent"
+            className="w-full bg-app-bg/50 border border-app-control rounded-lg pl-9 pr-3 py-2 text-sm text-app-text placeholder:text-app-muted focus:outline-none focus:border-app-accentBright focus:ring-4 focus:ring-app-accent/15"
           />
         </div>
       )}
@@ -163,7 +163,7 @@ export function DataTable<T>({
                 <tr
                   key={key}
                   onClick={() => onRowClick?.(row)}
-                  className={clsx('group border-b border-app-border last:border-0 hover:bg-app-card/50 transition-colors', onRowClick && 'cursor-pointer')}
+                  className={clsx('group border-b border-app-border last:border-0 hover:bg-app-text/[0.06] transition-colors', onRowClick && 'cursor-pointer')}
                 >
                   {selectable && (
                     <td className="px-3 py-3" onClick={e => e.stopPropagation()}>

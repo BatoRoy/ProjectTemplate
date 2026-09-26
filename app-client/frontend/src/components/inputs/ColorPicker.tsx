@@ -110,7 +110,7 @@ export function ColorPicker({ value, onChange, presets = DEFAULT_PRESETS, label,
           <input
             value={value}
             onChange={e => { if (/^#[0-9a-fA-F]{0,6}$/.test(e.target.value)) onChange(e.target.value) }}
-            className="flex-1 min-w-0 bg-app-surface border border-app-border rounded-md px-2 py-1.5 text-sm mono-text text-app-text focus:outline-none focus:border-app-accent"
+            className="flex-1 min-w-0 bg-app-bg/50 border border-app-control rounded-md px-2 py-1.5 text-sm mono-text text-app-text focus:outline-none focus:border-app-accentBright focus:ring-4 focus:ring-app-accent/15"
           />
         </div>
 

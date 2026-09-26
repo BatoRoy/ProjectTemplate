@@ -51,7 +51,7 @@ export function Popover({
         ref={ref}
         className={clsx(
           'absolute animate-scale-in',
-          styled && 'bg-app-card border border-app-border rounded-lg shadow-2xl',
+          styled && 'bg-app-card border border-app-lineStrong rounded-xl shadow-app-lg',
           className,
         )}
         style={{ top: coords.y, left: coords.x, minWidth, pointerEvents: 'auto' }}

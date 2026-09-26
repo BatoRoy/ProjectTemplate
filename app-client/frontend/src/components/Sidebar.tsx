@@ -1,13 +1,13 @@
 import { useState } from 'react'
-import appIcon from '../assets/app-icon.svg'
-import { Home, LayoutGrid, Settings, Info, Download, RefreshCw, PanelLeftClose, PanelLeftOpen } from 'lucide-react'
+import { Home, LayoutGrid, Settings, Info, Download, RefreshCw, PanelLeftClose, PanelLeftOpen, Search } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
 import clsx from 'clsx'
 import { VERSION } from '../lib/version'
 import { brand, storageKey } from '../brand'
 import { useUpdateStatus } from '../hooks/useUpdateStatus'
-import { Tooltip } from './Tooltip'
-import { Progress } from './layout/Progress'
+import { RailTip } from './Tooltip'
+import { AppMark } from './AppMark'
+import { Button } from './Modal'
 
 interface NavItem {
   id: string
@@ -21,14 +21,18 @@ const NAV: NavItem[] = [
   { id: 'examples', label: 'Examples', icon: LayoutGrid },
 ]
 
+// 'Ctrl K' / '⌘K', matching what useHotkeys treats as `mod`.
+const MOD_K = navigator.platform.toUpperCase().includes('MAC') ? '⌘K' : 'Ctrl K'
+
 interface SidebarProps {
   view: string
   onNavigate: (view: string) => void
   onOpenOptions: () => void
   onOpenAbout: () => void
+  onOpenPalette: () => void
 }
 
-export function Sidebar({ view, onNavigate, onOpenOptions, onOpenAbout }: SidebarProps) {
+export function Sidebar({ view, onNavigate, onOpenOptions, onOpenAbout, onOpenPalette }: SidebarProps) {
   const { status: updateStatus, restart } = useUpdateStatus()
   const [collapsed, setCollapsed] = useState(() => localStorage.getItem(storageKey('sidebar-collapsed')) === '1')
 
@@ -40,45 +44,73 @@ export function Sidebar({ view, onNavigate, onOpenOptions, onOpenAbout }: Sideba
     })
   }
 
-  // A nav row; wrapped in a Tooltip when collapsed so labels are still discoverable.
-  const Row = ({ icon: Icon, label, active, onClick }: { icon: LucideIcon; label: string; active: boolean; onClick: () => void }) => {
-    const btn = (
+  // Collapsed items get a tooltip so labels stay discoverable. RailTip (not a
+  // bare Tooltip) keeps them full-width whatever their container's layout.
+  const withTip = (label: string, node: JSX.Element) =>
+    collapsed ? <RailTip label={label}>{node}</RailTip> : node
+
+  const Row = ({ icon: Icon, label, active, onClick }: { icon: LucideIcon; label: string; active?: boolean; onClick: () => void }) =>
+    withTip(label, (
       <button
         onClick={onClick}
+        aria-current={active ? 'page' : undefined}
         className={clsx(
-          'w-full flex items-center gap-2.5 rounded-lg text-sm transition-colors group',
-          collapsed ? 'justify-center px-0 py-2' : 'px-3 py-2',
-          active ? 'bg-app-accent/10 text-app-text font-medium' : 'text-app-muted hover:text-app-text hover:bg-app-card/60',
+          'w-full flex items-center gap-2.5 h-9 rounded-lg text-[13px] transition-colors',
+          'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-app-accentBright',
+          collapsed ? 'justify-center' : 'px-3',
+          active
+            ? 'bg-app-text/[0.07] text-app-text font-medium'
+            : 'text-app-subtext hover:text-app-text hover:bg-app-text/[0.05]',
         )}
       >
-        <Icon size={15} className={clsx('flex-shrink-0', active ? 'text-app-accentBright' : 'text-app-muted group-hover:text-app-subtext')} />
+        <Icon size={16} className={clsx('flex-shrink-0', active ? 'text-app-accentBright' : 'text-app-muted')} />
         {!collapsed && <span className="truncate">{label}</span>}
       </button>
-    )
-    return collapsed ? <Tooltip content={label} side="right">{btn}</Tooltip> : btn
-  }
+    ))
 
   return (
-    <aside className={clsx('flex-shrink-0 flex flex-col bg-app-bg border-r border-app-border transition-all duration-200', collapsed ? 'w-14' : 'w-52')}>
-      {/* Accent identity strip — quick visual cue for which app you're in. */}
-      <div className="h-0.5 flex-shrink-0 bg-gradient-to-r from-app-accent via-app-accentBright/70 to-transparent" />
-
-      {/* Header / logo */}
-      <div className={clsx('border-b border-app-border', collapsed ? 'px-2 py-4 flex justify-center' : 'px-5 py-5')}>
-        <div className="flex items-center gap-2.5">
-          <img src={appIcon} alt={brand.appName} className="w-7 h-7 rounded-lg shadow-sm flex-shrink-0" />
-          {!collapsed && (
-            <div className="min-w-0">
-              <h1 className="text-sm font-semibold text-app-text tracking-tight leading-none truncate">{brand.appName}</h1>
-              <p className="text-xs text-app-muted mt-1 leading-none">v{VERSION}</p>
-            </div>
-          )}
-        </div>
+    <aside className={clsx(
+      'bg-app-bg flex-shrink-0 flex flex-col border-r border-app-line transition-[width] duration-200',
+      collapsed ? 'w-16' : 'w-56',
+    )}>
+      {/* Header */}
+      <div className={clsx('h-16 flex items-center gap-3 flex-shrink-0', collapsed ? 'justify-center' : 'px-4')}>
+        <AppMark />
+        {!collapsed && (
+          <div className="min-w-0">
+            <h1 className="text-sm font-semibold leading-tight truncate">{brand.appName}</h1>
+            <p className="text-[11px] text-app-muted font-mono leading-tight mt-0.5">v{VERSION}</p>
+          </div>
+        )}
       </div>
 
-      {/* Nav — flex column so rows stack vertically even when collapsed (each
-          collapsed row is wrapped in a Tooltip's inline-flex span). */}
-      <nav className="flex-1 p-2 flex flex-col gap-0.5">
+      {/* Search → command palette */}
+      <div className="px-3 pb-3">
+        {withTip(`Search (${MOD_K})`, (
+          <button
+            onClick={onOpenPalette}
+            className={clsx(
+              'w-full h-8 flex items-center gap-2 rounded-lg bg-app-text/[0.03] border border-app-line text-[13px] text-app-muted',
+              'hover:text-app-subtext hover:bg-app-text/[0.06] transition-colors',
+              'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-app-accentBright',
+              collapsed ? 'justify-center' : 'px-2.5',
+            )}
+          >
+            <Search size={14} className="flex-shrink-0" />
+            {!collapsed && (
+              <>
+                <span className="flex-1 text-left">Search…</span>
+                <kbd className="inline-flex items-center h-5 px-1.5 rounded border border-app-lineStrong bg-app-text/[0.04] font-mono text-[10px] text-app-subtext">
+                  {MOD_K}
+                </kbd>
+              </>
+            )}
+          </button>
+        ))}
+      </div>
+
+      {/* Nav */}
+      <nav className="flex-1 px-3 flex flex-col gap-1">
         {NAV.map(item => (
           <Row key={item.id} icon={item.icon} label={item.label} active={view === item.id} onClick={() => onNavigate(item.id)} />
         ))}
@@ -86,63 +118,42 @@ export function Sidebar({ view, onNavigate, onOpenOptions, onOpenAbout }: Sideba
 
       {/* Update status — quiet while downloading, a clear action once ready. */}
       {updateStatus.phase === 'downloading' && (
-        <div className="px-2 pb-1">
-          {collapsed ? (
-            <Tooltip content={`Updating… ${updateStatus.percent}%`} side="right">
-              <div className="flex justify-center py-2"><Download size={15} className="text-app-muted animate-pulse" /></div>
-            </Tooltip>
+        <div className="px-3 pb-2">
+          {withTip(`Updating… ${updateStatus.percent}%`, collapsed ? (
+            <div className="flex justify-center py-2"><Download size={16} className="text-app-accentBright animate-pulse" /></div>
           ) : (
-            <div className="px-3 py-2">
-              <div className="flex items-center gap-2 text-xs text-app-muted mb-1.5">
-                <Download size={12} className="flex-shrink-0" />
-                <span className="truncate">Updating… {updateStatus.percent}%</span>
+            <div className="rounded-xl p-3 bg-app-text/[0.07]">
+              <p className="text-xs text-app-subtext mb-2 flex justify-between">
+                <span>Downloading update</span><span className="font-mono">{updateStatus.percent}%</span>
+              </p>
+              <div className="h-1 rounded-full bg-app-text/10 overflow-hidden">
+                <div className="h-full rounded-full bg-app-accent transition-[width]" style={{ width: `${updateStatus.percent}%` }} />
               </div>
-              <Progress value={updateStatus.percent} className="!h-1" />
+            </div>
+          ))}
+        </div>
+      )}
+      {updateStatus.phase === 'downloaded' && (
+        <div className="px-3 pb-2">
+          {collapsed ? withTip(`Restart to update to v${updateStatus.version}`, (
+            <Button size="icon" onClick={() => restart()} className="w-full"><RefreshCw size={14} /></Button>
+          )) : (
+            <div className="rounded-xl p-3 bg-app-text/[0.07]">
+              <p className="text-[13px] font-medium">v{updateStatus.version} is ready</p>
+              <p className="text-xs text-app-subtext mt-0.5">Restart to finish updating.</p>
+              <Button size="sm" className="w-full mt-2.5" onClick={() => restart()}>
+                <RefreshCw size={13} />Restart
+              </Button>
             </div>
           )}
         </div>
       )}
-      {updateStatus.phase === 'downloaded' && (
-        <div className="px-2 pb-1">
-          {(() => {
-            const btn = (
-              <button
-                onClick={() => restart()}
-                className={clsx(
-                  'w-full flex items-center gap-2.5 rounded-lg text-sm transition-colors',
-                  'bg-app-accent/10 text-app-accentBright hover:bg-app-accent/20 font-medium',
-                  collapsed ? 'justify-center px-0 py-2' : 'px-3 py-2',
-                )}
-              >
-                <RefreshCw size={15} className="flex-shrink-0" />
-                {!collapsed && <span className="truncate">Restart to update v{updateStatus.version}</span>}
-              </button>
-            )
-            return collapsed
-              ? <Tooltip content={`Restart to update v${updateStatus.version}`} side="right">{btn}</Tooltip>
-              : btn
-          })()}
-        </div>
-      )}
 
       {/* Footer */}
-      <div className="p-2 border-t border-app-border flex flex-col gap-0.5">
-        <Row icon={Info} label="About" active={false} onClick={onOpenAbout} />
-        <Row icon={Settings} label="App Options" active={false} onClick={onOpenOptions} />
-        <Tooltip content={collapsed ? 'Expand' : 'Collapse'} side={collapsed ? 'right' : 'top'}>
-          <button
-            onClick={toggle}
-            className={clsx(
-              'w-full flex items-center gap-2.5 rounded-lg text-sm text-app-muted hover:text-app-text hover:bg-app-card/60 transition-colors group',
-              collapsed ? 'justify-center px-0 py-2' : 'px-3 py-2',
-            )}
-          >
-            {collapsed
-              ? <PanelLeftOpen size={15} className="text-app-muted group-hover:text-app-subtext" />
-              : <PanelLeftClose size={15} className="text-app-muted group-hover:text-app-subtext" />}
-            {!collapsed && <span>Collapse</span>}
-          </button>
-        </Tooltip>
+      <div className="p-3 border-t border-app-line flex flex-col gap-1">
+        <Row icon={Info} label="About" onClick={onOpenAbout} />
+        <Row icon={Settings} label="App Options" onClick={onOpenOptions} />
+        <Row icon={collapsed ? PanelLeftOpen : PanelLeftClose} label={collapsed ? 'Expand' : 'Collapse'} onClick={toggle} />
       </div>
     </aside>
   )
