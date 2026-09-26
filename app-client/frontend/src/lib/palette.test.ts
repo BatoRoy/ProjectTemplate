@@ -3,7 +3,7 @@ import { readFileSync } from 'node:fs'
 import { resolve } from 'node:path'
 
 import {
-  NEUTRALS, NEUTRALS_BASE_HUE, contrast, parseHex, readableFill, readableText, neutralsFor, fromOklch, blend,
+  NEUTRALS, NEUTRALS_BASE_HUE, accentTextSurfaces, contrast, parseHex, readableFill, readableText, neutralsFor, fromOklch, blend,
 } from './theme'
 import { SUITE_ACCENTS } from '../test/suiteAccents'
 
@@ -74,15 +74,21 @@ describe('palette', () => {
     expect(failures).toEqual([])
   })
 
-  it.each(THEMES)('%s: status colors are ≥ 4.5:1 as text on cards and on their own 10%% tint', theme => {
+  // Status text (a danger button, a red Badge, an error line) lands on the bare
+  // page as often as on a card — and in light the page is darker than the card
+  // and accent-hued — so it is checked on page, surface and card, and on its own
+  // 10% tint over each of those.
+  it.each(THEMES)('%s: status colors are ≥ 4.5:1 as text on page, surface, card and their own tints (10 pct)', theme => {
     const failures: string[] = []
     for (const [app, hex] of accents) {
-      const card = neutralsFor(parseHex(hex), theme)!.card
+      const n = neutralsFor(parseHex(hex), theme)!
       for (const s of ['green', 'red', 'yellow']) {
         const c = cssColor(theme, s)
-        for (const [where, bg] of [['card', card], ['tint', blend(c, 0.1, card)]] as const) {
-          const r = contrast(c, bg)
-          if (r < 4.5) failures.push(`${app} ${s} on ${where}: ${r.toFixed(2)}`)
+        for (const base of ['bg', 'surface', 'card'] as const) {
+          for (const [where, bg] of [[base, n[base]], [`tint on ${base}`, blend(c, 0.1, n[base])]] as const) {
+            const r = contrast(c, bg)
+            if (r < 4.5) failures.push(`${app} ${s} on ${where}: ${r.toFixed(2)}`)
+          }
         }
       }
     }
@@ -99,16 +105,24 @@ describe('palette', () => {
     expect(failures).toEqual([])
   })
 
-  it.each(THEMES)('%s: accent text is ≥ 4.5:1 on the page, surfaces, cards and accent tints', theme => {
+  it.each(THEMES)('%s: accent text is ≥ 4.5:1 on page, surface, card and accent tints (10–20 pct) over each', theme => {
     const failures: string[] = []
     for (const [app, hex] of accents) {
       const accent = parseHex(hex)
       const n = neutralsFor(accent, theme)!
       const { fill } = readableFill(accent, isLight(theme))
-      const against = [n.bg, n.surface, n.card, blend(fill, 0.2, n.bg), blend(fill, 0.2, n.card), blend(n.text, 0.07, n.bg)]
-      const text = readableText(accent, isLight(theme), against)
-      const r = Math.min(...against.map(bg => contrast(text, bg)))
-      if (r < 4.5) failures.push(`${app} ${r.toFixed(2)}`)
+      const text = readableText(accent, isLight(theme), accentTextSurfaces(fill, n))
+      type Check = [string, ReturnType<typeof parseHex>]
+      const bases: Check[] = [['bg', n.bg], ['surface', n.surface], ['card', n.card]]
+      const checks: Check[] = [
+        ...bases,
+        ...bases.flatMap(([w, b]): Check[] => [[`10% tint on ${w}`, blend(fill, 0.1, b)], [`20% tint on ${w}`, blend(fill, 0.2, b)]]),
+        ['nav row', blend(n.text, 0.07, n.bg)],
+      ]
+      for (const [where, bg] of checks) {
+        const r = contrast(text, bg)
+        if (r < 4.5) failures.push(`${app} on ${where}: ${r.toFixed(2)}`)
+      }
     }
     expect(failures).toEqual([])
   })

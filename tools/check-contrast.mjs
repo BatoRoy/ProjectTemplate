@@ -18,14 +18,32 @@
 //   make check-contrast                  every suite accent + presets, all themes
 //   make check-contrast ACCENT=#eab308   one accent (e.g. your app's brand.ts)
 //   make check-contrast QUICK=1          four representative accents
+//   make check-contrast PRELOAD=stub.js  with a stub preload (path from the repo root)
+//   make check-contrast ALLOW_NETWORK=1  let the page reach the network
 //
-// Run directly:  app-client/node_modules/.bin/electron tools/check-contrast.mjs [--accent #hex] [--quick]
+// Run directly:  app-client/node_modules/.bin/electron tools/check-contrast.mjs \
+//                  [--accent #hex] [--quick] [--preload <file>] [--allow-network]
 //
-// Needs a display (it is a real Chromium); on a headless box use xvfb-run.
+//   --preload <file>   load <file> as the window's preload script (path relative
+//                      to the current directory). Point it at a stub preload that
+//                      exposes mock data on window.* the way the real preload
+//                      exposes its API, so the check audits populated pages rather
+//                      than empty states. Runs with contextIsolation and without
+//                      the sandbox, so the stub may require() its own fixture
+//                      files. A preload that throws stops the check (exit 2)
+//                      rather than auditing an empty app.
+//                      Via make: make check-contrast PRELOAD=path/to/stub.js
+//   --allow-network    let the page make outbound http(s)/ws(s) requests. By
+//                      default every one is cancelled, so a renderer that talks to
+//                      a backend (a LAN server, a public API) never reaches it
+//                      during the check; the count of blocked requests is printed.
+//
+// The window is offscreen and never shown. Needs a display to start Chromium;
+// on a headless box use xvfb-run.
 
 import { app, BrowserWindow } from 'electron'
 import { readFileSync, existsSync } from 'node:fs'
-import { dirname, join } from 'node:path'
+import { dirname, join, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
 const root = join(dirname(fileURLToPath(import.meta.url)), '..')
@@ -37,6 +55,9 @@ const args = process.argv.slice(2)
 const flag = name => { const i = args.indexOf(name); return i === -1 ? null : args[i + 1] ?? '' }
 const onlyAccent = flag('--accent')
 const quick = args.includes('--quick')
+const preloadArg = flag('--preload')
+const preload = preloadArg ? resolve(process.cwd(), preloadArg) : null
+const allowNetwork = args.includes('--allow-network')
 
 const read = p => readFileSync(join(frontend, p), 'utf8')
 const slug = read('src/brand.ts').match(/slug:\s*'([^']+)'/)?.[1]
@@ -142,7 +163,34 @@ async function main() {
     app.exit(2)
     return
   }
-  const win = new BrowserWindow({ width: 1280, height: 900, show: false, webPreferences: { offscreen: true } })
+  if (preloadArg !== null && !(preload && existsSync(preload))) {
+    console.error(`--preload: no such file ${preloadArg ? resolve(process.cwd(), preloadArg) : '(missing path)'}`)
+    app.exit(2)
+    return
+  }
+  const win = new BrowserWindow({
+    width: 1280, height: 900, show: false,
+    webPreferences: {
+      offscreen: true,
+      contextIsolation: true,
+      nodeIntegration: false,
+      ...(preload && { preload, sandbox: false }),
+    },
+  })
+  // A broken stub would silently audit the empty app instead; stop instead.
+  win.webContents.on('preload-error', (_e, path, err) => {
+    console.error(`--preload: ${path} failed: ${err?.stack ?? err}`)
+    app.exit(2)
+  })
+  // Keep the check self-contained: the built page loads from file://, so any
+  // http(s)/ws(s) request is the app reaching for a backend or the internet.
+  let blocked = 0
+  if (!allowNetwork) {
+    win.webContents.session.webRequest.onBeforeRequest(
+      { urls: ['http://*/*', 'https://*/*', 'ws://*/*', 'wss://*/*'] },
+      (_details, callback) => { blocked++; callback({ cancel: true }) },
+    )
+  }
   const js = code => win.webContents.executeJavaScript(code)
   const click = async (selector, text) => {
     const ok = await js(`(() => {
@@ -199,6 +247,8 @@ async function main() {
     byIssue.set(key, e)
   }
   console.log(`\n${checks} checks, ${failures} failures across ${themes.length} themes × ${accents.length} accents.`)
+  if (preload) console.log(`Preload: ${preload}`)
+  console.log(allowNetwork ? 'Network: allowed (--allow-network).' : `Network: blocked (${blocked} outbound request${blocked === 1 ? '' : 's'} cancelled).`)
   for (const [key, e] of byIssue) {
     console.log(`  FAIL ${key}: worst ${e.ratio}:1 (need ${e.need}) — ${e.where.slice(0, 4).join('; ')}${e.where.length > 4 ? ` … +${e.where.length - 4}` : ''}`)
     console.log(`       ${e.hint}`)

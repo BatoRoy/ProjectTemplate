@@ -232,3 +232,35 @@ Hybrid port — <App>
 [ ] visual pass: dark / dim / light
 [ ] .template SHA updated, version bumped
 ```
+
+---
+
+## Lessons from the suite port
+
+What the first round of ports (26 apps) ran into, so the next one doesn't:
+
+- **Overlays inside a `space-y-*` wrapper.** `space-y-*` puts a top margin on every
+  child after the first — including a `fixed` dialog backdrop rendered inside the page,
+  which then leaves an undimmed strip above the dialog. Give page wrappers
+  `flex flex-col gap-*` instead (batodisplay, BatoStore).
+- **Status text on the bare page.** Red / yellow / green and `accentBright` text are now
+  guaranteed on the page background too, bare and on their own 10% tint (the light red
+  was deepened slightly for it — take the new `index.css` literal). Badges and status
+  pills still read best on a card; the `/15` hover wash of a danger button sitting on the
+  light page is outside the guarantee.
+- **The app's own icon.** Keeping the app's icon file in the sidebar header is fine —
+  `<img src={icon} className="w-8 h-8 rounded-[9px]" />` — while About and App Options
+  use `AppMark`.
+- **Apps older than `brand.ts`.** Add `src/brand.ts`, move settings to `storageKey()`
+  keys, and keep reading the old bare keys as a fallback so nobody loses their theme or
+  layout: `localStorage.getItem(storageKey('theme')) ?? localStorage.getItem('theme')`
+  (BatoFile, BatoMusicController, TheWatcher, NotEnoughMods).
+- **Audit populated pages, offline.** An empty state hides most of an app's text. Write a
+  small stub preload that exposes mock data on `window.*` the way the real preload
+  exposes its API, and run `make check-contrast PRELOAD=path/to/stub.js`. The check
+  cancels outbound network requests by default so it never calls a real (LAN) backend;
+  leave it that way.
+- **Page widths.** Per-page `max-w-*` becomes `max-w-[var(--app-content-width)]`, except
+  full-bleed tool views (editors, canvases, split panes) and multi-column dashboards,
+  which may keep a wider cap (BatoHealth kept `max-w-[72rem]`, BatoMoney's Overview
+  `max-w-6xl`). Say so in the port's report when you deviate.

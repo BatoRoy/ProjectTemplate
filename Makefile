@@ -211,11 +211,17 @@ endif
 #   make check-contrast                  all suite accents + presets
 #   make check-contrast ACCENT=#eab308   one accent (your app's brand.ts)
 #   make check-contrast QUICK=1          four representative accents
+#   make check-contrast PRELOAD=f.js     load a stub preload (mock data) so the
+#                                        check audits populated pages
+#   make check-contrast ALLOW_NETWORK=1  let the page reach the network (blocked
+#                                        by default so no real backend is called)
+# The window is offscreen: nothing is shown.
 check-contrast:
 ifneq ($(HAS_ELECTRON),)
 	npm run build --prefix app-client/frontend
 	app-client/node_modules/.bin/electron tools/check-contrast.mjs \
-		$(if $(ACCENT),--accent '$(ACCENT)') $(if $(QUICK),--quick)
+		$(if $(ACCENT),--accent '$(ACCENT)') $(if $(QUICK),--quick) \
+		$(if $(PRELOAD),--preload '$(PRELOAD)') $(if $(ALLOW_NETWORK),--allow-network)
 else
 	@echo "check-contrast needs the Electron client (app-client/)."
 endif

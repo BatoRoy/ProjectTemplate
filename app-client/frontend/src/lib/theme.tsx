@@ -266,6 +266,19 @@ function readNeutrals(): Record<NeutralToken, RGB> {
   return out
 }
 
+// Everything --app-accent-bright is read on: the page, surfaces and cards; the
+// accent/10–20 tints over each of them (selected rows, active tabs, info
+// badges, count pills — which sit on the bare page as often as on a card); and
+// the active nav row.
+function accentTextSurfaces(fill: RGB, n: Record<NeutralToken, RGB>): RGB[] {
+  const bases = [n.bg, n.surface, n.card]
+  return [
+    ...bases,
+    ...bases.flatMap(b => [blend(fill, 0.1, b), blend(fill, 0.2, b)]),
+    blend(n.text, 0.07, n.bg),
+  ]
+}
+
 /**
  * Derive every accent-dependent token for `hex` on theme `themeId` and write
  * it inline on <html>: the accent-matched neutrals, then the contrast-safe
@@ -284,13 +297,7 @@ function applyAccent(hex: string, themeId: string): void {
   const n = hued ?? readNeutrals()
 
   const { fill, hover, ink } = readableFill(accent, isLight)
-  const bright = readableText(accent, isLight, [
-    n.bg, n.surface, n.card,
-    // selected rows, active tabs, info badges: accent/10–20 tints
-    blend(fill, 0.2, n.bg), blend(fill, 0.2, n.card),
-    // active nav row
-    blend(n.text, 0.07, n.bg),
-  ])
+  const bright = readableText(accent, isLight, accentTextSurfaces(fill, n))
   root.style.setProperty('--app-accent', channels(fill))
   root.style.setProperty('--app-accent-hover', channels(hover))
   root.style.setProperty('--app-accent-bright', channels(bright))
@@ -321,7 +328,7 @@ export function inkOn(color: string): string {
   return `rgb(${channels(inkFor(c, c))})`
 }
 
-export { contrast, inkFor, parseHex, mixWhite, mixBlack, readableFill, readableText, neutralsFor, fromOklch, blend }
+export { accentTextSurfaces, contrast, inkFor, parseHex, mixWhite, mixBlack, readableFill, readableText, neutralsFor, fromOklch, blend }
 
 // Toggles global text selection (see [data-select="on"] body in index.css).
 function applyTextSelect(enabled: boolean): void {

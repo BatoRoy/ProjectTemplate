@@ -45,6 +45,9 @@ export function PanelGroup({ children, direction = 'horizontal', storageKey, cla
     return specified.map(s => s ?? each)
   })
 
+  // Index of the handle being dragged, for its active color.
+  const [dragging, setDragging] = useState<number | null>(null)
+
   const commit = (next: number[]) => {
     setSizes(next)
     if (storageKey) localStorage.setItem(storageKey, JSON.stringify(next))
@@ -71,7 +74,12 @@ export function PanelGroup({ children, direction = 'horizontal', storageKey, cla
       next[i + 1] = start[i + 1] - delta
       commit(next)
     }
-    const up = () => { window.removeEventListener('pointermove', move); window.removeEventListener('pointerup', up) }
+    const up = () => {
+      setDragging(null)
+      window.removeEventListener('pointermove', move)
+      window.removeEventListener('pointerup', up)
+    }
+    setDragging(i)
     window.addEventListener('pointermove', move)
     window.addEventListener('pointerup', up)
   }
@@ -84,10 +92,20 @@ export function PanelGroup({ children, direction = 'horizontal', storageKey, cla
             {panel}
           </div>
           {i < n - 1 && (
+            // A 1px hairline in the layout; the grab area is a wider invisible
+            // strip centred on it, overlaid on the neighbours so it takes no space.
             <div
+              role="separator"
+              aria-orientation={horizontal ? 'vertical' : 'horizontal'}
               onPointerDown={startDrag(i)}
-              className={clsx('flex-shrink-0 bg-app-border hover:bg-app-accent transition-colors', horizontal ? 'w-1 cursor-col-resize' : 'h-1 cursor-row-resize')}
-            />
+              className={clsx(
+                'relative z-10 flex-shrink-0 touch-none transition-colors',
+                horizontal ? 'w-px cursor-col-resize' : 'h-px cursor-row-resize',
+                dragging === i ? 'bg-app-accentBright' : 'bg-app-line hover:bg-app-lineStrong',
+              )}
+            >
+              <div className={clsx('absolute', horizontal ? 'inset-y-0 -inset-x-1' : 'inset-x-0 -inset-y-1')} />
+            </div>
           )}
         </Fragment>
       ))}

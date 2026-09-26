@@ -171,13 +171,22 @@ The palette, component styles and contrast rules are one system:
   (an event color, a chart series) use `readableTextFor()`, and `inkOn()` for text on a solid
   color you supply — both in `lib/theme.tsx`.
 - **`make test`** includes `lib/palette.test.ts`, which checks the palette maths for every
-  suite accent on every theme: text ≥ 4.5:1 on page, surfaces, cards and accent tints; ink on
-  the accent ≥ 4.5:1; status colors readable on their badges; `--app-control` ≥ 3:1.
+  suite accent on every theme: text ≥ 4.5:1 on page, surfaces and cards; ink on the accent
+  ≥ 4.5:1; `--app-control` ≥ 3:1; and status text (`text-app-red` / `-yellow` / `-green`) and
+  `text-app-accentBright` ≥ 4.5:1 on the bare page, surfaces and cards **and** on a 10% tint of
+  their own color over each of those (accent text also on a 20% tint) — so a danger button,
+  a red badge or an accent count pill reads whether it sits on a card or directly on the page.
+  Stronger tints are not covered: the danger button's `/15` hover wash drops red to about
+  4.2:1 over the light page, and a status color on a `/20` fill is outside the guarantee.
 - **`make check-contrast`** checks what actually renders: it builds the client, opens it in
   Electron and, for every theme × accent, measures every visible text node and every resting
   control edge on the home page, App Options and each Examples tab. `ACCENT=#hex` checks one
   accent (your app's), `QUICK=1` four representative ones. Failures print the ratio, where,
   and an element hint. Add your own pages to it in `tools/check-contrast.mjs`.
+  `PRELOAD=path/to/stub.js` loads a stub preload that exposes mock data the way the real
+  preload exposes its API, so the check audits populated pages rather than empty states.
+  The window is offscreen and every outbound http(s)/ws(s) request is cancelled, so the
+  check never reaches a real backend; `ALLOW_NETWORK=1` lifts that.
 
 Porting this look into an app created from an older template is covered step by step in
 **[STYLE-MIGRATION.md](STYLE-MIGRATION.md)**.

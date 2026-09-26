@@ -21,6 +21,8 @@
 
    Contrast (WCAG AA), checked for every suite accent by `make check-contrast`:
      text on bg/surface/card/raised ≥ 4.5:1, including --app-muted;
+     status (green/red/yellow) and accent-bright text ≥ 4.5:1 on bg, surface
+     and card and on their own 10% tint over each (palette.test.ts);
      --app-control (input borders, switch/checkbox/radio edges) ≥ 3:1.
    ───────────────────────────────────────────────────────────── */
 
@@ -117,9 +119,10 @@
   --app-subtext: 71 71 79;
   --app-muted:   91 91 100;
   /* Deeper than Tailwind's 600s: those fell to 2.4–3.5:1 as badge and
-     button text on this gray. */
+     button text on this gray. Checked on the page (darker than a card here,
+     and accent-hued) as well as on cards, bare and under their own 10% tint. */
   --app-green:   3 102 68;
-  --app-red:     178 26 26;
+  --app-red:     174 25 25;
   --app-yellow:  124 80 0;
 
   --app-control: 123 123 132;
