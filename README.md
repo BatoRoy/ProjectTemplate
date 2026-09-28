@@ -386,6 +386,19 @@ against the exact template state you started from (see "Porting template improve
 2. Icons: replace `app-client/build/appicon.png` and `app-client/build/windows/icon.ico`.
 3. Add your remote and push: `git remote add origin <your-repo-url> && git push -u origin main`.
 
+### Optional: a test environment
+
+New apps are production-only. To get a test copy (own hostname, volumes and
+secrets) that you can promote from, add to `app-server/bato.json` → `deploy`:
+
+```json
+"environments": { "test": { "inherit": ["BATO_AUTH_URL", "BATO_AUTH_PUBLIC_URL"] } }
+```
+
+Then `make deploy-test`, check `https://<slug>-test.bato.lan`, and `make promote`
+ships the very same image to production. See the bato skill's
+`references/deploy.md` and `references/bato-json.md`.
+
 ## Porting template improvements into your app
 
 There is no automatic update mechanism — apps don't share git history with the template.

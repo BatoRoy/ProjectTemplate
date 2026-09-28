@@ -314,4 +314,10 @@ Deploying the server (see README → "Deploying the server as a container"):
   • Hostname stamped as $SLUG.bato.lan; change it in app-server/bato.json if
     you want a shorter one. Wildcard DNS + cert already cover it
   • bato secrets set $SLUG-server BATO_AUTH_URL=…   then:  make deploy
+
+Mirroring to the local Forgejo (git.bato.lan — bato/docs/todo/LOCAL-GIT-HOST.md):
+  • Once this repo has its GitHub origin, run
+      /home/batoroy/Code/BatoApps/bato/scripts/git-dual-remote.sh $DEST
+    so every `git push` lands on both hosts. gitsync imports the repo on its
+    next scan either way; the script just makes your pushes instant on both
 SUMMARY
