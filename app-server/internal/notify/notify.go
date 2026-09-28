@@ -55,14 +55,20 @@ const (
 	Critical = "critical"
 )
 
-// ErrQueueFull is returned by Send when the queue is full and the event was
-// dropped. Callers may ignore it; it is logged either way.
-var ErrQueueFull = errors.New("notify: queue full, event dropped")
+// State values; they pair with Key.
+const (
+	Firing   = "firing"
+	Resolved = "resolved"
+)
+
+// MaxTitle is the hub's title limit; longer titles are truncated here rather
+// than rejected there.
+const MaxTitle = 120
 
 // QueueSize bounds memory if the hub is unreachable for a long time.
 const QueueSize = 100
 
-// Client is safe for concurrent use. The zero value is not usable; use New.
+// Client is safe for concurrent use. A nil *Client is valid and does nothing.
 type Client struct {
 	base  string
 	token string
@@ -135,39 +141,43 @@ func (c *Client) logf(format string, args ...any) {
 	}
 }
 
-// Send queues an event and returns immediately. ctx is only consulted for
-// cancellation before queueing; delivery outlives the caller's request.
-func (c *Client) Send(ctx context.Context, e Event) error {
+// Send queues an event and returns immediately; delivery is asynchronous by
+// design and outlives the caller's request, so ctx is not used for it. A
+// title over MaxTitle characters is truncated with "…".
+func (c *Client) Send(ctx context.Context, e Event) {
+	_ = ctx
 	if c.disabled() {
-		return nil
+		return
 	}
-	if ctx != nil && ctx.Err() != nil {
-		return ctx.Err()
+	if r := []rune(e.Title); len(r) > MaxTitle {
+		e.Title = string(r[:MaxTitle-1]) + "…"
 	}
-	return c.enqueue(job{method: http.MethodPost, path: "/api/v1/events", body: e})
+	c.enqueue(job{method: http.MethodPost, path: "/api/v1/events", body: e})
 }
 
 // Resolve is shorthand for sending state "resolved" for key.
-func (c *Client) Resolve(ctx context.Context, key, title string) error {
-	return c.Send(ctx, Event{Title: title, Key: key, State: "resolved"})
+func (c *Client) Resolve(ctx context.Context, key, title string) {
+	c.Send(ctx, Event{Title: title, Key: key, State: Resolved})
 }
 
-func (c *Client) enqueue(j job) error {
+// enqueue reports whether the job was queued (false: closed or full; logged).
+func (c *Client) enqueue(j job) bool {
 	c.start.Do(func() { go c.run() })
 	c.mu.Lock()
 	defer c.mu.Unlock()
 	if c.isClosed {
-		return errors.New("notify: client closed")
+		c.logf("notify: dropped after Close: %s %s", j.method, j.path)
+		return false
 	}
 	select {
 	case c.queue <- j:
-		return nil
+		return true
 	default:
 		c.dropped++
 		if c.dropped == 1 || c.dropped%50 == 0 {
 			c.logf("notify: queue full, dropped %d event(s) so far (hub unreachable?)", c.dropped)
 		}
-		return ErrQueueFull
+		return false
 	}
 }
 
@@ -231,9 +241,9 @@ func (c *Client) try(j job) error {
 
 // Close stops accepting events and waits (up to ctx) for the queue to drain,
 // retries included. Call it on shutdown so a final "stopping" event gets out.
-func (c *Client) Close(ctx context.Context) error {
+func (c *Client) Close(ctx context.Context) {
 	if !c.Enabled() {
-		return nil
+		return
 	}
 	c.start.Do(func() { go c.run() })
 	c.mu.Lock()
@@ -244,9 +254,7 @@ func (c *Client) Close(ctx context.Context) error {
 	c.mu.Unlock()
 	select {
 	case <-c.done:
-		return nil
 	case <-ctx.Done():
-		return ctx.Err()
 	}
 }
 
@@ -261,18 +269,34 @@ type Heartbeat struct {
 func (c *Client) Heartbeat(name string) *Heartbeat { return &Heartbeat{c: c, name: name} }
 
 // Declare sets the expected interval and grace. Idempotent; call it at startup.
-func (h *Heartbeat) Declare(every, grace time.Duration) error {
+func (h *Heartbeat) Declare(every, grace time.Duration) {
 	if h.c.disabled() {
-		return nil
+		return
 	}
-	return h.c.enqueue(job{method: http.MethodPut, path: "/api/v1/heartbeats/" + url.PathEscape(h.name),
-		body: map[string]string{"every": every.String(), "grace": grace.String()}})
+	h.c.enqueue(job{method: http.MethodPut, path: "/api/v1/heartbeats/" + url.PathEscape(h.name),
+		body: map[string]string{"every": Duration(every), "grace": Duration(grace)}})
 }
 
 // Ping records a successful run.
-func (h *Heartbeat) Ping() error {
+func (h *Heartbeat) Ping() {
 	if h.c.disabled() {
-		return nil
+		return
 	}
-	return h.c.enqueue(job{method: http.MethodPost, path: "/api/v1/heartbeats/" + url.PathEscape(h.name)})
+	h.c.enqueue(job{method: http.MethodPost, path: "/api/v1/heartbeats/" + url.PathEscape(h.name)})
+}
+
+// Duration formats d the way the hub's API writes durations: "5m", "24h",
+// "90s" — never Go's "5m0s" (which the hub also accepts, but reads badly in
+// its UI and logs).
+func Duration(d time.Duration) string {
+	switch {
+	case d <= 0:
+		return "0s"
+	case d%time.Hour == 0:
+		return fmt.Sprintf("%dh", d/time.Hour)
+	case d%time.Minute == 0:
+		return fmt.Sprintf("%dm", d/time.Minute)
+	default:
+		return fmt.Sprintf("%ds", (d+time.Second-1)/time.Second)
+	}
 }

@@ -44,12 +44,8 @@ func quiet(c *Client) *Client {
 func TestSendDeliversWithToken(t *testing.T) {
 	srv, hits := fakeHub(t, func(int) int { return 202 })
 	c := quiet(New(srv.URL+"/", "bnt_x"))
-	if err := c.Send(context.Background(), Event{Title: "hi", Severity: Error, Key: "k"}); err != nil {
-		t.Fatal(err)
-	}
-	if err := c.Close(context.Background()); err != nil {
-		t.Fatal(err)
-	}
+	c.Send(context.Background(), Event{Title: "hi", Severity: Error, Key: "k"})
+	c.Close(context.Background())
 	h := hits()
 	if len(h) != 1 || h[0].path != "/api/v1/events" || h[0].auth != "Bearer bnt_x" || h[0].body["title"] != "hi" || h[0].body["severity"] != "error" {
 		t.Fatalf("%+v", h)
@@ -84,9 +80,7 @@ func TestNoURLIsANoOpWithOneWarning(t *testing.T) {
 	c := New("", "")
 	c.Logf = func(f string, a ...any) { warnings = append(warnings, f) }
 	for i := 0; i < 3; i++ {
-		if err := c.Send(context.Background(), Event{Title: "x"}); err != nil {
-			t.Fatal(err)
-		}
+		c.Send(context.Background(), Event{Title: "x"})
 	}
 	c.Heartbeat("x").Ping()
 	if len(warnings) != 1 || !strings.Contains(warnings[0], "BATO_NOTIFY_URL") {
@@ -96,6 +90,11 @@ func TestNoURLIsANoOpWithOneWarning(t *testing.T) {
 	if nilClient.Enabled() {
 		t.Fatal("nil client enabled")
 	}
+	// A nil client is valid everywhere.
+	nilClient.Send(context.Background(), Event{Title: "x"})
+	nilClient.Heartbeat("x").Declare(time.Minute, time.Minute)
+	nilClient.Heartbeat("x").Ping()
+	nilClient.Close(context.Background())
 }
 
 func TestSendNeverBlocks(t *testing.T) {
@@ -104,18 +103,26 @@ func TestSendNeverBlocks(t *testing.T) {
 	defer srv.Close()
 	defer close(block)
 	c := quiet(New(srv.URL, "bnt_x"))
+	var logs []string
+	var mu sync.Mutex
+	c.Logf = func(f string, a ...any) { mu.Lock(); logs = append(logs, f); mu.Unlock() }
 	start := time.Now()
-	var full int
 	for i := 0; i < QueueSize+20; i++ {
-		if c.Send(context.Background(), Event{Title: "x"}) == ErrQueueFull {
-			full++
-		}
+		c.Send(context.Background(), Event{Title: "x"})
 	}
 	if time.Since(start) > time.Second {
 		t.Fatal("Send blocked")
 	}
-	if full == 0 {
-		t.Fatal("a bounded queue should have dropped something")
+	mu.Lock()
+	defer mu.Unlock()
+	dropped := false
+	for _, l := range logs {
+		if strings.Contains(l, "queue full") {
+			dropped = true
+		}
+	}
+	if !dropped {
+		t.Fatal("a bounded queue should have dropped (and logged) something")
 	}
 }
 
@@ -127,7 +134,7 @@ func TestHeartbeat(t *testing.T) {
 	hb.Ping()
 	c.Close(context.Background())
 	h := hits()
-	if len(h) != 2 || h[0].method != "PUT" || h[0].path != "/api/v1/heartbeats/nightly backup" || h[0].body["every"] != "24h0m0s" || h[1].method != "POST" {
+	if len(h) != 2 || h[0].method != "PUT" || h[0].path != "/api/v1/heartbeats/nightly backup" || h[0].body["every"] != "24h" || h[0].body["grace"] != "2h" || h[1].method != "POST" {
 		t.Fatalf("%+v", h)
 	}
 }
@@ -138,5 +145,26 @@ func TestFromEnv(t *testing.T) {
 	c := FromEnv()
 	if !c.Enabled() || c.base != "http://hub" || c.token != "bnt_y" {
 		t.Fatalf("%+v", c)
+	}
+}
+
+func TestTitleTruncatedNotRejected(t *testing.T) {
+	srv, hits := fakeHub(t, func(int) int { return 202 })
+	c := quiet(New(srv.URL, "bnt_x"))
+	c.Send(context.Background(), Event{Title: strings.Repeat("é", 200)})
+	c.Close(context.Background())
+	title := hits()[0].body["title"].(string)
+	if n := len([]rune(title)); n != MaxTitle || !strings.HasSuffix(title, "…") {
+		t.Fatalf("title has %d runes: %q", n, title)
+	}
+}
+
+func TestDuration(t *testing.T) {
+	for d, want := range map[time.Duration]string{
+		24 * time.Hour: "24h", 5 * time.Minute: "5m", 90 * time.Second: "90s", 90 * time.Minute: "90m", 0: "0s",
+	} {
+		if got := Duration(d); got != want {
+			t.Errorf("%v → %q, want %q", d, got, want)
+		}
 	}
 }
