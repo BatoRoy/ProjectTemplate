@@ -318,6 +318,6 @@ Deploying the server (see README → "Deploying the server as a container"):
 Mirroring to the local Forgejo (git.bato.lan — bato/docs/todo/LOCAL-GIT-HOST.md):
   • Once this repo has its GitHub origin, run
       /home/batoroy/Code/BatoApps/bato/scripts/git-dual-remote.sh $DEST
-    so every `git push` lands on both hosts. gitsync imports the repo on its
+    so every \`git push\` lands on both hosts. gitsync imports the repo on its
     next scan either way; the script just makes your pushes instant on both
 SUMMARY

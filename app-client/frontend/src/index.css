@@ -205,6 +205,22 @@ input[type='range']:focus-visible::-webkit-slider-thumb {
   box-shadow: 0 0 0 2px rgb(var(--app-bg)), 0 0 0 4px rgb(var(--app-accent-bright));
 }
 
+/* ── Native <select> dropdown list ───────────────────────────
+   The opened list is drawn by the browser, not the page: color-scheme alone
+   leaves Chromium on Linux painting it gray with white text, and a select's
+   translucent fill (bg-app-bg/50) is no help because options don't inherit
+   it. Paint the options with opaque theme tokens so the list matches the app
+   in every theme. Prefer the themed <Dropdown> component for new code.
+   ───────────────────────────────────────────────────────────── */
+select option,
+select optgroup {
+  background-color: rgb(var(--app-card));
+  color: rgb(var(--app-text));
+}
+select option:disabled {
+  color: rgb(var(--app-muted));
+}
+
 /* ── Native checkbox / radio ─────────────────────────────────
    Prefer the <Checkbox> / <RadioGroup> components in components/Form.tsx.
    These rules exist so that a hand-written <input type="checkbox"> — the

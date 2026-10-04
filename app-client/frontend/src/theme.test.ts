@@ -42,4 +42,9 @@ describe('index.css theme blocks', () => {
     expect(css).toMatch(/input\[type='checkbox'\],\s*\n?\s*input\[type='radio'\]/)
     expect(css).toMatch(/background-color:\s*rgb\(var\(--app-surface\)\)/)
   })
+
+  // Chromium on Linux paints an opened <select> list gray-on-white otherwise.
+  it('paints native select options with opaque theme tokens', () => {
+    expect(css).toMatch(/select option,\s*\n?\s*select optgroup\s*\{[^}]*background-color:\s*rgb\(var\(--app-card\)\)[^}]*color:\s*rgb\(var\(--app-text\)\)/)
+  })
 })
