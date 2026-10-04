@@ -164,6 +164,13 @@ fi
 
 stamp app-server/internal/config/config.go \
   "s|configDir = \".config/app\"|configDir = \".config/$SLUG\"|" "configDir = \".config/$SLUG\""
+# The .env lookup is a separate string from configDir (LoadEnvFiles joins it
+# onto os.UserConfigDir), and it went unstamped for every app through 0.4.1:
+# each one read ~/.config/app/.env, so two apps would share one secrets file.
+stamp app-server/main.go \
+  "s|config.LoadEnvFiles(\"app\")|config.LoadEnvFiles(\"$SLUG\")|" "config.LoadEnvFiles(\"$SLUG\")"
+stamp app-server/.env.example \
+  "s|~/.config/app/.env|~/.config/$SLUG/.env|" "~/.config/$SLUG/.env"
 
 # JSON files are edited with node (guaranteed present for this stack) instead
 # of sed, so structure changes can't corrupt them.

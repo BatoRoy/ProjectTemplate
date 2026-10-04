@@ -379,6 +379,7 @@ against the exact template state you started from (see "Porting template improve
    | `BatoRoy` / copyright  | `app-client/package.json`, `LICENSE`                    | manual |
    | `app-server` (Go module)| `app-server/go.mod` + imports in `main.go`, `api/server.go` | manual (optional) |
    | `.config/app` (backend)| `app-server/internal/config/config.go`                  | stamped |
+   | `app` (backend .env lookup) | `app-server/main.go` (`config.LoadEnvFiles`), `app-server/.env.example` → `~/.config/<slug>/.env` | stamped |
 
    The `--app-*` CSS vars, `app.*` Tailwind tokens, and the `app-client` / `app-server`
    directory names can stay as-is. localStorage keys are namespaced by `brand.slug`
