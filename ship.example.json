@@ -1,0 +1,8 @@
+{
+  "targets": {
+    "publish-server": { "paths": ["app-server/"] },
+    "publish-client": { "paths": ["app-client/"] },
+    "deploy":         { "paths": ["app-server/"] }
+  },
+  "ignore": []
+}

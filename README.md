@@ -108,6 +108,29 @@ Details, and how to publish a native (non-Electron) client, are in
 [Publishing a backend service to bato](#publishing-a-backend-service-to-bato)
 and [Publishing a native app](#publishing-a-native-app-the-desktop-type).
 
+### Shipping several apps at once (BatoGit)
+
+BatoGit's **Ship all…** (or `bit ship --all`) bumps each app's version, pushes the
+tag, then runs only the `publish-server` / `publish-client` / `deploy` targets whose
+files changed since they last shipped. It works out which files feed which target
+from this layout, so a fresh app needs nothing:
+
+| Target | Rebuilt when these change |
+|---|---|
+| `publish-server` | `app-server/` |
+| `publish-client` | `app-client/` — plus `app-server/` once you bundle the server (a `beforePack` hook) |
+| `deploy` | whatever the Dockerfile `COPY`s, plus `bato.json` |
+
+Docs, tests, CI config, `VERSION`, `version.sh` and `tools/` never trigger a publish.
+
+Add a `ship.json` at the repo root only when the app leaves this layout — a renamed
+target, a moved `app-server/` or `app-client/`, a second client. Start from
+**`ship.example.json`** (`cp ship.example.json ship.json`), which spells out the
+template's own mapping. Every key must be a real Makefile target, and once the file
+exists it replaces the inference entirely, so list every target you want shipped.
+Optional per target: `"registry": "<name>"` when the published name can't be read
+from the nearest `bato.json`. Run `bit ship <App> --dry-run` to check the result.
+
 ### Bundling the service into the client
 
 Published apps usually ship the Go server **inside** the AppImage and spawn it on
