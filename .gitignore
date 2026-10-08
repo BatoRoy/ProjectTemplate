@@ -56,3 +56,9 @@ tools/*
 !tools/check-desktop-manifest.mjs
 !tools/check-contrast.mjs
 *.AppImage
+
+# ── Tauri build output ─────────────────────────────────────
+# target/ is cargo's; gen/ holds the capability schemas tauri-build regenerates
+# on every compile.
+app-client/src-tauri/target/
+app-client/src-tauri/gen/

@@ -1,4 +1,4 @@
-.PHONY: all server client client-linux client-windows \
+.PHONY: all server client client-linux client-windows client-tauri dev-tauri \
         publish-client stage-server publish-server check-desktop-manifest \
         dev-setup verify-electron dev-server dev-client \
         docker deploy deploy-test promote new-app lint test check-contrast clean
@@ -25,6 +25,9 @@ NOTES ?=
 # Detected rather than configured: a FLAVOR file would be one more thing that can
 # disagree with the tree.
 HAS_ELECTRON := $(wildcard app-client/package.json)
+# Phase-0 spike of a second flavor. Detected the same way; see
+# app-client/src-tauri/README.md. The generic targets do not dispatch to it yet.
+HAS_TAURI := $(wildcard app-client/src-tauri/tauri.conf.json)
 
 all: server
 ifneq ($(HAS_ELECTRON),)
@@ -56,6 +59,33 @@ client-windows:
 	npm install --prefix app-client
 	cd app-client && npm run package:win
 	@echo "✓ app-client → dist/electron/"
+
+# ─── Tauri flavor (Phase-0 spike) ────────────────────────────────────────────
+#
+# Same frontend, different shell. Output lands in dist/tauri/ (the Electron
+# build keeps dist/electron/). Not wired into `client`/`publish-client`/`lint`/
+# `test` yet — that is Phase 1, once the spike's measurements say go.
+
+client-tauri:
+ifeq ($(HAS_TAURI),)
+	@echo "client-tauri needs app-client/src-tauri/."; exit 1
+endif
+	@echo "→ Building app-client (Tauri, Linux AppImage)..."
+	npm install --prefix app-client/frontend
+	npm install --prefix app-client/src-tauri
+	cd app-client/src-tauri && npm run package:linux
+	@echo "✓ app-client → dist/tauri/"
+
+# Vite dev server + Tauri window together (the Tauri CLI starts and stops Vite).
+dev-tauri:
+ifeq ($(HAS_TAURI),)
+	@echo "dev-tauri needs app-client/src-tauri/."; exit 1
+endif
+	@if [ ! -d app-client/frontend/node_modules ] || [ ! -d app-client/src-tauri/node_modules ]; then \
+		npm install --prefix app-client/frontend; npm install --prefix app-client/src-tauri; \
+	fi
+	@echo "→ Starting Tauri dev client (Vite + Tauri)..."
+	cd app-client/src-tauri && npm run dev
 
 # ─── Publishing ──────────────────────────────────────────────────────────────
 

@@ -1,0 +1,7 @@
+{
+  "$schema": "../gen/schemas/desktop-schema.json",
+  "identifier": "default",
+  "description": "The main window. Every native call goes through this app's own commands (src/main.rs), which the ACL does not gate, so no plugin permission is granted to the webview: the renderer reaches the dialog, fs and notification plugins only through the 13-method electronAPI contract, never directly. core:default is what window.__TAURI__.event.listen needs for update:status.",
+  "windows": ["main"],
+  "permissions": ["core:default"]
+}

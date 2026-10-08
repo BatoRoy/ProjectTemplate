@@ -20,13 +20,19 @@ import react from '@vitejs/plugin-react'
 //     direct fetch, SSE stream or backend-served asset is added.
 //   - If the renderer loads images/video/audio from the backend by direct URL,
 //     add the same loopback grants to img-src / media-src (see BatoEdit).
+//   - `ipc: http://ipc.localhost` is the Tauri shell's command channel: under
+//     WebKitGTK every invoke() is a fetch to ipc://localhost, and without this
+//     grant the packaged Tauri build renders fine and then every native call
+//     rejects — settings never load, dialogs never open. The Electron shell
+//     never issues such requests, so the grant is inert there. One policy for
+//     both shells beats two that drift.
 const CSP = [
   "default-src 'self'",
   "script-src 'self'",
   "style-src 'self' 'unsafe-inline'",
   "font-src 'self' data:",
   "img-src 'self' data: blob:",
-  "connect-src 'self' http://127.0.0.1:* http://localhost:*",
+  "connect-src 'self' ipc: http://ipc.localhost http://127.0.0.1:* http://localhost:*",
 ].join('; ')
 
 function cspPlugin(): Plugin {

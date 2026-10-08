@@ -1,0 +1,12 @@
+{
+  "name": "app-client-tauri",
+  "private": true,
+  "description": "Tauri shell for the desktop client. Run from this directory: `npm run dev`, `npm run package:linux`. The scripts are deliberately NOT named build or typecheck: the suite's shared test.yml runs every package.json that declares either, and this one needs a Rust toolchain the runner does not have. The Rust side is checked with `cargo check` in this directory instead.",
+  "scripts": {
+    "dev": "tauri dev",
+    "package:linux": "tauri build --bundles appimage && mkdir -p ../../dist/tauri && cp target/release/bundle/appimage/*.AppImage ../../dist/tauri/"
+  },
+  "devDependencies": {
+    "@tauri-apps/cli": "^2.9.0"
+  }
+}

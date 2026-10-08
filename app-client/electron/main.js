@@ -35,6 +35,16 @@ function createWindow() {
 
   win.setMenu(null)
 
+  // BATO_SMOKE=1: print the time to first page load and quit. The Tauri shell
+  // has the same hook (src-tauri/src/main.rs), so the two can be compared
+  // headlessly under xvfb-run; it also proves a packaged build starts at all.
+  if (process.env.BATO_SMOKE) {
+    win.webContents.once('did-finish-load', () => {
+      console.log(`[smoke] page loaded after ${Math.round(process.uptime() * 1000)} ms`)
+      app.quit()
+    })
+  }
+
   if (isDev) {
     // Keep in sync with frontend/vite.config.ts and the dev script's wait-on.
     const devPort = process.env.VITE_DEV_PORT || 5311
