@@ -58,6 +58,11 @@ client-windows:
 	@echo "✓ app-client → dist/electron/"
 
 # ─── Publishing ──────────────────────────────────────────────────────────────
+#
+# BatoGit's Ship (`bit ship`) runs publish-server / publish-client / deploy only
+# when their inputs changed, inferring which paths feed which target from this
+# layout. Rename a target or move the server/client dirs and add a ship.json at
+# the repo root to say so — see BatoGit's README, "Ship".
 
 # Flavor-agnostic: publish whichever client this app has.
 publish-client:
