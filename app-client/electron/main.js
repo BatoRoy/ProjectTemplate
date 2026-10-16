@@ -35,6 +35,11 @@ function createWindow() {
 
   win.setMenu(null)
 
+  // Middle-click autoscroll (BatoScroll; settings: ~/.config/bato/batoscroll.json).
+  // Injected from main so it stays Electron-only: in a browser the extension
+  // may already run. electron/batoscroll.js is vendored; see its header.
+  require('./batoscroll').attach(win)
+
   if (isDev) {
     // Keep in sync with frontend/vite.config.ts and the dev script's wait-on.
     const devPort = process.env.VITE_DEV_PORT || 5311

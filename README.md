@@ -181,6 +181,13 @@ Pushing a `v*.*.*` tag triggers `.github/workflows/release-electron.yml`, which 
   bridge, typed in `src/lib/electron.d.ts` and implemented in `electron/main.js`.
 - **Backend** uses a plain `http.ServeMux` with a CORS middleware
   (`app-server/internal/api/server.go`). Add routes in `registerRoutes`.
+- **Middle-click autoscroll** comes from [BatoScroll](https://github.com/BatoRoy/BatoScroll):
+  `electron/main.js` calls `require('./batoscroll').attach(win)`, which injects the engine on
+  every page load. `electron/batoscroll.js` is a **generated, vendored** file. Don't edit it;
+  run `make embed` in BatoScroll and copy `dist/batoscroll.js` over it. Settings are shared by
+  every app in `~/.config/bato/batoscroll.json` (see the BatoScroll README). A widget that
+  needs middle-click for itself (a pan canvas, middle-click-to-close tabs) opts out with a
+  `data-batoscroll-ignore` attribute.
 
 ## Look & contrast
 
