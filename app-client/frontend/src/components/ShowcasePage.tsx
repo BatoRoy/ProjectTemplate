@@ -1,4 +1,5 @@
-import { useState, useRef, useMemo } from 'react'
+import { useState, useRef, useMemo, useEffect } from 'react'
+import type { RefObject } from 'react'
 import {
   Copy, Scissors, Clipboard, Trash2, Pencil, Eye, Search, Mail, Plus, Settings, Home, FileText,
 } from 'lucide-react'
@@ -27,6 +28,13 @@ interface ShowcasePageProps {
   toast: (message: string, type?: ToastType) => void
 }
 
+interface ShowcaseProps extends ShowcasePageProps {
+  /** Dev hook (BATO_VIEW `tab=`): the tab to open on mount. */
+  initialTab?: string | null
+  /** Dev hook (BATO_VIEW `card=`): scroll this card of the tab to the top. */
+  initialCard?: string | null
+}
+
 const SECTIONS = [
   { id: 'inputs', label: 'Inputs' },
   { id: 'date', label: 'Date' },
@@ -39,11 +47,16 @@ const SECTIONS = [
 
 // Living gallery of the component library, grouped into category tabs. Use it as a
 // reference, then delete it (and its Sidebar NAV entry) once your real pages exist.
-export function ShowcasePage({ toast }: ShowcasePageProps) {
-  const [section, setSection] = useState('inputs')
+export function ShowcasePage({ toast, initialTab, initialCard }: ShowcaseProps) {
+  const [section, setSection] = useState(
+    () => SECTIONS.find(s => s.id === initialTab)?.id ?? 'inputs',
+  )
   const { wide } = useTheme()
+  const pageRef = useRef<HTMLDivElement>(null)
+  const [scrollCard] = useState(() => (initialCard ? `${section}/${initialCard}` : null))
+  useScrollToCard(pageRef, scrollCard)
   return (
-    <div className={clsx('mx-auto p-6 space-y-6', wide ? 'max-w-none' : 'max-w-[var(--app-content-width)]')}>
+    <div ref={pageRef} className={clsx('mx-auto p-6 space-y-6', wide ? 'max-w-none' : 'max-w-[var(--app-content-width)]')}>
       <div>
         <h1 className="text-xl font-semibold text-app-text">Component kit</h1>
         <p className="text-sm text-app-subtext mt-1">A library for building almost any app — themed by the active accent.</p>
@@ -58,6 +71,32 @@ export function ShowcasePage({ toast }: ShowcasePageProps) {
       {section === 'data' && <DataSection toast={toast} />}
     </div>
   )
+}
+
+// Card ids: native docs/CARDS.md (bato-native). The card's top lands 24 px below
+// the top of <main> (the page padding), clamped to the scroll range, so a window
+// capture shows that card first. Charts, CodeMirror and fonts settle after the
+// first frame, so the position is re-applied while the page resizes during the
+// first 1.5 s (dev hook only: nothing runs without a card id).
+function useScrollToCard(pageRef: RefObject<HTMLDivElement>, id: string | null) {
+  useEffect(() => {
+    const page = pageRef.current
+    const main = page?.closest('main')
+    if (!page || !main || !id) return
+    const apply = () => {
+      const card = page.querySelector(`[data-card="${id}"]`)
+      if (!card) return
+      const top = card.getBoundingClientRect().top - main.getBoundingClientRect().top + main.scrollTop
+      main.scrollTo(0, top - 24)
+    }
+    let raf = 0
+    const schedule = () => { cancelAnimationFrame(raf); raf = requestAnimationFrame(apply) }
+    const ro = new ResizeObserver(schedule)
+    ro.observe(page)
+    void document.fonts.ready.then(schedule)
+    const stop = setTimeout(() => ro.disconnect(), 1500)
+    return () => { cancelAnimationFrame(raf); ro.disconnect(); clearTimeout(stop) }
+  }, [pageRef, id])
 }
 
 const fruitOptions: SelectOption[] = [
@@ -97,7 +136,7 @@ function InputsSection({ toast }: ShowcasePageProps) {
 
   return (
     <div className="space-y-6">
-      <Card title="Text fields">
+      <Card data-card="inputs/text-fields" title="Text fields">
         <div className="grid grid-cols-2 gap-4">
           <TextField label="Search" leftIcon={Search} placeholder="Search…" value={search} onChange={e => setSearch(e.target.value)} clearable onClear={() => setSearch('')} />
           <TextField label="Email" leftIcon={Mail} type="email" placeholder="you@example.com" />
@@ -109,7 +148,7 @@ function InputsSection({ toast }: ShowcasePageProps) {
         </div>
       </Card>
 
-      <Card title="Specialized inputs">
+      <Card data-card="inputs/specialized" title="Specialized inputs">
         <div className="grid grid-cols-2 gap-4">
           <NumberInput label="Quantity" value={num} onChange={setNum} min={0} max={10} />
           <MaskedInput label="Phone" mask="(###) ###-####" value={phone} onChange={setPhone} placeholder="(555) 123-4567" />
@@ -123,7 +162,7 @@ function InputsSection({ toast }: ShowcasePageProps) {
         </div>
       </Card>
 
-      <Card title="Selects">
+      <Card data-card="inputs/selects" title="Selects">
         <div className="grid grid-cols-2 gap-4">
           <Combobox label="Combobox" value={fruit} onChange={setFruit} options={fruitOptions} />
           <MultiSelect label="Multi-select" value={multi} onChange={setMulti} options={fruitOptions} />
@@ -134,7 +173,7 @@ function InputsSection({ toast }: ShowcasePageProps) {
         </div>
       </Card>
 
-      <Card title="Sliders & color">
+      <Card data-card="inputs/sliders-color" title="Sliders & color">
         <div className="space-y-5">
           <div><div className="text-xs text-app-subtext mb-2">Volume: {vol}</div><Slider value={vol} onChange={setVol} /></div>
           <div><div className="text-xs text-app-subtext mb-2">Range: {range[0]}–{range[1]}</div><RangeSlider value={range} onChange={setRange} /></div>
@@ -143,7 +182,7 @@ function InputsSection({ toast }: ShowcasePageProps) {
         </div>
       </Card>
 
-      <Card title="Time input (typeable)">
+      <Card data-card="inputs/time-input" title="Time input (typeable)">
         <div className="flex flex-wrap items-end gap-6">
           <TimeInput
             label="Duration"
@@ -167,7 +206,7 @@ function InputsSection({ toast }: ShowcasePageProps) {
         </p>
       </Card>
 
-      <Card title="Search (suggestions + autocomplete)">
+      <Card data-card="inputs/search" title="Search (suggestions + autocomplete)">
         <SearchInput
           value={searchVal}
           onChange={setSearchVal}
@@ -182,7 +221,7 @@ function InputsSection({ toast }: ShowcasePageProps) {
         </div>
       </Card>
 
-      <Card title="Code editor">
+      <Card data-card="inputs/code-editor" title="Code editor">
         <div className="flex items-center gap-3 mb-3">
           <Select
             value={lang}
@@ -199,7 +238,7 @@ function InputsSection({ toast }: ShowcasePageProps) {
         <CodeEditor value={code} onChange={setCode} language={lang} lineNumbers={lineNums} vim={vimMode} height="14rem" />
       </Card>
 
-      <Card title="Toggles & file upload">
+      <Card data-card="inputs/toggles-upload" title="Toggles & file upload">
         <div className="space-y-4">
           <Switch checked={sw} onChange={setSw} label="Enable notifications" />
           <Checkbox checked={cb} onChange={setCb} label="I agree to the terms" />
@@ -267,7 +306,7 @@ function DateSection() {
 
   return (
     <div className="space-y-6">
-      <Card title="Pickers">
+      <Card data-card="date/pickers" title="Pickers">
         <div className="grid grid-cols-2 gap-4">
           <DatePicker label="Date" value={date} onChange={setDate} clearable />
           <DateRangePicker label="Date range" value={range} onChange={setRange} />
@@ -279,12 +318,12 @@ function DateSection() {
         </div>
       </Card>
 
-      <div className="grid grid-cols-2 gap-6">
+      <div data-card="date/calendar-time" className="grid grid-cols-2 gap-6">
         <Card title="Calendar"><Calendar mode="single" selected={cal} onSelect={setCal} /></Card>
         <Card title="Time picker"><TimePicker value={time} onChange={setTime} hour12={hour12} showSeconds={seconds} /></Card>
       </div>
 
-      <Card title="Calendar view">
+      <Card data-card="date/calendar-view" title="Calendar view">
         <div className="h-[28rem]"><CalendarView events={events} /></div>
       </Card>
     </div>
@@ -298,7 +337,7 @@ function FeedbackSection({ toast }: ShowcasePageProps) {
 
   return (
     <div className="space-y-6">
-      <Card title="Feedback atoms">
+      <Card data-card="feedback/atoms" title="Feedback atoms">
         <div className="space-y-4">
           <div className="flex flex-wrap gap-2">
             <Badge tone="success">Success</Badge><Badge tone="error">Error</Badge>
@@ -311,7 +350,7 @@ function FeedbackSection({ toast }: ShowcasePageProps) {
         </div>
       </Card>
 
-      <Card title="Alerts">
+      <Card data-card="feedback/alerts" title="Alerts">
         <div className="space-y-2">
           <Alert tone="info" title="Heads up">This is an informational message.</Alert>
           <Alert tone="success" title="Saved" />
@@ -320,7 +359,7 @@ function FeedbackSection({ toast }: ShowcasePageProps) {
         </div>
       </Card>
 
-      <Card title="Navigation & controls">
+      <Card data-card="feedback/navigation" title="Navigation & controls">
         <div className="space-y-4">
           <Breadcrumbs items={[{ label: 'Home', onClick: () => {} }, { label: 'Library', onClick: () => {} }, { label: 'Item' }]} />
           <SegmentedControl value={seg} onChange={setSeg} options={[{ value: 'list', label: 'List' }, { value: 'grid', label: 'Grid' }, { value: 'board', label: 'Board' }]} />
@@ -331,7 +370,7 @@ function FeedbackSection({ toast }: ShowcasePageProps) {
         </div>
       </Card>
 
-      <Card title="Stepper">
+      <Card data-card="feedback/stepper" title="Stepper">
         <Stepper steps={[{ id: '1', label: 'Account' }, { id: '2', label: 'Profile' }, { id: '3', label: 'Done' }]} current={step} onStepClick={setStep} />
         <div className="flex gap-2 mt-4">
           <Button variant="secondary" onClick={() => setStep(s => Math.max(0, s - 1))}>Back</Button>
@@ -339,7 +378,7 @@ function FeedbackSection({ toast }: ShowcasePageProps) {
         </div>
       </Card>
 
-      <Card title="Accordion">
+      <Card data-card="feedback/accordion" title="Accordion">
         <Accordion items={[
           { id: '1', title: 'What is this?', content: 'A collapsible section of content.' },
           { id: '2', title: 'Can multiple open?', content: 'Set the `multiple` prop to allow it.' },
@@ -364,7 +403,7 @@ function LayoutSection({ toast }: ShowcasePageProps) {
 
   return (
     <div className="space-y-6">
-      <Card title="Primitives">
+      <Card data-card="layout/primitives" title="Primitives">
         <div className="space-y-4">
           <HStack gap={2}>{box('H')}{box('Stack')}{box('row')}</HStack>
           <GridBox cols={4} gap={2}>{box('1')}{box('2')}{box('3')}{box('4')}</GridBox>
@@ -382,7 +421,7 @@ function LayoutSection({ toast }: ShowcasePageProps) {
         </div>
       </Card>
 
-      <Card title="Responsive (resize the window)">
+      <Card data-card="layout/responsive" title="Responsive (resize the window)">
         <div className="space-y-4">
           <div className="text-xs text-app-muted">AutoGrid</div>
           <AutoGrid min={140} gap={3}>{Array.from({ length: 6 }, (_, i) => box(`#${i + 1}`))}</AutoGrid>
@@ -395,7 +434,7 @@ function LayoutSection({ toast }: ShowcasePageProps) {
         </div>
       </Card>
 
-      <Card title="Scrollable">
+      <Card data-card="layout/scrollable" title="Scrollable">
         <Scrollable maxHeight={150} fade className="rounded-lg border border-app-border">
           <div className="p-3 space-y-2">
             {Array.from({ length: 14 }, (_, i) => (
@@ -405,7 +444,7 @@ function LayoutSection({ toast }: ShowcasePageProps) {
         </Scrollable>
       </Card>
 
-      <Card title="Editor tabs (drag to reorder, close, add)">
+      <Card data-card="layout/editor-tabs" title="Editor tabs (drag to reorder, close, add)">
         <div className="border border-app-border rounded-lg overflow-hidden">
           <EditorTabs
             tabs={tabs}
@@ -419,7 +458,7 @@ function LayoutSection({ toast }: ShowcasePageProps) {
         </div>
       </Card>
 
-      <Card title="Resizable panels (nested)">
+      <Card data-card="layout/resizable" title="Resizable panels (nested)">
         <div className="h-64 border border-app-border rounded-lg overflow-hidden">
           <PanelGroup direction="horizontal" storageKey={storageKey('demo-panels-h')}>
             <Panel defaultSize={28} min={15}><div className="h-full bg-app-surface p-3 text-sm text-app-subtext">Sidebar</div></Panel>
@@ -434,7 +473,7 @@ function LayoutSection({ toast }: ShowcasePageProps) {
         <p className="text-xs text-app-muted mt-2">Drag the dividers — sizes persist across reloads.</p>
       </Card>
 
-      <Card title="AppShell scaffold">
+      <Card data-card="layout/app-shell" title="AppShell scaffold">
         <div className="h-56 border border-app-border rounded-lg overflow-hidden">
           <AppShell
             header={<div className="px-4 py-2.5 text-sm font-medium text-app-text">Header</div>}
@@ -473,7 +512,7 @@ function DashboardSection() {
   ]
 
   return (
-    <div className="space-y-3">
+    <div data-card="dashboard/dashboard" className="space-y-3">
       <p className="text-sm text-app-subtext">Toggle <span className="text-app-text font-medium">Edit</span> to drag, resize, add and remove widgets. Switch <span className="text-app-text font-medium">Snap</span>/<span className="text-app-text font-medium">Free</span> placement. Layout persists.</p>
       <Dashboard widgetTypes={widgetTypes} defaultItems={defaultItems} storageKey={storageKey('demo-dashboard')} rowHeight={56} />
     </div>
@@ -490,7 +529,7 @@ function OverlaysSection({ toast }: ShowcasePageProps) {
 
   return (
     <div className="space-y-6">
-      <Card title="Context menu">
+      <Card data-card="overlays/context-menu" title="Context menu">
         <div
           onContextMenu={menu.onContextMenu}
           className="flex items-center justify-center h-24 rounded-lg border-2 border-dashed border-app-border text-app-muted text-sm"
@@ -508,7 +547,7 @@ function OverlaysSection({ toast }: ShowcasePageProps) {
         )}
       </Card>
 
-      <Card title="Triggers">
+      <Card data-card="overlays/triggers" title="Triggers">
         <div className="flex flex-wrap items-center gap-3">
           <Dropdown trigger="Actions" items={[
             { label: 'Edit', icon: Pencil, onClick: () => toast('Edit', 'info') },
@@ -613,7 +652,7 @@ function DataSection({ toast }: ShowcasePageProps) {
 
   return (
     <div className="space-y-6">
-      <Card title="Data table">
+      <Card data-card="data/table" title="Data table">
         <div className="space-y-3">
           <SegmentedControl
             value={roleFilter}
@@ -643,9 +682,9 @@ function DataSection({ toast }: ShowcasePageProps) {
         </div>
       </Card>
 
-      <Card title="Pagination (standalone)"><Pagination page={page} pageCount={12} onChange={setPage} siblings={1} /></Card>
+      <Card data-card="data/pagination" title="Pagination (standalone)"><Pagination page={page} pageCount={12} onChange={setPage} siblings={1} /></Card>
 
-      <div className="grid grid-cols-2 gap-6">
+      <div data-card="data/charts" className="grid grid-cols-2 gap-6">
         <Card title="Line chart"><LineChart series={series} /></Card>
         <Card title="Area chart"><AreaChart series={series} /></Card>
         <Card title="Bar chart"><BarChart data={bars} /></Card>
@@ -657,17 +696,17 @@ function DataSection({ toast }: ShowcasePageProps) {
         </Card>
       </div>
 
-      <Card title="Timeline" action={<Switch checked={tlScroll} onChange={setTlScroll} label="Horizontal scroll" />}>
+      <Card data-card="data/timeline" title="Timeline" action={<Switch checked={tlScroll} onChange={setTlScroll} label="Horizontal scroll" />}>
         <Timeline items={timelineItems} scrollable={tlScroll} minWidth={1100} />
       </Card>
 
-      <Card title="Sortable list (drag to reorder)">
+      <Card data-card="data/sortable" title="Sortable list (drag to reorder)">
         <SortableList items={items} getId={x => x} onReorder={setItems} renderItem={x => <span className="text-sm text-app-text">{x}</span>} />
       </Card>
 
-      <Card title="Kanban board (drag cards)"><KanbanBoard columns={board} onChange={setBoard} /></Card>
+      <Card data-card="data/kanban" title="Kanban board (drag cards)"><KanbanBoard columns={board} onChange={setBoard} /></Card>
 
-      <Card title="Node graph">
+      <Card data-card="data/node-graph" title="Node graph">
         <NodeGraph defaultNodes={nodes} defaultEdges={edges} height={320} />
         <p className="text-xs text-app-muted mt-2">Drag nodes, pan/zoom, and connect handles. <Button variant="secondary" className="ml-1 !py-1 !px-2" onClick={() => toast('Tip: drag from a node handle', 'info')}>Tip</Button></p>
       </Card>

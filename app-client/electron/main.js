@@ -46,13 +46,68 @@ function createWindow() {
     win.loadURL(`http://localhost:${devPort}`)
     win.webContents.openDevTools()
   } else {
-    // BATO_VIEW (e.g. "view=scroll-lab&modal=options&scroll=1200") opens a given
-    // page/modal/scroll position — used to screenshot the Electron baseline next
+    // BATO_VIEW (e.g. "view=scroll-lab&modal=options&scroll=1200", or
+    // "view=examples&tab=data&card=charts") opens a given page/modal/scroll
+    // position or Showcase card — used to screenshot the Electron baseline next
     // to the native clients, which honour the same variable.
     win.loadFile(join(__dirname, '../frontend/dist/index.html'), { hash: process.env.BATO_VIEW || '' })
+    if (process.env.BATO_CAPTURE) {
+      win.webContents.once('did-finish-load', () => {
+        captureSelf(win, process.env.BATO_CAPTURE, process.env.BATO_CAPTURE_FULL === '1').catch(err => {
+          console.error('BATO_CAPTURE failed:', err)
+          app.exit(1)
+        })
+      })
+    }
   }
 
   return win
+}
+
+// BATO_CAPTURE=<file.png> (packaged builds; the fidelity harness in
+// bato-native tools/compare): once the BATO_VIEW page has settled, take
+// Chromium's own screenshot of it, write the PNG and quit. Same pixels as a
+// compositor capture of the window minus the compositor's rounded corners, and
+// never a stray cursor or another window. Prints "BATO_CAPTURE stable|unstable
+// <w>x<h>" (unstable = still animating after 8 s, e.g. a spinner).
+// BATO_CAPTURE_FULL=1 first emulates a viewport tall enough for the whole card
+// (24 px above and below it), or for the whole page when BATO_VIEW names no
+// card, so cards taller than the window fit in one image. The window itself
+// keeps its size.
+async function captureSelf(win, file, full) {
+  const wc = win.webContents
+  const wait = ms => new Promise(r => setTimeout(r, ms))
+  const place = `(() => {
+    const q = new URLSearchParams(location.hash.slice(1))
+    const main = document.querySelector('main')
+    const card = q.get('card') && document.querySelector('[data-card="' + (q.get('tab') || 'inputs') + '/' + q.get('card') + '"]')
+    if (!main) return 0
+    if (!card) return main.scrollHeight
+    const r = card.getBoundingClientRect()
+    main.scrollTo(0, r.top - main.getBoundingClientRect().top + main.scrollTop - 24)
+    return Math.ceil(r.height) + 48
+  })()`
+  await wait(2000)
+  let [width, height] = win.getContentSize()
+  wc.debugger.attach('1.3')
+  if (full) {
+    height = Math.max(height, await wc.executeJavaScript(place))
+    await wc.debugger.sendCommand('Emulation.setDeviceMetricsOverride', { width, height, deviceScaleFactor: 1, mobile: false })
+    await wait(600)
+    await wc.executeJavaScript(place)
+  }
+  const shoot = async () => Buffer.from((await wc.debugger.sendCommand('Page.captureScreenshot', { format: 'png' })).data, 'base64')
+  let png = await shoot()
+  let stable = false
+  for (let i = 0; i < 20 && !stable; i++) {
+    await wait(400)
+    const next = await shoot()
+    stable = next.equals(png)
+    png = next
+  }
+  writeFileSync(file, png)
+  console.log(`BATO_CAPTURE ${stable ? 'stable' : 'unstable'} ${width}x${height}`)
+  app.quit()
 }
 
 app.whenReady().then(() => {

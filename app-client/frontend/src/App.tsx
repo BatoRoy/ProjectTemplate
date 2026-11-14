@@ -16,7 +16,8 @@ import { useToast } from './hooks/useToast'
 import { useHotkeys } from './hooks/useHotkeys'
 
 // Inner shell so commands can use useTheme() (needs ThemeProvider above it).
-// Dev hook: #view=…&modal=options|about&scroll=<px> (see BATO_VIEW in electron/main.js).
+// Dev hook: #view=…&modal=options|about&scroll=<px>, and for view=examples
+// &tab=<tab>&card=<card> (see BATO_VIEW in electron/main.js).
 const initial = new URLSearchParams(window.location.hash.slice(1))
 
 function Shell() {
@@ -59,7 +60,7 @@ function Shell() {
 
         <main className="flex-1 overflow-y-auto">
           {view === 'home' && <HomePage toast={toast} onOpenPalette={() => setShowPalette(true)} />}
-          {view === 'examples' && <ShowcasePage toast={toast} />}
+          {view === 'examples' && <ShowcasePage toast={toast} initialTab={initial.get('tab')} initialCard={initial.get('card')} />}
           {view === 'scroll-lab' && <ScrollLabPage />}
         </main>
       </div>

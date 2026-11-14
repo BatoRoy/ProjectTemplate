@@ -13,11 +13,13 @@ interface CardProps {
   action?: ReactNode
   /** Small icon shown in a tile before the title, e.g. <Server size={14} />. */
   icon?: ReactNode
+  /** Stable id for screenshots and the native fidelity harness (Showcase: "<tab>/<card>"). */
+  'data-card'?: string
 }
 
-export function Card({ title, children, action, icon, className }: CardProps) {
+export function Card({ title, children, action, icon, className, 'data-card': dataCard }: CardProps) {
   return (
-    <section className={clsx('bg-app-card border border-app-line rounded-2xl shadow-app-md p-5', className)}>
+    <section data-card={dataCard} className={clsx('bg-app-card border border-app-line rounded-2xl shadow-app-md p-5', className)}>
       {(title || action) && (
         <header className="flex items-center justify-between gap-3 mb-4">
           <div className="flex items-center gap-2.5 min-w-0">
