@@ -205,12 +205,26 @@ impl App {
                 Action::RestartToUpdate => {
                     return iced_ext::restart_to_update(&self.updater, Msg::RestartFailed);
                 }
+                // App commands added with `Frame::commands(..)` come back here by
+                // id; the template registers none (the palette's defaults are
+                // handled by the frame).
+                Action::Command(_) => {}
             },
-            Msg::Showcase(m) => {
-                if let Some(Effect::Toast(text, tone)) = showcase::update(&mut self.showcase, m) {
-                    self.frame.toast(text, tone);
+            Msg::Showcase(m) => match showcase::update(&mut self.showcase, m) {
+                Some(Effect::Toast(text, tone)) => self.frame.toast(text, tone),
+                // The FileDropzone: open the portal chooser, send the paths back.
+                Some(Effect::OpenFiles { multiple, reply }) => {
+                    let o = bato_shell::dialogs::OpenFiles {
+                        multiple,
+                        ..Default::default()
+                    };
+                    return iced_ext::open_files(o).map(move |r| match r {
+                        Ok(paths) => Msg::Showcase((reply.0)(paths)),
+                        Err(e) => Msg::Frame(frame::Msg::Toast(e.to_string(), Tone::Error)),
+                    });
                 }
-            }
+                None => {}
+            },
             Msg::Name(n) => self.name = n,
             Msg::AutoUpdate(v) => self.auto_update = v,
             Msg::Ping => {
@@ -320,7 +334,16 @@ impl App {
             Page::Examples => showcase::view(&self.showcase, cx, wide).map(Msg::Showcase),
             Page::ScrollLab => gallery::scroll_lab::view(cx, wide),
         };
-        self.frame.view(page, Msg::Frame)
+        // The Examples page's open dialogs (the Overlays card's ConfirmDialog,
+        // Drawer and CommandPalette) stack above the page like the frame's own.
+        let levels = match self.frame.page() {
+            Page::Examples => showcase::levels(&self.showcase, cx)
+                .into_iter()
+                .map(|l| l.map(Msg::Showcase))
+                .collect(),
+            _ => Vec::new(),
+        };
+        self.frame.view_with(page, levels, Msg::Frame)
     }
 }
 
