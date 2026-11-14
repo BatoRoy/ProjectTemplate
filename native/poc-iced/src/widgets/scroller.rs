@@ -203,8 +203,32 @@ impl TouchRouter {
     }
 }
 
+/// Where the content's hover comes from. Chromium's touch rules: while a
+/// touch may still be a tap the content sees it at the finger; once it is a
+/// scroll nothing is hovered (rows must not light up under the finger as the
+/// content slides by); a tap leaves the hover on the tapped element until the
+/// mouse moves again. iced itself always reports the finger as the cursor and
+/// a tap alone triggers no redraw, so without this the highlight followed the
+/// finger's screen position during a scroll and never appeared on a tap.
+#[derive(Debug, Clone, Copy, PartialEq)]
+enum HoverSource {
+    Mouse,
+    TouchNone,
+    /// Content coordinates.
+    TouchAt(Point),
+}
+
+fn hover_after(current: HoverSource, outcome: TouchOutcome, at: Point) -> HoverSource {
+    match outcome {
+        TouchOutcome::Pending | TouchOutcome::Tap => HoverSource::TouchAt(at),
+        TouchOutcome::ScrollStarted | TouchOutcome::Scrolling | TouchOutcome::Ended => HoverSource::TouchNone,
+        TouchOutcome::Ignored => current,
+    }
+}
+
 #[derive(Debug)]
 struct State {
+    hover: HoverSource,
     axis: ScrollAxis,
     initial_applied: bool,
     content_h: f32,
@@ -219,6 +243,7 @@ struct State {
 impl Default for State {
     fn default() -> Self {
         Self {
+            hover: HoverSource::Mouse,
             axis: ScrollAxis::default(),
             initial_applied: false,
             content_h: 0.0,
@@ -233,6 +258,20 @@ impl Default for State {
 }
 
 impl State {
+    /// The cursor the content sees. `area` is where the real mouse cursor
+    /// counts (the viewport, minus the scrollbar where relevant).
+    fn content_cursor(&self, cursor: mouse::Cursor, area: Rectangle, offset: f32) -> mouse::Cursor {
+        match self.hover {
+            HoverSource::TouchNone => mouse::Cursor::Unavailable,
+            HoverSource::TouchAt(p) => mouse::Cursor::Available(p),
+            HoverSource::Mouse => match cursor {
+                mouse::Cursor::Available(p) if area.contains(p) => mouse::Cursor::Available(p + Vector::new(0.0, offset)),
+                mouse::Cursor::Levitating(p) => mouse::Cursor::Levitating(p + Vector::new(0.0, offset)),
+                _ => mouse::Cursor::Unavailable,
+            },
+        }
+    }
+
     /// Offset in logical px, snapped to a whole device pixel.
     fn offset(&self) -> f32 {
         let s = device_scale();
@@ -330,6 +369,11 @@ impl<'a, Message: 'a> Widget<Message, iced::Theme, iced::Renderer> for Scroller<
         let dragging = tree.state.downcast_ref::<State>().drag.is_some()
             || tree.state.downcast_ref::<State>().touch.is_scrolling();
 
+        // A real mouse takes hover back from the last touch.
+        if let Event::Mouse(mouse::Event::CursorMoved { .. } | mouse::Event::WheelScrolled { .. }) = event {
+            tree.state.downcast_mut::<State>().hover = HoverSource::Mouse;
+        }
+
         // Touchscreen: arbitrate tap vs drag before the content sees anything.
         let mut routed: Option<Event> = None;
         if let Event::Touch(te) = event {
@@ -350,12 +394,13 @@ impl<'a, Message: 'a> Widget<Message, iced::Theme, iced::Renderer> for Scroller<
             if !matches!(outcome, TouchOutcome::Ignored) || debug_enabled() && inside {
                 state.log("touch", format!("{te:?} -> {outcome:?}/{fwd:?}"));
             }
-            if matches!(outcome, TouchOutcome::ScrollStarted | TouchOutcome::Scrolling | TouchOutcome::Ended)
-                || state.axis.is_animating()
-            {
+            let shifted = Point::new(position.x, position.y + offset);
+            state.hover = hover_after(state.hover, outcome, shifted);
+            if !matches!(outcome, TouchOutcome::Ignored) || state.axis.is_animating() {
+                // Pending/Tap too: hover-only content (the Scroll lab rows)
+                // updates on redraw, and a tap alone would not cause one.
                 shell.request_redraw();
             }
-            let shifted = Point::new(position.x, position.y + offset);
             match fwd {
                 Forward::Pass => {
                     routed = Some(Event::Touch(match *te {
@@ -384,11 +429,7 @@ impl<'a, Message: 'a> Widget<Message, iced::Theme, iced::Renderer> for Scroller<
         let content_cursor = if dragging {
             mouse::Cursor::Unavailable
         } else {
-            match cursor {
-                mouse::Cursor::Available(p) if b.contains(p) => mouse::Cursor::Available(p + Vector::new(0.0, offset)),
-                mouse::Cursor::Levitating(p) => mouse::Cursor::Levitating(p + Vector::new(0.0, offset)),
-                _ => mouse::Cursor::Unavailable,
-            }
+            tree.state.downcast_ref::<State>().content_cursor(cursor, b, offset)
         };
         let content_viewport = Rectangle { y: b.y + offset, ..b };
         self.content.as_widget_mut().update(
@@ -556,10 +597,7 @@ impl<'a, Message: 'a> Widget<Message, iced::Theme, iced::Renderer> for Scroller<
             return mouse::Interaction::Idle;
         }
         let offset = state.offset();
-        let c = match cursor {
-            mouse::Cursor::Available(p) if b.contains(p) => mouse::Cursor::Available(p + Vector::new(0.0, offset)),
-            _ => mouse::Cursor::Unavailable,
-        };
+        let c = state.content_cursor(cursor, b, offset);
         self.content.as_widget().mouse_interaction(
             &tree.children[0],
             layout.children().next().unwrap(),
@@ -586,12 +624,7 @@ impl<'a, Message: 'a> Widget<Message, iced::Theme, iced::Renderer> for Scroller<
         let b = layout.bounds();
         let offset = state.offset();
         let clip = Rectangle { width: b.width - if state.overflow { BAR } else { 0.0 }, ..b };
-        let c = match cursor {
-            mouse::Cursor::Available(p) if clip.contains(p) && state.drag.is_none() => {
-                mouse::Cursor::Available(p + Vector::new(0.0, offset))
-            }
-            _ => mouse::Cursor::Unavailable,
-        };
+        let c = if state.drag.is_some() { mouse::Cursor::Unavailable } else { state.content_cursor(cursor, clip, offset) };
         renderer.with_layer(clip, |renderer| {
             renderer.with_translation(Vector::new(0.0, -offset), |renderer| {
                 self.content.as_widget().draw(
@@ -643,6 +676,36 @@ mod tests {
         assert_eq!(classify(Lines { x: 0.0, y: -1.0 }), ScrollInput::Notches(1.0));
         // Hi-res wheel: 1/8 notch.
         assert_eq!(classify(Lines { x: 0.0, y: 0.125 }), ScrollInput::Notches(-0.125));
+    }
+
+    #[test]
+    fn touch_hover_follows_chromium_rules() {
+        let p = Point::new(10.0, 500.0);
+        let q = Point::new(10.0, 900.0);
+        // Finger down: the content sees it (taps must hit buttons).
+        let h = hover_after(HoverSource::Mouse, TouchOutcome::Pending, p);
+        assert_eq!(h, HoverSource::TouchAt(p));
+        // Becomes a scroll: nothing hovers while the content slides.
+        let h = hover_after(h, TouchOutcome::ScrollStarted, q);
+        assert_eq!(h, HoverSource::TouchNone);
+        assert_eq!(hover_after(h, TouchOutcome::Scrolling, q), HoverSource::TouchNone);
+        assert_eq!(hover_after(h, TouchOutcome::Ended, q), HoverSource::TouchNone);
+        // A tap leaves the hover on the tapped point (content coordinates).
+        assert_eq!(hover_after(h, TouchOutcome::Tap, q), HoverSource::TouchAt(q));
+        // Other fingers change nothing.
+        assert_eq!(hover_after(HoverSource::TouchAt(q), TouchOutcome::Ignored, p), HoverSource::TouchAt(q));
+
+        let mut st = State::default();
+        let area = Rectangle { x: 0.0, y: 0.0, width: 800.0, height: 600.0 };
+        st.hover = HoverSource::TouchNone;
+        assert_eq!(st.content_cursor(mouse::Cursor::Available(Point::new(5.0, 5.0)), area, 100.0), mouse::Cursor::Unavailable);
+        st.hover = HoverSource::TouchAt(q);
+        assert_eq!(st.content_cursor(mouse::Cursor::Available(Point::new(5.0, 5.0)), area, 100.0), mouse::Cursor::Available(q));
+        st.hover = HoverSource::Mouse;
+        assert_eq!(
+            st.content_cursor(mouse::Cursor::Available(Point::new(5.0, 5.0)), area, 100.0),
+            mouse::Cursor::Available(Point::new(5.0, 105.0))
+        );
     }
 
     #[test]
