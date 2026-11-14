@@ -80,8 +80,9 @@ Every bato-native line in `Cargo.toml` (bato-kit, bato-shell, gallery and the fo
 them together and updates `Cargo.lock`; `make lint` fails if they ever disagree.
 
 The `[patch.crates-io]` block must stay in this file: Cargo honours `[patch]` only in the
-root manifest. It pulls four patched upstream crates (winit wheel deltas, cosmic-text
-FreeType hinting, cryoglyph gamma, iced_wgpu blur). An unused `[patch]` is only a warning
+root manifest. It pulls five patched upstream crates (winit: wheel deltas, Wayland file drops,
+keypad NumLock; cosmic-text: FreeType hinting and font fallback; cryoglyph: gamma; iced_wgpu:
+blur; iced_winit: Wayland paste through winit's data device). An unused `[patch]` is only a warning
 in Cargo, so bato-kit references a `BATO_PATCH` constant from each one: if the patches
 ever stop applying, the build fails instead of silently losing the fix.
 

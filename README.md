@@ -513,8 +513,9 @@ const menu = useContextMenu()
   (`app-server/internal/api/server.go`). Add routes in `registerRoutes`.
 - **Middle-click autoscroll** (BatoScroll) is built into the kit's scroller and reads the
   shared `~/.config/bato/batoscroll.json`.
-- **Patched crates.** `[patch.crates-io]` in `app-client-native/Cargo.toml` pulls four patched
-  upstream crates from bato-native (text hinting, gamma, wheel deltas, blur). The kit refuses
+- **Patched crates.** `[patch.crates-io]` in `app-client-native/Cargo.toml` pulls five patched
+  upstream crates from bato-native (text hinting and fallback, gamma, wheel deltas, file drops and
+  keypad keys, blur, Wayland paste). The kit refuses
   to compile without them, and every bato-native line must carry the same tag
   (`make native-bump TAG=…` moves them together; `make lint` checks).
 

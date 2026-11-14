@@ -309,7 +309,7 @@ new-app:
 # ─── bato-native ─────────────────────────────────────────────────────────────
 
 # Move the native client to another bato-native release: every `tag = "…"` that
-# points at bato-native (the kit, the shell, the gallery and the four patched
+# points at bato-native (the kit, the shell, the gallery and the five patched
 # crates) at once, then the lockfile. Then run `make lint test` and look at the app.
 #   make native-bump TAG=v0.2.0
 native-bump:
