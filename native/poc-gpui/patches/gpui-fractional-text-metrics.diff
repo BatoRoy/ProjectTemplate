@@ -1,0 +1,44 @@
+--- a/crates/gpui/src/style.rs
++++ b/crates/gpui/src/style.rs
+@@ -552,7 +552,10 @@
+ 
+     /// Returns the rounded line height in pixels.
+     pub fn line_height_in_pixels(&self, rem_size: Pixels) -> Pixels {
+-        self.line_height.to_pixels(self.font_size, rem_size).round()
++        // Not rounded: CSS line boxes are fractional (13px × 1.5 = 19.5px) and a
++        // rounded line height shifts every following line and box by up to 0.5px.
++        // Glyphs are still rasterised on whole pixels vertically.
++        self.line_height.to_pixels(self.font_size, rem_size)
+     }
+ 
+     /// Convert this text style into a [`TextRun`], for the given length of the text.
+--- a/crates/gpui/src/elements/text.rs
++++ b/crates/gpui/src/elements/text.rs
+@@ -640,11 +640,12 @@
+     ) -> LayoutId {
+         let text_style = window.text_style();
+         let font_size = text_style.font_size.to_pixels(window.rem_size());
+-        let line_height = window.pixel_snap(
+-            text_style
+-                .line_height
+-                .to_pixels(font_size.into(), window.rem_size()),
+-        );
++        // Not snapped: CSS line boxes are fractional (13px × 1.5 = 19.5px); snapping
++        // each line shifts every following line and box. Layout edges are still
++        // snapped by taffy and glyphs are rasterised on whole pixels vertically.
++        let line_height = text_style
++            .line_height
++            .to_pixels(font_size.into(), window.rem_size());
+ 
+         let runs = if let Some(runs) = runs {
+             runs
+@@ -769,7 +770,8 @@
+                 for line in &lines {
+                     let line_size = line.size(line_height);
+                     size.height += line_size.height;
+-                    size.width = size.width.max(line_size.width).ceil();
++                    // Not rounded up: CSS sizes boxes from the fractional text width.
++                    size.width = size.width.max(line_size.width);
+                 }
+ 
+                 element_state.0.borrow_mut().replace(TextLayoutInner {

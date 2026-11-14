@@ -1,0 +1,8 @@
+[package]
+name = "scroll-physics"
+version = "0.1.0"
+edition = "2021"
+description = "Toolkit-neutral Chromium-style scroll physics: animated wheel notches, 1:1 touchpad, kinetic fling."
+license = "MIT"
+
+[dependencies]

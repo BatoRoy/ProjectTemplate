@@ -1,0 +1,40 @@
+[package]
+name = "batopoc-iced"
+version = "0.1.0"
+edition = "2024"
+description = "Native-client proof of concept for bato-template, built with iced."
+license = "MIT"
+publish = false
+
+[[bin]]
+name = "batopoc-iced"
+path = "src/main.rs"
+
+[dependencies]
+iced = { version = "0.14", default-features = false, features = ["wgpu", "tiny-skia", "web-colors", "wayland", "thread-pool", "svg", "advanced"] }
+scroll-physics = { path = "../scroll-physics" }
+bato-theme = { path = "../bato-theme" }
+serde_json = "1"
+libc = "0.2"
+wgpu = { version = "27", default-features = false, features = ["wgsl"] }
+zbus = { version = "5", default-features = false, features = ["blocking-api", "async-io"] }
+
+[profile.release]
+opt-level = 3
+lto = "thin"
+codegen-units = 4
+strip = true
+panic = "abort"
+
+# iced 0.14's winit (0.30.13 + SCTK 0.19) binds wl_seat v7 and never sees
+# `axis_value120`, so hi-res wheels arrive as pixel deltas. iced's own winit fork
+# (the one iced master uses) binds v8+ and reports value120 as fractional
+# LineDelta. It is API-compatible with 0.30, so we patch it in. See README.
+[patch.crates-io]
+winit = { path = "/home/batoroy/.cache/bato-native/winit-bato" }
+# Text: FreeType light-hinted rasterization (cosmic-text) and Skia's gamma
+# preblend (cryoglyph shader). See README "Text rendering".
+cosmic-text = { path = "/home/batoroy/.cache/bato-native/cosmic-text-0.15.0-bato" }
+cryoglyph = { path = "/home/batoroy/.cache/bato-native/cryoglyph-0.1.0-bato" }
+# Surface gets COPY_SRC so the modal can blur what is behind it.
+iced_wgpu = { path = "/home/batoroy/.cache/bato-native/iced_wgpu-0.14.0-bato" }

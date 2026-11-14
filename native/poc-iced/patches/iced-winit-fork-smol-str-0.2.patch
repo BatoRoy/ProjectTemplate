@@ -1,0 +1,25 @@
+From 6385f06d49f2444dd651d36a55ac749a34a3983f Mon Sep 17 00:00:00 2001
+From: bato <bato@local>
+Date: Fri, 13 Nov 2026 23:33:15 +0100
+Subject: [PATCH] Use smol_str 0.2 so the fork builds with iced 0.14
+
+---
+ Cargo.toml | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/Cargo.toml b/Cargo.toml
+index 7fd2035b..32550285 100644
+--- a/Cargo.toml
++++ b/Cargo.toml
+@@ -95,7 +95,7 @@ rwh_06 = { package = "raw-window-handle", version = "0.6", features = [
+     "std",
+ ], optional = true }
+ serde = { workspace = true, optional = true }
+-smol_str = "0.3"
++smol_str = "0.2"
+ tracing = { version = "0.1.40", default-features = false }
+ 
+ [dev-dependencies]
+-- 
+2.56.0
+
