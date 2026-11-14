@@ -13,7 +13,8 @@ Rust + [iced](https://iced.rs) 0.14 on two crates from
 |---|---|
 | `src/brand.rs` | Who the app is: name and slug (stamped by `new-app.sh`), tagline, accent, icon, registry |
 | `src/main.rs` | The wiring: frame, pages, backend health, notifications, updates, `BATO_VIEW` / `BATO_SMOKE` |
-| `src/home.rs` | The Home page. Examples and Scroll lab are bato-native's gallery pages (the `gallery` dependency); drop both once your own pages exist |
+| `src/home.rs` | The Home page |
+| `src/examples.rs` | The Examples and Scroll lab pages: bato-native's gallery, behind the `examples` feature (below) |
 | `build.rs` | `../VERSION` → `APP_VERSION`. The package stays `0.0.0`, so `version.sh` never touches Cargo files |
 | `Cargo.toml` | `[[bin]] name` = slug (stamped); the package is always `app-client`, so `Cargo.lock` stays valid |
 | `Cargo.lock` | Committed; every build is `--locked` |
@@ -73,9 +74,26 @@ tools/compare.sh batch home inputs --native <repo>/dist/<slug> --app-id batopoc-
 The references show the template's name (`App`), so a stamped app differs by its name in
 the sidebar and the Home header.
 
+## The Examples pages
+
+Examples (every kit component, the Showcase) and Scroll lab come from bato-native's gallery
+crate, through the `examples` cargo feature, which is on by default. Once your own pages exist,
+drop them with one line in `Cargo.toml`:
+
+```toml
+[features]
+default = []          # was ["examples"]
+```
+
+The gallery's code editor (syntect and its grammars), charts and node graph then leave the
+binary too: the template's release goes from about 30 MB to 22 MB, and builds take about
+half the time. Idle memory barely changes, because unused code is never paged in.
+`src/examples.rs` and the `gallery` dependency can stay; delete them when you like.
+`make lint` and CI run clippy both with and without the feature.
+
 ## bato-native versions
 
-Every bato-native line in `Cargo.toml` (bato-kit, bato-shell, gallery and the four
+Every bato-native line in `Cargo.toml` (bato-kit, bato-shell, gallery and the five
 `[patch.crates-io]` entries) carries the same tag. `make native-bump TAG=v0.2.0` moves
 them together and updates `Cargo.lock`; `make lint` fails if they ever disagree.
 

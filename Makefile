@@ -325,7 +325,7 @@ native-bump:
 native-tags:
 	@f=$(NATIVE_DIR)/Cargo.toml; \
 	  all=$$(grep -c 'github.com/BatoRoy/bato-native"' $$f); \
-	  tagged=$$(grep -cE 'github.com/BatoRoy/bato-native", tag = "[^"]+" }' $$f); \
+	  tagged=$$(grep -cE 'github.com/BatoRoy/bato-native", tag = "[^"]+"' $$f); \
 	  tags=$$(grep -oE 'github.com/BatoRoy/bato-native", tag = "[^"]+"' $$f | sort -u | wc -l); \
 	  if [ "$$all" -ne "$$tagged" ] || [ "$$tags" -ne 1 ]; then \
 	    echo "✗ bato-native dependencies must all use one tag (make native-bump TAG=…):"; \
@@ -343,6 +343,7 @@ ifneq ($(HAS_NATIVE),)
 	@$(MAKE) --no-print-directory native-tags
 	cd $(NATIVE_DIR) && cargo fmt --all -- --check
 	cd $(NATIVE_DIR) && cargo clippy $(NATIVE_LOCK) --all-targets --all-features -- -D warnings
+	cd $(NATIVE_DIR) && cargo clippy $(NATIVE_LOCK) --all-targets --no-default-features -- -D warnings
 endif
 	cd app-server && go vet ./...
 

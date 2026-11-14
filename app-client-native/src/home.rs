@@ -179,19 +179,19 @@ pub fn view<'a>(cx: &Ctx, h: Home<'_>, wide: bool) -> El<'a, Msg> {
         .spacing(24)
         .align_y(Alignment::Center),
     ];
-    let hint = rich(
-        vec![
-            Span::new("Open "),
-            Span::new("App Options").weight(500).color(c(p.subtext)),
-            Span::new(" in the sidebar to switch theme, accent and scale. The "),
+    let mut spans = vec![
+        Span::new("Open "),
+        Span::new("App Options").weight(500).color(c(p.subtext)),
+        Span::new(" in the sidebar to switch theme, accent and scale."),
+    ];
+    if cfg!(feature = "examples") {
+        spans.extend([
+            Span::new(" The "),
             Span::new("Examples").weight(500).color(c(p.subtext)),
             Span::new(" page has the full component kit."),
-        ],
-        12.0,
-        16.0,
-    )
-    .color(c(p.muted))
-    .wrap();
+        ]);
+    }
+    let hint = rich(spans, 12.0, 16.0).color(c(p.muted)).wrap();
     let comp_body = column![name_field, buttons, badges, update_row, hint].spacing(24);
     let version_badge = badge(&card_cx, Tone::Info, format!("v{}", h.brand.version)).mono();
     let components = card(cx, "Components")

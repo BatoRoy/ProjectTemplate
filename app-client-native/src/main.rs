@@ -1,9 +1,11 @@
 //! The native client: bato-kit's frame for the UI, bato-shell for the
 //! platform (identity, settings, HTTP, notifications, updates, `BATO_VIEW` /
-//! `BATO_SMOKE`). Pages: Home (this crate), Examples and Scroll lab (the
-//! bato-native gallery). See CLIENT.md.
+//! `BATO_SMOKE`). Pages: Home (this crate), and Examples and Scroll lab
+//! (the bato-native gallery, `examples` feature). See CLIENT.md.
 
 mod brand;
+#[cfg(feature = "examples")]
+mod examples;
 mod home;
 
 use bato_kit::frame::{self, Action, Dialog, Frame, NavItem, Start, UpdateStatus};
@@ -14,14 +16,15 @@ use bato_shell::http::Http;
 use bato_shell::notify::{Notification, Notifier};
 use bato_shell::updater::{self, UpdatePhase, Updater};
 use bato_shell::{backend, iced_ext};
-use gallery::showcase::{self, Effect, Tab};
 
 use brand::{APP, BRAND, REGISTRY_URL};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Page {
     Home,
+    #[cfg(feature = "examples")]
     Examples,
+    #[cfg(feature = "examples")]
     ScrollLab,
 }
 
@@ -35,7 +38,8 @@ pub enum Status {
 #[derive(Debug, Clone)]
 pub enum Msg {
     Frame(frame::Msg<Page>),
-    Showcase(showcase::Msg),
+    #[cfg(feature = "examples")]
+    Showcase(gallery::showcase::Msg),
     Name(String),
     AutoUpdate(bool),
     Ping,
@@ -59,7 +63,8 @@ pub enum Msg {
 
 struct App {
     frame: Frame<Page>,
-    showcase: showcase::State,
+    #[cfg(feature = "examples")]
+    examples: examples::Examples,
     notifier: Notifier,
     /// Listen for notification clicks only once one was sent, so an app that
     /// never notifies never opens a session-bus connection.
@@ -73,28 +78,6 @@ struct App {
     #[cfg(feature = "bundled-server")]
     server: Option<bato_shell::supervisor::Supervisor>,
     smoke: Smoke,
-}
-
-/// The page, Showcase tab and `card=` anchor a `BATO_VIEW` asks for.
-fn route(view: &BootView) -> (Page, Tab, Option<iced::widget::Id>) {
-    let page = match view.view.as_deref() {
-        Some("scroll-lab") => Page::ScrollLab,
-        Some("examples") => Page::Examples,
-        _ => Page::Home,
-    };
-    // `card=` selects its tab when `tab=` is missing.
-    let tab = view
-        .tab
-        .as_deref()
-        .and_then(Tab::parse)
-        .or_else(|| view.card.as_deref().and_then(Tab::of_card))
-        .unwrap_or_default();
-    let anchor = view
-        .card
-        .as_deref()
-        .filter(|c| page == Page::Examples && tab.cards().contains(c))
-        .map(|c| showcase::card_id(tab, c));
-    (page, tab, anchor)
 }
 
 /// The updater's phase as the frame shows it (About, the sidebar card).
@@ -112,12 +95,15 @@ fn update_status(phase: UpdatePhase) -> UpdateStatus {
 impl App {
     fn boot(view: BootView) -> (Self, Task<Msg>) {
         hooks::mark("boot (window + renderer created)");
-        let (page, tab, anchor) = route(&view);
-        let nav = vec![
-            NavItem::new(Page::Home, Ico::Home, "Home"),
-            NavItem::new(Page::Examples, Ico::LayoutGrid, "Examples"),
-            NavItem::new(Page::ScrollLab, Ico::Rows3, "Scroll lab"),
-        ];
+        #[allow(unused_mut)]
+        let mut nav = vec![NavItem::new(Page::Home, Ico::Home, "Home")];
+        #[cfg(feature = "examples")]
+        let (page, tab, anchor) = {
+            nav.extend(examples::nav());
+            examples::route(&view)
+        };
+        #[cfg(not(feature = "examples"))]
+        let (page, anchor) = (Page::Home, None);
         let start = Start {
             dialog: view.modal.as_deref().and_then(Dialog::parse),
             scroll: view.scroll,
@@ -131,7 +117,8 @@ impl App {
         let frame = Frame::new(BRAND, nav, settings, page).start(start);
         let app = App {
             frame,
-            showcase: showcase::State::new(tab),
+            #[cfg(feature = "examples")]
+            examples: examples::Examples::new(tab),
             notifier: Notifier::new(&APP),
             notified: false,
             updater: Updater::new(&APP, REGISTRY_URL),
@@ -210,21 +197,8 @@ impl App {
                 // handled by the frame).
                 Action::Command(_) => {}
             },
-            Msg::Showcase(m) => match showcase::update(&mut self.showcase, m) {
-                Some(Effect::Toast(text, tone)) => self.frame.toast(text, tone),
-                // The FileDropzone: open the portal chooser, send the paths back.
-                Some(Effect::OpenFiles { multiple, reply }) => {
-                    let o = bato_shell::dialogs::OpenFiles {
-                        multiple,
-                        ..Default::default()
-                    };
-                    return iced_ext::open_files(o).map(move |r| match r {
-                        Ok(paths) => Msg::Showcase((reply.0)(paths)),
-                        Err(e) => Msg::Frame(frame::Msg::Toast(e.to_string(), Tone::Error)),
-                    });
-                }
-                None => {}
-            },
+            #[cfg(feature = "examples")]
+            Msg::Showcase(m) => return self.examples.update(&mut self.frame, m),
             Msg::Name(n) => self.name = n,
             Msg::AutoUpdate(v) => self.auto_update = v,
             Msg::Ping => {
@@ -331,18 +305,13 @@ impl App {
                 },
                 wide,
             ),
-            Page::Examples => showcase::view(&self.showcase, cx, wide).map(Msg::Showcase),
-            Page::ScrollLab => gallery::scroll_lab::view(cx, wide),
+            #[cfg(feature = "examples")]
+            page => self.examples.view(page, cx, wide),
         };
-        // The Examples page's open dialogs (the Overlays card's ConfirmDialog,
-        // Drawer and CommandPalette) stack above the page like the frame's own.
-        let levels = match self.frame.page() {
-            Page::Examples => showcase::levels(&self.showcase, cx)
-                .into_iter()
-                .map(|l| l.map(Msg::Showcase))
-                .collect(),
-            _ => Vec::new(),
-        };
+        #[cfg(feature = "examples")]
+        let levels = self.examples.levels(self.frame.page(), cx);
+        #[cfg(not(feature = "examples"))]
+        let levels = Vec::new();
         self.frame.view_with(page, levels, Msg::Frame)
     }
 }
@@ -369,23 +338,6 @@ fn main() -> iced::Result {
 #[cfg(test)]
 mod tests {
     use super::*;
-
-    #[test]
-    fn bato_view_routes_pages_tabs_and_cards() {
-        let (p, t, a) = route(&BootView::parse("view=examples&tab=data&card=charts"));
-        assert_eq!((p, t), (Page::Examples, Tab::Data));
-        assert_eq!(a, Some(showcase::card_id(Tab::Data, "charts")));
-        let (_, t, a) = route(&BootView::parse("view=examples&card=pickers"));
-        assert_eq!(t, Tab::Date, "card= picks its tab");
-        assert!(a.is_some());
-        let (_, _, a) = route(&BootView::parse("view=examples&tab=inputs&card=charts"));
-        assert_eq!(a, None, "a card of another tab is ignored");
-        assert_eq!(
-            route(&BootView::parse("view=scroll-lab")).0,
-            Page::ScrollLab
-        );
-        assert_eq!(route(&BootView::parse("")).0, Page::Home);
-    }
 
     #[test]
     fn identity_matches_the_manifest() {
