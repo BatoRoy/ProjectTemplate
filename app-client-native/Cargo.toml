@@ -32,10 +32,10 @@ bundled-server = ["bato-shell/supervisor"]
 # Every bato-native line uses the same tag. `make native-bump TAG=vX.Y.Z` moves
 # them together; `make lint` fails if they disagree.
 [dependencies]
-bato-kit = { git = "https://github.com/BatoRoy/bato-native", tag = "v0.3.1" }
-bato-shell = { git = "https://github.com/BatoRoy/bato-native", tag = "v0.3.1" }
+bato-kit = { git = "https://github.com/BatoRoy/bato-native", tag = "v1.0.0" }
+bato-shell = { git = "https://github.com/BatoRoy/bato-native", tag = "v1.0.0" }
 # The Examples and Scroll lab pages (the `examples` feature).
-gallery = { git = "https://github.com/BatoRoy/bato-native", tag = "v0.3.1", optional = true }
+gallery = { git = "https://github.com/BatoRoy/bato-native", tag = "v1.0.0", optional = true }
 
 [dev-dependencies]
 serde_json = "1"
@@ -43,11 +43,11 @@ serde_json = "1"
 # The patched upstream crates (bato-native README, "Patched crates"). [patch]
 # is honoured only in the root manifest, so every app carries this block.
 [patch.crates-io]
-winit = { git = "https://github.com/BatoRoy/bato-native", tag = "v0.3.1" }
-cosmic-text = { git = "https://github.com/BatoRoy/bato-native", tag = "v0.3.1" }
-cryoglyph = { git = "https://github.com/BatoRoy/bato-native", tag = "v0.3.1" }
-iced_wgpu = { git = "https://github.com/BatoRoy/bato-native", tag = "v0.3.1" }
-iced_winit = { git = "https://github.com/BatoRoy/bato-native", tag = "v0.3.1" }
+winit = { git = "https://github.com/BatoRoy/bato-native", tag = "v1.0.0" }
+cosmic-text = { git = "https://github.com/BatoRoy/bato-native", tag = "v1.0.0" }
+cryoglyph = { git = "https://github.com/BatoRoy/bato-native", tag = "v1.0.0" }
+iced_wgpu = { git = "https://github.com/BatoRoy/bato-native", tag = "v1.0.0" }
+iced_winit = { git = "https://github.com/BatoRoy/bato-native", tag = "v1.0.0" }
 
 # Same profiles as bato-native.
 [profile.release]
