@@ -17,7 +17,7 @@ pub const APP: AppIdentity = AppIdentity::new(
 /// What the frame shows: sidebar header, Home, About.
 pub const BRAND: Brand = Brand {
     name: APP.product_name,
-    tagline: "A starting template — Electron + React + Go.",
+    tagline: "A starting template — native Rust (iced) + Go.",
     version: APP.version,
     slug: APP.slug,
     // Default accent; users can still change it in App Options. Match the
