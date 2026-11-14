@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Home, LayoutGrid, Settings, Info, Download, RefreshCw, PanelLeftClose, PanelLeftOpen, Search } from 'lucide-react'
+import { Home, LayoutGrid, Rows3, Settings, Info, Download, RefreshCw, PanelLeftClose, PanelLeftOpen, Search } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
 import clsx from 'clsx'
 import { VERSION } from '../lib/version'
@@ -19,6 +19,7 @@ interface NavItem {
 const NAV: NavItem[] = [
   { id: 'home',     label: 'Home',     icon: Home },
   { id: 'examples', label: 'Examples', icon: LayoutGrid },
+  { id: 'scroll-lab', label: 'Scroll lab', icon: Rows3 },
 ]
 
 // 'Ctrl K' / '⌘K', matching what useHotkeys treats as `mod`.

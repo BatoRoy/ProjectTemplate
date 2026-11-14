@@ -56,3 +56,6 @@ tools/*
 !tools/check-desktop-manifest.mjs
 !tools/check-contrast.mjs
 *.AppImage
+
+# Native client crates (Rust)
+native/**/target/

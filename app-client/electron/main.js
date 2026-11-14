@@ -46,7 +46,10 @@ function createWindow() {
     win.loadURL(`http://localhost:${devPort}`)
     win.webContents.openDevTools()
   } else {
-    win.loadFile(join(__dirname, '../frontend/dist/index.html'))
+    // BATO_VIEW (e.g. "view=scroll-lab&modal=options&scroll=1200") opens a given
+    // page/modal/scroll position — used to screenshot the Electron baseline next
+    // to the native clients, which honour the same variable.
+    win.loadFile(join(__dirname, '../frontend/dist/index.html'), { hash: process.env.BATO_VIEW || '' })
   }
 
   return win

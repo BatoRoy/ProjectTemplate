@@ -1,10 +1,11 @@
-import { useState, useMemo } from 'react'
-import { Home, LayoutGrid, Settings, Info, RefreshCw, Moon, SunMedium, CloudMoon } from 'lucide-react'
+import { useState, useMemo, useEffect } from 'react'
+import { Home, LayoutGrid, Rows3, Settings, Info, RefreshCw, Moon, SunMedium, CloudMoon } from 'lucide-react'
 import { ThemeProvider, useTheme } from './lib/theme'
 import { brand } from './brand'
 import { Sidebar } from './components/Sidebar'
 import { HomePage } from './components/HomePage'
 import { ShowcasePage } from './components/ShowcasePage'
+import { ScrollLabPage } from './components/ScrollLabPage'
 import { AppOptionsModal } from './components/AppOptionsModal'
 import { AboutDialog } from './components/AboutDialog'
 import { CommandPalette } from './components/overlay/CommandPalette'
@@ -15,19 +16,28 @@ import { useToast } from './hooks/useToast'
 import { useHotkeys } from './hooks/useHotkeys'
 
 // Inner shell so commands can use useTheme() (needs ThemeProvider above it).
+// Dev hook: #view=…&modal=options|about&scroll=<px> (see BATO_VIEW in electron/main.js).
+const initial = new URLSearchParams(window.location.hash.slice(1))
+
 function Shell() {
   const { toasts, toast, dismiss } = useToast()
   const { setTheme } = useTheme()
-  const [showOptions, setShowOptions] = useState(false)
-  const [showAbout, setShowAbout] = useState(false)
+  const [showOptions, setShowOptions] = useState(initial.get('modal') === 'options')
+  const [showAbout, setShowAbout] = useState(initial.get('modal') === 'about')
   const [showPalette, setShowPalette] = useState(false)
-  const [view, setView] = useState('home')
+  const [view, setView] = useState(initial.get('view') || 'home')
+
+  useEffect(() => {
+    const y = Number(initial.get('scroll'))
+    if (y) requestAnimationFrame(() => document.querySelector('main')?.scrollTo(0, y))
+  }, [])
 
   useHotkeys({ 'mod+k': () => setShowPalette(true) })
 
   const commands = useMemo<Command[]>(() => [
     { id: 'nav-home',     group: 'Navigate', label: 'Home',     icon: Home,       onRun: () => setView('home') },
     { id: 'nav-examples', group: 'Navigate', label: 'Examples', icon: LayoutGrid, onRun: () => setView('examples') },
+    { id: 'nav-scroll-lab', group: 'Navigate', label: 'Scroll lab', icon: Rows3, onRun: () => setView('scroll-lab') },
     { id: 'theme-dark',  group: 'Theme', label: 'Dark theme',  icon: Moon,      keywords: 'appearance', onRun: () => setTheme('dark') },
     { id: 'theme-dim',   group: 'Theme', label: 'Dim theme',   icon: CloudMoon, keywords: 'appearance', onRun: () => setTheme('dim') },
     { id: 'theme-light', group: 'Theme', label: 'Light theme', icon: SunMedium, keywords: 'appearance', onRun: () => setTheme('light') },
@@ -50,6 +60,7 @@ function Shell() {
         <main className="flex-1 overflow-y-auto">
           {view === 'home' && <HomePage toast={toast} onOpenPalette={() => setShowPalette(true)} />}
           {view === 'examples' && <ShowcasePage toast={toast} />}
+          {view === 'scroll-lab' && <ScrollLabPage />}
         </main>
       </div>
 
