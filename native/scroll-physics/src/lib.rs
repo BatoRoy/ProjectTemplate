@@ -14,6 +14,8 @@
 //! | Mouse wheel (notched or hi-res value120) | [`ScrollAxis::wheel`] (animated)     |
 //! | Touchpad / pixel deltas                 | [`ScrollAxis::precise`] (1:1)         |
 //! | Touchpad fingers lifted (`axis_stop`)   | [`ScrollAxis::precise_end`] (fling)  |
+//! | Touchscreen finger (down/move/up)       | [`TouchDrag`] (slop, 1:1, fling; says when a touch is a tap) |
+//! | Middle-click autoscroll (BatoScroll)    | [`autoscroll::Autoscroll`] |
 //! | Scrollbar drag, restore, jump           | [`ScrollAxis::set_offset`]           |
 //! | Smooth programmatic scroll              | [`ScrollAxis::animate_to`]           |
 //! | Every frame while animating             | [`ScrollAxis::tick`] → keep asking for frames while it returns `true` |
@@ -27,6 +29,8 @@
 //!   duration, retargeting with velocity continuity)
 //! - `ui/events/gestures/fling_curve.cc` (fling curve constants)
 //! - `ui/events/event.cc` (`kWheelDelta = 120` px per notch on Linux)
+
+pub mod autoscroll;
 
 use std::time::{Duration, Instant};
 
@@ -498,6 +502,144 @@ impl ScrollAxis {
     }
 }
 
+// ─── Touchscreen drag (Chromium's gesture recognizer, reduced) ──────────────
+
+/// Movement (logical px) a finger may make and still count as a tap.
+/// Chromium Aura: `max_touch_move_in_pixels_for_click` = 15.
+pub const TOUCH_SLOP: f32 = 15.0;
+
+/// What a touch event amounted to, for the toolkit to act on.
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub enum TouchOutcome {
+    /// Not our finger (a second finger, or no gesture in progress).
+    Ignored,
+    /// Inside the slop region: could still be a tap. Deliver nothing yet.
+    Pending,
+    /// The finger just left the slop region: this is a scroll. Cancel any
+    /// press the content underneath saw (a button must not click).
+    ScrollStarted,
+    /// Scrolling; the axis has already moved.
+    Scrolling,
+    /// Lifted without leaving the slop region: deliver a click/tap at the
+    /// touch position.
+    Tap,
+    /// Lifted after a scroll (fling started if fast enough), or a tap that
+    /// only stopped a running fling (Chromium does not click then).
+    Ended,
+}
+
+/// One-finger touchscreen scrolling for one [`ScrollAxis`] (the vertical one).
+/// Content follows the finger 1:1 after [`TOUCH_SLOP`], and flings on lift
+/// with the same curve as the touchpad.
+///
+/// ```text
+/// finger down  → down(id, x, y, axis)            (stops a fling)
+/// finger moved → moved(id, x, y, now, axis)      → Pending | ScrollStarted | Scrolling
+/// finger up    → up(id, now, axis)               → Tap | Ended
+/// cancelled    → cancel(axis)
+/// ```
+#[derive(Debug, Clone)]
+pub struct TouchDrag {
+    active: Option<Active>,
+    slop: f32,
+}
+
+impl Default for TouchDrag {
+    fn default() -> Self {
+        Self { active: None, slop: TOUCH_SLOP }
+    }
+}
+
+#[derive(Debug, Clone, Copy)]
+struct Active {
+    id: u64,
+    start: (f32, f32),
+    last_y: f32,
+    scrolling: bool,
+    /// The touch landed on moving content; it stops it and never clicks.
+    stopped_motion: bool,
+}
+
+impl TouchDrag {
+    pub fn new() -> Self {
+        Self::default()
+    }
+
+    /// Set the units: feed positions in device px and pass the device scale
+    /// (output scale × UI scale) so the slop stays 15 *logical* px, as in
+    /// Chromium. Positions in logical px need no call.
+    pub fn set_scale(&mut self, device_scale: f32) {
+        self.slop = TOUCH_SLOP * device_scale.max(0.01);
+    }
+
+    /// True while a finger is down and has turned into a scroll.
+    pub fn is_scrolling(&self) -> bool {
+        self.active.is_some_and(|a| a.scrolling)
+    }
+
+    /// True while a finger is down (pending or scrolling).
+    pub fn is_active(&self) -> bool {
+        self.active.is_some()
+    }
+
+    /// A finger touched down. Only the first finger is tracked. Stops any
+    /// wheel animation or fling, as Chromium does.
+    pub fn down(&mut self, id: u64, x: f32, y: f32, axis: &mut ScrollAxis) -> TouchOutcome {
+        if self.active.is_some() {
+            return TouchOutcome::Ignored;
+        }
+        let stopped_motion = axis.is_animating();
+        axis.stop();
+        self.active = Some(Active { id, start: (x, y), last_y: y, scrolling: false, stopped_motion });
+        TouchOutcome::Pending
+    }
+
+    pub fn moved(&mut self, id: u64, x: f32, y: f32, now: Instant, axis: &mut ScrollAxis) -> TouchOutcome {
+        let Some(a) = self.active.as_mut().filter(|a| a.id == id) else {
+            return TouchOutcome::Ignored;
+        };
+        if a.scrolling {
+            // Finger moves up → content moves up → offset grows.
+            axis.precise(a.last_y - y, now);
+            a.last_y = y;
+            return TouchOutcome::Scrolling;
+        }
+        let (dx, dy) = (x - a.start.0, y - a.start.1);
+        if dx.hypot(dy) <= self.slop {
+            return TouchOutcome::Pending;
+        }
+        // Leaving the slop region: scroll only by the travel beyond it, so the
+        // content does not jump by 15 px when the scroll begins.
+        a.scrolling = true;
+        let beyond = (dy.abs() - self.slop).max(0.0) * dy.signum();
+        axis.precise(-beyond, now);
+        a.last_y = y;
+        TouchOutcome::ScrollStarted
+    }
+
+    pub fn up(&mut self, id: u64, now: Instant, axis: &mut ScrollAxis) -> TouchOutcome {
+        let Some(a) = self.active.filter(|a| a.id == id) else {
+            return TouchOutcome::Ignored;
+        };
+        self.active = None;
+        if a.scrolling {
+            axis.precise_end(now);
+            TouchOutcome::Ended
+        } else if a.stopped_motion {
+            TouchOutcome::Ended
+        } else {
+            TouchOutcome::Tap
+        }
+    }
+
+    /// The compositor took the touch away (`wl_touch.cancel`). No fling, no tap.
+    pub fn cancel(&mut self, axis: &mut ScrollAxis) {
+        if self.active.take().is_some_and(|a| a.scrolling) {
+            axis.stop();
+        }
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -640,6 +782,90 @@ mod tests {
         assert_eq!(a.offset(), 300.0);
         a.wheel_notches(-1.0, t);
         assert_eq!(a.target(), 180.0);
+    }
+
+    #[test]
+    fn touch_tap_inside_slop_is_a_tap() {
+        let t = Instant::now();
+        let mut a = axis(10_000.0);
+        let mut d = TouchDrag::new();
+        assert_eq!(d.down(1, 100.0, 100.0, &mut a), TouchOutcome::Pending);
+        assert_eq!(d.moved(1, 108.0, 106.0, t + ms(30), &mut a), TouchOutcome::Pending);
+        assert_eq!(d.up(1, t + ms(80), &mut a), TouchOutcome::Tap);
+        assert_eq!(a.offset(), 0.0);
+    }
+
+    #[test]
+    fn touch_drag_follows_finger_without_slop_jump_then_flings() {
+        let t = Instant::now();
+        let mut a = axis(100_000.0);
+        let mut d = TouchDrag::new();
+        d.down(7, 200.0, 600.0, &mut a);
+        // Finger moves up 20 px: 15 px of slop, then 5 px of scroll.
+        assert_eq!(d.moved(7, 200.0, 580.0, t + ms(10), &mut a), TouchOutcome::ScrollStarted);
+        assert_eq!(a.offset(), 5.0);
+        // Then 1:1, 20 px per 10 ms (2000 px/s).
+        let mut y = 580.0;
+        for i in 2..=10 {
+            y -= 20.0;
+            assert_eq!(d.moved(7, 200.0, y, t + ms(i * 10), &mut a), TouchOutcome::Scrolling);
+        }
+        assert_eq!(a.offset(), 5.0 + 9.0 * 20.0);
+        assert_eq!(d.up(7, t + ms(105), &mut a), TouchOutcome::Ended);
+        assert!(a.is_animating(), "fast lift flings");
+    }
+
+    #[test]
+    fn touch_drag_down_moves_content_down() {
+        let t = Instant::now();
+        let mut a = axis(10_000.0);
+        a.set_offset(500.0);
+        let mut d = TouchDrag::new();
+        d.down(1, 0.0, 100.0, &mut a);
+        d.moved(1, 0.0, 140.0, t + ms(10), &mut a);
+        assert_eq!(a.offset(), 475.0, "40 px down minus 15 px slop");
+    }
+
+    #[test]
+    fn touch_slop_scales_with_device_px() {
+        let t = Instant::now();
+        let mut a = axis(10_000.0);
+        let mut d = TouchDrag::new();
+        d.set_scale(2.0);
+        d.down(1, 0.0, 100.0, &mut a);
+        assert_eq!(d.moved(1, 0.0, 75.0, t, &mut a), TouchOutcome::Pending, "25 device px < 30");
+        assert_eq!(d.moved(1, 0.0, 60.0, t + ms(10), &mut a), TouchOutcome::ScrollStarted);
+        assert_eq!(a.offset(), 10.0);
+    }
+
+    #[test]
+    fn touch_that_stops_a_fling_does_not_click() {
+        let t = Instant::now();
+        let mut a = axis(100_000.0);
+        for i in 0..10 {
+            a.precise(30.0, t + ms(i * 10));
+        }
+        assert!(a.precise_end(t + ms(95)));
+        a.tick(t + ms(200));
+        let mut d = TouchDrag::new();
+        d.down(1, 50.0, 50.0, &mut a);
+        assert!(!a.is_animating(), "touch down stops the fling");
+        assert_eq!(d.up(1, t + ms(260), &mut a), TouchOutcome::Ended);
+    }
+
+    #[test]
+    fn second_finger_and_cancel_are_ignored() {
+        let t = Instant::now();
+        let mut a = axis(10_000.0);
+        let mut d = TouchDrag::new();
+        d.down(1, 0.0, 300.0, &mut a);
+        assert_eq!(d.down(2, 0.0, 0.0, &mut a), TouchOutcome::Ignored);
+        assert_eq!(d.moved(2, 0.0, 500.0, t, &mut a), TouchOutcome::Ignored);
+        d.moved(1, 0.0, 200.0, t + ms(10), &mut a);
+        d.cancel(&mut a);
+        assert!(!d.is_active());
+        assert!(!a.is_animating(), "cancel never flings");
+        assert_eq!(d.up(1, t + ms(20), &mut a), TouchOutcome::Ignored);
     }
 
     #[test]

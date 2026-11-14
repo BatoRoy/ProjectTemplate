@@ -1,0 +1,151 @@
+--- a/crates/gpui_linux/src/linux/wayland/client.rs
++++ b/crates/gpui_linux/src/linux/wayland/client.rs
+@@ -38,7 +38,7 @@
+     Connection, Dispatch, Proxy, QueueHandle, delegate_noop,
+     protocol::{
+         wl_buffer, wl_compositor, wl_keyboard, wl_pointer, wl_registry, wl_seat, wl_shm,
+-        wl_shm_pool, wl_surface,
++        wl_shm_pool, wl_surface, wl_touch,
+     },
+ };
+ use wayland_protocols::ext::background_effect::v1::client::{
+@@ -107,7 +107,8 @@
+     KeyUpEvent, Keystroke, Modifiers, ModifiersChangedEvent, MouseButton, MouseDownEvent,
+     MouseExitEvent, MouseMoveEvent, MouseUpEvent, NavigationDirection, Pixels, PlatformDisplay,
+     PlatformFrameSignal, PlatformInput, PlatformKeyboardLayout, PlatformWindow, Point, ScrollDelta,
+-    ScrollEvent, ScrollSource, SharedString, Size, TouchPhase, WindowButtonLayout, WindowKind,
++    ScrollEvent, ScrollSource, SharedString, Size, TouchEvent, TouchId, TouchPhase,
++    WindowButtonLayout, WindowKind,
+     WindowParams, point, px, size,
+ };
+ use gpui_wgpu::{CompositorGpuHint, GpuContext};
+@@ -364,6 +365,11 @@
+     pub compositor_gpu: Option<CompositorGpuHint>,
+     wl_seat: wl_seat::WlSeat, // TODO: Multi seat support
+     wl_pointer: Option<wl_pointer::WlPointer>,
++    wl_touch: Option<wl_touch::WlTouch>,
++    /// Touch points that are down: the window they started on and their last position.
++    touch_points: HashMap<i32, (WaylandWindowStatePtr, Point<Pixels>)>,
++    /// Touch events of the current `wl_touch.frame`, delivered when it ends.
++    touch_frame: Vec<(WaylandWindowStatePtr, TouchEvent)>,
+     pinch_gesture: Option<zwp_pointer_gesture_pinch_v1::ZwpPointerGesturePinchV1>,
+     pinch_scale: f32,
+     wl_keyboard: Option<wl_keyboard::WlKeyboard>,
+@@ -1073,6 +1079,9 @@
+             compositor_gpu,
+             wl_seat: seat,
+             wl_pointer: None,
++            wl_touch: None,
++            touch_points: HashMap::default(),
++            touch_frame: Vec::new(),
+             wl_keyboard: None,
+             pinch_gesture: None,
+             pinch_scale: 1.0,
+@@ -2043,6 +2052,15 @@
+ 
+                 state.wl_pointer = Some(pointer);
+             }
++            if capabilities.contains(wl_seat::Capability::Touch) {
++                if state.wl_touch.is_none() {
++                    state.wl_touch = Some(seat.get_touch(qh, ()));
++                }
++            } else if let Some(wl_touch) = state.wl_touch.take() {
++                wl_touch.release();
++                state.touch_points.clear();
++                state.touch_frame.clear();
++            }
+         }
+     }
+ }
+@@ -2395,6 +2413,91 @@
+     })
+ }
+ 
++/// Touchscreen input as GPUI's raw [`TouchEvent`]s (the window's portable
++/// gesture recognizer turns them into taps, pans and long presses, as on the
++/// other platforms). Events are grouped per `wl_touch.frame`; positions are
++/// surface-local logical pixels, like the pointer's.
++impl Dispatch<wl_touch::WlTouch, ()> for WaylandClientStatePtr {
++    fn event(
++        this: &mut Self,
++        _: &wl_touch::WlTouch,
++        event: wl_touch::Event,
++        _: &(),
++        _: &Connection,
++        _: &QueueHandle<Self>,
++    ) {
++        let client = this.get_client();
++        let mut state = client.borrow_mut();
++        let touch = |id: i32, phase, position| TouchEvent {
++            id: TouchId(id as u32 as u64),
++            phase,
++            position,
++            ..Default::default()
++        };
++        match event {
++            wl_touch::Event::Down {
++                surface, id, x, y, ..
++            } => {
++                let Some(window) = get_window(&mut state, &surface.id()) else {
++                    return;
++                };
++                let position = point(px(x as f32), px(y as f32));
++                state.touch_points.insert(id, (window.clone(), position));
++                state
++                    .touch_frame
++                    .push((window, touch(id, TouchPhase::Started, position)));
++            }
++            wl_touch::Event::Motion { id, x, y, .. } => {
++                let position = point(px(x as f32), px(y as f32));
++                let Some((window, last)) = state.touch_points.get_mut(&id) else {
++                    return;
++                };
++                *last = position;
++                let window = window.clone();
++                // Only the latest motion of a point within a frame matters.
++                if let Some((_, pending)) = state.touch_frame.iter_mut().rev().find(|(_, e)| {
++                    e.id == TouchId(id as u32 as u64) && e.phase == TouchPhase::Moved
++                }) {
++                    pending.position = position;
++                } else {
++                    state
++                        .touch_frame
++                        .push((window, touch(id, TouchPhase::Moved, position)));
++                }
++            }
++            wl_touch::Event::Up { id, .. } => {
++                if let Some((window, position)) = state.touch_points.remove(&id) {
++                    state
++                        .touch_frame
++                        .push((window, touch(id, TouchPhase::Ended, position)));
++                }
++            }
++            wl_touch::Event::Frame => {
++                let events = std::mem::take(&mut state.touch_frame);
++                drop(state);
++                for (window, event) in events {
++                    window.handle_input(PlatformInput::Touch(event));
++                }
++            }
++            wl_touch::Event::Cancel => {
++                // The compositor took every current touch point (e.g. for a
++                // system gesture): they end now, without a click or a fling.
++                state.touch_frame.clear();
++                let points: Vec<_> = state.touch_points.drain().collect();
++                drop(state);
++                for (id, (window, position)) in points {
++                    window.handle_input(PlatformInput::Touch(touch(
++                        id,
++                        TouchPhase::Cancelled,
++                        position,
++                    )));
++                }
++            }
++            _ => {}
++        }
++    }
++}
++
+ impl Dispatch<wl_pointer::WlPointer, ()> for WaylandClientStatePtr {
+     fn event(
+         this: &mut Self,

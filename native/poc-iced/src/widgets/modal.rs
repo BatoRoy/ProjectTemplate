@@ -143,6 +143,20 @@ impl<'a, Message: Clone + 'a> Widget<Message, iced::Theme, iced::Renderer> for M
                 shell.capture_event();
             }
             Event::Mouse(mouse::Event::WheelScrolled { .. }) => shell.capture_event(),
+            // Touch: same rule as the mouse (down and up both on the scrim),
+            // and never let a finger reach the page underneath.
+            Event::Touch(iced::touch::Event::FingerPressed { position, .. }) => {
+                st.down_on_backdrop = !panel_layout.bounds().contains(*position);
+                shell.capture_event();
+            }
+            Event::Touch(iced::touch::Event::FingerLifted { position, .. }) => {
+                if st.down_on_backdrop && !panel_layout.bounds().contains(*position) {
+                    shell.publish(self.on_close.clone());
+                }
+                st.down_on_backdrop = false;
+                shell.capture_event();
+            }
+            Event::Touch(_) => shell.capture_event(),
             Event::Keyboard(keyboard::Event::KeyPressed { key: keyboard::Key::Named(keyboard::key::Named::Escape), .. }) => {
                 shell.publish(self.on_close.clone());
                 shell.capture_event();

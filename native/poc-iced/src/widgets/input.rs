@@ -91,6 +91,12 @@ impl<'a, Message: 'a> Widget<Message, iced::Theme, iced::Renderer> for Field<'a,
         shell: &mut Shell<'_, Message>,
         viewport: &Rectangle,
     ) {
+        // `data-batoscroll-ignore`: a middle press on a text field is the
+        // field's (primary paste), never an autoscroll.
+        if matches!(event, Event::Mouse(mouse::Event::ButtonPressed(mouse::Button::Middle))) && cursor.is_over(layout.bounds()) {
+            shell.capture_event();
+            return;
+        }
         self.inner.as_widget_mut().update(
             &mut tree.children[0],
             event,

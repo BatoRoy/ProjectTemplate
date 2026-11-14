@@ -7,7 +7,7 @@ use std::time::{Duration, Instant};
 use bato_theme::settings::{backend_url, Settings};
 use gpui::{
     actions, canvas, div, prelude::*, px, AnyElement, App, Context, Entity, KeyBinding, MouseButton, MouseDownEvent,
-    MouseMoveEvent, MouseUpEvent, ScrollEvent, SharedString, Task, Window,
+    ScrollEvent, SharedString, Task, Window,
 };
 
 use crate::scroll::Scroller;
@@ -98,6 +98,15 @@ pub struct Root {
     pub selftest_frames: Option<Vec<(f64, f32, f32)>>,
     started: Instant,
     focus: gpui::FocusHandle,
+    /// Touchscreen (first finger → scroll_physics::TouchDrag).
+    pub(crate) touch: crate::touch::TouchRouter,
+    /// The current touch stopped autoscroll: ignore it until it lifts.
+    pub(crate) touch_ignore: bool,
+    /// BatoScroll middle-click autoscroll.
+    pub auto: crate::autoscroll_ui::AutoRouter,
+    /// BATO_VIEW autoscroll=x,y,cursor_y: engage once the content is measured.
+    pending_autoscroll: Option<(f32, f32, f32)>,
+    pub(crate) scroll_debug: bool,
     /// RailTip: hovered collapsed row (label, anchor bounds, hover start).
     rail_tip: Option<(SharedString, gpui::Bounds<gpui::Pixels>, Instant)>,
     rail_tip_task: Option<Task<()>>,
@@ -130,6 +139,14 @@ fn parse_view_env() -> (Option<View>, Option<Modal>, Option<f32>) {
         }
     }
     (v, m, s)
+}
+
+/// `BATO_VIEW=…&autoscroll=x,y,cursor_y` (screenshot hook).
+fn parse_autoscroll_env() -> Option<(f32, f32, f32)> {
+    let raw = std::env::var("BATO_VIEW").ok()?;
+    let v = raw.split('&').find_map(|kv| kv.strip_prefix("autoscroll="))?;
+    let n: Vec<f32> = v.split(',').filter_map(|x| x.trim().parse().ok()).collect();
+    (n.len() == 3).then(|| (n[0], n[1], n[2]))
 }
 
 impl Root {
@@ -194,17 +211,30 @@ impl Root {
             selftest_frames: None,
             started: Instant::now(),
             focus: cx.focus_handle(),
+            touch: Default::default(),
+            touch_ignore: false,
+            auto: Default::default(),
+            pending_autoscroll: parse_autoscroll_env(),
+            scroll_debug: crate::scroll::debug_enabled(),
             rail_tip: None,
             rail_tip_task: None,
             _subs: subs,
         };
         this.ping(cx);
         window.focus(&this.focus, cx);
+        let sub = cx.observe_window_activation(window, |this: &mut Root, window, cx| {
+            if !window.is_window_active() && this.auto.cancel("window deactivated") == crate::autoscroll_ui::Verdict::Consume {
+                cx.notify();
+            }
+        });
+        this._subs.push(sub);
         match std::env::var("BATO_SELFTEST").as_deref() {
             Ok("1") => cx.spawn_in(window, async move |this, cx| crate::selftest::run(this, cx).await).detach(),
             Ok("ui") => cx.spawn_in(window, async move |this, cx| crate::selftest::run_ui(this, cx).await).detach(),
             Ok("visit") => cx.spawn_in(window, async move |this, cx| crate::selftest::run_visit(this, cx).await).detach(),
             Ok("rail") => cx.spawn_in(window, async move |this, cx| crate::selftest::run_rail(this, cx).await).detach(),
+            Ok("touch") => cx.spawn_in(window, async move |this, cx| crate::selftest::run_touch(this, cx).await).detach(),
+            Ok("autoscroll") => cx.spawn_in(window, async move |this, cx| crate::selftest::run_autoscroll(this, cx).await).detach(),
             _ => {}
         }
         this
@@ -336,6 +366,10 @@ impl Root {
     }
 
     fn close_modal(&mut self, _: &CloseModal, window: &mut Window, cx: &mut Context<Self>) {
+        if self.auto.cancel("escape") == crate::autoscroll_ui::Verdict::Consume {
+            cx.notify();
+            return;
+        }
         if self.modal.take().is_some() {
             // Focus returns to the shell (an input inside the dialog may have had it).
             window.focus(&self.focus, cx);
@@ -827,6 +861,28 @@ impl Render for Root {
         window.set_rem_size(px(16.0 * t.s));
         let mut animating = false;
 
+        // BatoScroll: one step per frame while engaged (whole device pixels).
+        if let Some((x, y, cy)) = self.pending_autoscroll {
+            if self.main.axis.max() > 0.0 {
+                self.pending_autoscroll = None;
+                let now = Instant::now();
+                self.main.axis.stop();
+                self.auto.press(MouseButton::Middle, gpui::point(px(x), px(y)), true, now);
+                self.auto.release(MouseButton::Middle);
+                self.auto.moved(gpui::point(px(x), px(cy)));
+            } else {
+                animating = true;
+            }
+        }
+        if self.auto.engaged() {
+            let (_, dy) = self.auto.auto.tick(Instant::now(), window.scale_factor());
+            if dy != 0.0 {
+                let off = self.main.axis.offset();
+                self.main.axis.set_offset(off + dy);
+            }
+            animating = true;
+        }
+
         // Physics + measured sizes for the main scroller.
         animating |= self.main.frame();
         if let Some(tw) = self.sidebar_tween {
@@ -885,31 +941,8 @@ impl Render for Root {
             }
         }
 
-        // Thumb drag: track the pointer anywhere in the window while held.
-        let dragging = self.main.drag.is_some();
-        let entity = cx.entity();
-        let drag_capture = canvas(|_, _, _| {}, move |_, _, window, _| {
-            if !dragging {
-                return;
-            }
-            let e = entity.clone();
-            window.on_mouse_event(move |ev: &MouseMoveEvent, _, _, cx| {
-                e.update(cx, |this, cx| {
-                    let s = cx.global::<Theme>().s;
-                    this.main.drag_to(f32::from(ev.position.y), this.main.viewport_h, 10.0 * s);
-                    cx.notify();
-                });
-            });
-            let e = entity.clone();
-            window.on_mouse_event(move |_: &MouseUpEvent, _, _, cx| {
-                e.update(cx, |this, cx| {
-                    this.main.drag = None;
-                    cx.notify();
-                });
-            });
-        })
-        .absolute()
-        .size_0();
+        let input_capture = self.input_capture(cx);
+        let autoscroll_overlay = self.render_autoscroll(&t);
 
         div()
             .id("root")
@@ -929,6 +962,7 @@ impl Render for Root {
             .children(rail_tip)
             .children(modal)
             .children(toasts)
-            .child(drag_capture)
+            .children(autoscroll_overlay)
+            .child(input_capture)
     }
 }

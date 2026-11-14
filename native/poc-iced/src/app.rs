@@ -73,6 +73,8 @@ pub struct Boot {
     pub toast: bool,
     /// Debug: `demo=sidebar` toggles the sidebar once after start.
     pub demo_sidebar: bool,
+    /// Debug: `autoscroll=x,y,cursor_y` engages BatoScroll at start.
+    pub autoscroll: Option<(f32, f32, f32)>,
 }
 
 impl Boot {
@@ -86,6 +88,12 @@ impl Boot {
                 "scroll" => b.scroll = v.parse().ok(),
                 "toast" => b.toast = v == "1",
                 "demo" => b.demo_sidebar = v == "sidebar",
+                "autoscroll" => {
+                    let n: Vec<f32> = v.split(',').filter_map(|x| x.parse().ok()).collect();
+                    if n.len() == 3 {
+                        b.autoscroll = Some((n[0], n[1], n[2]));
+                    }
+                }
                 _ => {}
             }
         }
@@ -118,6 +126,7 @@ pub struct App {
     smoke: bool,
     frames: u32,
     window_scale: f32,
+    autoscroll: crate::widgets::autoscroll::AutoscrollBus,
 }
 
 #[derive(Debug, Clone)]
@@ -195,8 +204,15 @@ impl App {
             smoke: boot.smoke,
             frames: 0,
             window_scale: 1.0,
+            autoscroll: crate::widgets::autoscroll::new_bus(),
         };
         let mut app = app;
+        if let Some((x, y, cy)) = boot.autoscroll {
+            // Debug hook: engage at (x, y) with the cursor at (x, cy).
+            let mut bus = app.autoscroll.borrow_mut();
+            bus.arm(x, y, Instant::now());
+            bus.auto.pointer_moved(x, cy);
+        }
         if boot.toast {
             app.toast("Hello, Ada!", Tone::Success);
             app.toast("Something went wrong", Tone::Error);
@@ -395,8 +411,12 @@ impl App {
             View::Examples => self.examples(),
             View::ScrollLab => self.scroll_lab(),
         };
-        let main = scroller(page, c(p.border), c(p.muted)).initial(self.boot_scroll);
-        let shell: El<'_, Msg> = row![self.sidebar(), main].height(Length::Fill).into();
+        let main = scroller(page, c(p.border), c(p.muted)).initial(self.boot_scroll).autoscroll(self.autoscroll.clone());
+        let shell: El<'_, Msg> = crate::widgets::autoscroll::autoscroll_layer(
+            row![self.sidebar(), main].height(Length::Fill),
+            self.autoscroll.clone(),
+        )
+        .into();
         let mut layers: Vec<El<'_, Msg>> = vec![shell];
         if let Some(m) = self.modal {
             let (panel, w) = match m {

@@ -30,6 +30,7 @@ struct State {
     from: f32,
     started: Option<Instant>,
     pressed: bool,
+    finger: Option<u64>,
 }
 
 impl<Message> Widget<Message, iced::Theme, iced::Renderer> for Switch<Message> {
@@ -87,6 +88,20 @@ impl<Message> Widget<Message, iced::Theme, iced::Renderer> for Switch<Message> {
                 st.pressed = true;
                 shell.capture_event();
             }
+            Event::Touch(iced::touch::Event::FingerPressed { id, position })
+                if st.finger.is_none() && layout.bounds().contains(*position) =>
+            {
+                st.finger = Some(id.0);
+                shell.capture_event();
+            }
+            Event::Touch(iced::touch::Event::FingerLifted { id, position }) if st.finger == Some(id.0) => {
+                st.finger = None;
+                if layout.bounds().contains(*position) {
+                    shell.publish((self.on_toggle)(!self.on));
+                }
+                shell.capture_event();
+            }
+            Event::Touch(iced::touch::Event::FingerLost { id, .. }) if st.finger == Some(id.0) => st.finger = None,
             Event::Mouse(mouse::Event::ButtonReleased(mouse::Button::Left)) if st.pressed => {
                 st.pressed = false;
                 if cursor.is_over(layout.bounds()) {

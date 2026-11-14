@@ -37,6 +37,21 @@ icons!(
 /// 16px spinner (§4.9): a 2px ring with a transparent top quarter.
 const SPINNER: &str = r##"<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16"><path d="M12.950 3.050 A7 7 0 1 1 3.050 3.050" fill="none" stroke="#000" stroke-width="2"/></svg>"##;
 
+/// BatoScroll's compass (HYBRID-SPEC §6.1, indicator.js): viewBox 100, ring
+/// r 47, four triangles (lit = #4ea1ff), centre dot. Drawn 4× for crisp
+/// downscaling; the drop shadow is a GPUI box shadow on the round container.
+/// `lit` = [up, down, left, right].
+pub fn compass_svg(lit: [bool; 4]) -> String {
+    let fill = |on: bool| if on { "#4ea1ff" } else { "rgba(255,255,255,0.55)" };
+    format!(
+        r##"<svg xmlns="http://www.w3.org/2000/svg" width="400" height="400" viewBox="0 0 100 100"><circle cx="50" cy="50" r="47" fill="rgba(28,28,32,0.82)" stroke="rgba(255,255,255,0.85)" stroke-width="2"/><polygon points="50,14 40,30 60,30" fill="{}"/><polygon points="50,86 40,70 60,70" fill="{}"/><polygon points="14,50 30,40 30,60" fill="{}"/><polygon points="86,50 70,40 70,60" fill="{}"/><circle cx="50" cy="50" r="5" fill="rgba(255,255,255,0.9)"/></svg>"##,
+        fill(lit[0]),
+        fill(lit[1]),
+        fill(lit[2]),
+        fill(lit[3])
+    )
+}
+
 /// The custom-accent swatch: `conic-gradient(from 0deg, #f43f5e, #f59e0b,
 /// #10b981, #06b6d4, #6366f1, #d946ef, #f43f5e)` as 180 thin wedges (GPUI
 /// has no conic gradients), interpolated in sRGB like CSS.
@@ -70,6 +85,12 @@ pub fn rainbow_svg() -> String {
 impl AssetSource for Assets {
     fn load(&self, path: &str) -> gpui::Result<Option<Cow<'static, [u8]>>> {
         let Some(name) = path.strip_prefix("icons/").and_then(|p| p.strip_suffix(".svg")) else { return Ok(None) };
+        if let Some(bits) = name.strip_prefix("compass-") {
+            let lit: Vec<bool> = bits.chars().map(|c| c == '1').collect();
+            if lit.len() == 4 {
+                return Ok(Some(Cow::Owned(compass_svg([lit[0], lit[1], lit[2], lit[3]]).into_bytes())));
+            }
+        }
         if name == "rainbow" {
             return Ok(Some(Cow::Owned(rainbow_svg().into_bytes())));
         }

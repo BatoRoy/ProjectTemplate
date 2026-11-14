@@ -310,6 +310,8 @@ impl<'a, Message: Clone + 'a> Surface<'a, Message> {
 struct State {
     hovered: bool,
     pressed: bool,
+    /// Touch: the finger that pressed this surface (taps click like the mouse).
+    finger: Option<u64>,
     /// Transition progress toward the hover style, 0..1.
     t: f32,
     from: f32,
@@ -414,6 +416,24 @@ impl<'a, Message: Clone + 'a> Widget<Message, iced::Theme, iced::Renderer> for S
             Event::Mouse(mouse::Event::ButtonPressed(mouse::Button::Left)) if over && interactive => {
                 state.pressed = true;
                 shell.capture_event();
+            }
+            Event::Touch(iced::touch::Event::FingerPressed { id, position }) if interactive && state.finger.is_none() => {
+                if bounds.contains(*position) && viewport.contains(*position) {
+                    state.finger = Some(id.0);
+                    shell.capture_event();
+                }
+            }
+            Event::Touch(iced::touch::Event::FingerLifted { id, position }) if state.finger == Some(id.0) => {
+                state.finger = None;
+                if bounds.contains(*position) && interactive {
+                    if let Some(m) = self.on_press.clone() {
+                        shell.publish(m);
+                    }
+                }
+                shell.capture_event();
+            }
+            Event::Touch(iced::touch::Event::FingerLost { id, .. }) if state.finger == Some(id.0) => {
+                state.finger = None;
             }
             Event::Mouse(mouse::Event::ButtonReleased(mouse::Button::Left)) if state.pressed => {
                 state.pressed = false;

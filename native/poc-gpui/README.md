@@ -34,9 +34,12 @@ Electron; the status still reads Online.)
 | `BATO_VIEW='view=home\|examples\|scroll-lab&modal=options\|about&scroll=<px>'` | open a view, a dialog, a scroll offset (same format as the Electron build) |
 | `BATO_SMOKE=1` | print `first-frame-ms=<n>` (from the process start time in `/proc/self/stat`) once the first frame is presented, exit 0 |
 | `BATO_BACKEND_URL` | backend override (else `settings.json` `backendUrl`, else `http://localhost:8080`) |
-| `BATO_SCROLL_DEBUG=1` | log every scroll event: kind (lines/pixels), raw dx/dy, phase, source, what it was mapped to, offset |
+| `BATO_SCROLL_DEBUG=1` | log every scroll event (kind lines/pixels, raw dx/dy, phase, source, mapping, offset), every touch event (`[touch]` phase, pos, start, main area?, TouchDrag outcome) and autoscroll state changes (`[autoscroll]`) |
 | `BATO_TOUCHPAD_GAIN=<px>` | px per Wayland `axis` unit for touchpads (default 12 = Chromium) |
 | `BATO_SELFTEST=1` | in-process synthetic input through GPUI's real dispatch: 3 wheel notches, a touchpad swipe + lift (fling), sidebar collapse/expand, 1.5 s idle; prints every frame (time, offset, sidebar width) and a summary, then exits |
+| `BATO_SELFTEST=touch` | raw touch events through GPUI's dispatch: taps (switch, nav row), drag + fling, catch-the-fling, sidebar drag, cancel, second finger; prints PASS/FAIL and exits |
+| `BATO_SELFTEST=autoscroll` | middle-click autoscroll through GPUI's dispatch: toggle mode, scrolling, swallowed stopping click, wheel cancel, hold mode, sidebar, idle; PASS/FAIL |
+| `BATO_VIEW=…&autoscroll=x,y,cy` | engage autoscroll at (x,y) with the cursor at (x,cy), for screenshots |
 | `BATO_SELFTEST=ui\|visit\|rail` | synthetic clicks (Options → Light → Esc → Primary), a Scroll-lab visit, the collapsed-rail tooltip; stays open for screenshots |
 | `ZED_FONTS_GAMMA`, `ZED_FONTS_GRAYSCALE_ENHANCED_CONTRAST`, `BATO_TEXT_AA=subpixel` | text rendering overrides (defaults below) |
 | `WGPU_BACKEND` | default `vulkan` when a Vulkan driver is installed (see "Memory") |
@@ -154,6 +157,67 @@ no `rgba`, hintstyle `slight`), so GPUI runs in `TextRenderingMode::Grayscale`.
 - Unit tests (`cargo test --release`) cover the mapping (notch, 1/8-notch hi-res, touchpad gain,
   axis_stop, horizontal-only ignored, fling start).
 
+## Touchscreen
+
+Upstream gpui_linux never binds `wl_touch` (only keyboard and pointer seat capabilities), so a
+touchscreen did nothing. `patches/gpui-linux-wayland-touch.diff` binds it when the seat has the
+Touch capability and delivers GPUI's **existing** platform contract, `PlatformInput::Touch`
+(`TouchEvent { id, phase, position }`, what GPUI's other platforms emit): down → `Started`,
+motion → `Moved` (coalesced per point within a `wl_touch.frame`), up → `Ended`, all queued and
+delivered on `frame`; `cancel` → `Cancelled` for every point, delivered at once; shape and
+orientation ignored. Positions are surface-local logical px, exactly like the pointer's, so they
+are correct at any fractional output scale. The patch has no gesture logic.
+
+GPUI's window feeds raw touches to its own recognizer (8 px slop, iOS-style fling, synthesized
+taps). We keep it out: at touch-down the recognizer *offers* the touch as a `TouchDragEvent`, and a
+window-level listener in the app claims it (`prevent_default`). From then on the app receives that
+finger's down/move/up/cancel and GPUI emits no pans, momentum, taps or long presses for it. GPUI
+tracks only the first finger and drops the others (they never reach the app; `TouchDrag` would
+ignore them too). The claimed stream drives `scroll_physics::TouchDrag` (`src/touch.rs`):
+
+- a touch that starts in the main scroll viewport (no dialog open) drives the main `ScrollAxis`;
+  anywhere else (sidebar, dialogs) it drives a dummy axis that cannot move, so it can only tap;
+- arbitration is `TouchDrag`'s: within 15 px it is `Pending`; leaving the slop → `ScrollStarted`
+  (content moves by the travel beyond the slop, then 1:1); lift → `Tap`, or `Ended` with a fling
+  from the same curve as the touchpad; a touch-down stops a fling and that touch never clicks;
+  `cancel` never flings or clicks;
+- a `Tap` becomes a synthetic left click at the lift position (mouse move, down, up, deferred until
+  the touch dispatch returns), like Chromium which emits mouse events only at tap end. So taps work
+  on everything: buttons, nav rows, swatches, switch, segments, the text field (focus), the scrim.
+- frames: the fling runs through the same `Scroller::frame` → `tick` → `request_animation_frame`
+  path as the touchpad.
+
+Offsets and touch positions are both window px, so the content follows the finger exactly at
+every UI scale (rem scaling changes the content, not the coordinate space). Not done: dragging the
+scrollbar thumb by touch (a touch on it scrolls the content like anywhere else), long-press,
+pinch, text selection by touch, X11 touch (XI2).
+
+## BatoScroll (middle-click autoscroll)
+
+`scroll_physics::autoscroll` owns the behaviour (state machine, speed curve, smoothing, whole
+device-pixel steps, `~/.config/bato/batoscroll.json`); `src/autoscroll_ui.rs` routes GPUI events to it
+and `src/input.rs` registers window-level **capture-phase** listeners every frame, so it wins over
+any element underneath:
+
+- middle press on the main viewport arms it (also on buttons/rows) if the content can scroll and the
+  press is not on the text field and no dialog is open; the press is consumed. The sidebar is not a
+  scroller: a middle press there does nothing;
+- while engaged a full-window overlay `occlude`s the content (no hover, no clicks); moves feed
+  `pointer_moved` and are consumed; any press stops it and that press **and its release** are
+  swallowed; middle release decides toggle vs hold mode; wheel/touchpad events cancel and are
+  consumed; Esc, window deactivation and touch-down cancel it;
+- each frame: `tick(now, window.scale_factor())` → `ScrollAxis::set_offset(offset + dy)`; the axis is
+  stopped (`stop()`) when it engages; frames are requested only while engaged (the self-test checks
+  0 renders afterwards);
+- the compass is the §6.1 SVG (ring, triangles, `#4ea1ff` lit arrows from `direction()`, centre
+  dot) rendered as an image, with the drop shadow as a GPUI box shadow and the 120 ms pop-in
+  (scale .6 → 1 + fade). Its size is `indicatorSize` CSS px, so it follows the UI scale like the
+  injected Electron compass does. Not done: the 60 ms arrow colour transition.
+- **Cursor**: GPUI's `CursorStyle` has no all-scroll/move cursor; adding one touches the enum and
+  both Linux backends, so it is not a one-line patch. We use `Crosshair`, the closest shape.
+
+`shots/gpui-autoscroll.png`: `BATO_VIEW='view=scroll-lab&autoscroll=640,400,700'`.
+
 ## Upstream patches and workarounds
 
 All diffs are against `gpui-pre` 0.3.12 = `zed@d2a4fb6ded7c` and use upstream paths
@@ -164,6 +228,7 @@ where the snapshot carries a wgpu-30 queue tweak outside the patched hunk).
 | Patch | Why |
 |---|---|
 | `patches/gpui-linux-wayland-axis-stop.diff` (`crates/gpui_linux/src/linux/wayland/client.rs`) | `wl_pointer.axis_stop` was ignored and every scroll was `TouchPhase::Moved`, so there was no gesture end for fling. Now `axis_stop` is recorded and, at `frame`, emits the frame's last delta (if any) as `Moved` and then a zero-delta `Pixels` event with `TouchPhase::Ended`. Still missing upstream on zed `main` (checked). Upstreamable as is. |
+| `patches/gpui-linux-wayland-touch.diff` (`crates/gpui_linux/src/linux/wayland/client.rs`, applied after the axis_stop diff) | Binds `wl_touch` and emits GPUI's standard `PlatformInput::Touch` events (grouped per `wl_touch.frame`; `cancel` → `Cancelled`). Upstreamable: it implements the platform contract the other GPUI platforms already follow, without any gesture logic. |
 | `patches/gpui-fractional-text-metrics.diff` (`crates/gpui/src/style.rs`, `elements/text.rs`) | GPUI rounds/snaps line heights (19.5 → 19 or 20) and rounds text widths up, so every 13 px line and every label-sized box drifted by up to 1 px from CSS. Line heights and text widths are now fractional; glyphs still land on whole pixels. |
 | `patches/gpui-wrap-hanging-spaces.diff` (`crates/gpui/src/text_system/line_layout.rs`) | The wrapper counted the trailing space of a line against the wrap width, so a line whose last word fits wrapped one word early (Scroll lab's 16 px paragraph). Spaces now hang, as in CSS. |
 | `patches/gpui-css-pixel-snapping.diff` (`crates/gpui/src/taffy.rs`) | Layout edges snapped with ties toward zero and measured leaves rounded up; Chromium rounds ties up and keeps fractional sizes until edge snapping. E.g. the centred Scroll lab column landed 1 px left. |
@@ -224,6 +289,20 @@ These need real input on a real output (the off-screen rule forbids injecting it
 6. Collapse the sidebar (200 ms) and hover the rail for tooltips; Notify (does a desktop
    notification appear?); App Options: every theme, accent, custom hex, scale 85–120 %.
 
+### Touchscreen and autoscroll, by hand
+
+7. Touchscreen (laptop): tap every kind of control (nav rows, buttons, switch, swatches,
+   segments, the name field: does it focus and show the caret?), drag Scroll lab slowly (content must
+   stay under the finger, no 15 px jump when the scroll starts), flick (fling), touch during a fling
+   (stops, no click), two fingers (second ignored), a compositor gesture mid-drag (Hyprland
+   workspace swipe on a touchscreen → `wl_touch.cancel`: content stops, no fling). Repeat at scale
+   120 % and, if the laptop uses fractional output scaling, check the finger still tracks 1:1. Run
+   with `BATO_SCROLL_DEBUG=1` to see `[touch]` lines; if you get none, the setup script's touch
+   patch is not applied (`scripts/setup-gpui-patch.sh` must print "patched" for gpui-pre-linux).
+8. Autoscroll: middle-click on Scroll lab (toggle), middle-drag (hold), on a button/row (still
+   engages, button not clicked), on the name field (nothing), on the sidebar (nothing); stop with a
+   click (must not click what is under it), Esc, the wheel, alt-tab. Compare speed with Electron.
+
 ## Assessment: GPUI for the remaining ~60 components
 
 **Good.**
@@ -242,7 +321,7 @@ These need real input on a real output (the off-screen rule forbids injecting it
 - **No stable release.** crates.io `gpui` 0.2.x is a year old; real use means `gpui-pre`
   snapshots or a pinned zed git rev, with breaking API churn between snapshots (several methods
   were renamed since 0.2). Budget time for every bump, and carry the patches.
-- We carry 5 small patches for web-fidelity (text metrics, wrapping, snapping, axis_stop,
+- We carry 6 small patches (text metrics, wrapping, snapping, axis_stop, wl_touch,
   backend env). They are local and reasoned, but upstream optimises for an editor, not for CSS
   parity, so expect to keep them.
 - Missing primitives for this design: backdrop blur, element transforms (scale/rotate on
@@ -265,7 +344,9 @@ app; the price is owning a fork-ish dependency and hand-building every widget.
 - `src/main.rs` startup, env, fonts, window · `src/app.rs` state, sidebar, main/scrollbar,
   modal frame, toasts, tooltips · `src/pages.rs` Home, Examples, Scroll lab, Options, About ·
   `src/ui.rs` kit atoms, assets, tweens · `src/theme.rs` palette bridge, `u()` ·
-  `src/scroll.rs` input mapping + scroller · `src/text_input.rs` · `src/tracked_text.rs` ·
+  `src/scroll.rs` input mapping + scroller · `src/touch.rs` touchscreen → TouchDrag ·
+  `src/autoscroll_ui.rs` BatoScroll routing · `src/input.rs` window-level listeners, synthetic
+  clicks, compass overlay · `src/text_input.rs` · `src/tracked_text.rs` ·
   `src/http.rs` · `src/selftest.rs`
 - `patches/` upstream diffs · `scripts/setup-gpui-patch.sh` · `scripts/make-fonts.py`
 - `assets/fonts/` derived fonts (OFL) · `shots/` screenshots

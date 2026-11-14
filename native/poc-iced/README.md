@@ -18,10 +18,10 @@ BATO_BACKEND_URL=http://127.0.0.1:42998 ./target/release/batopoc-iced
 
 | Env | Meaning |
 |---|---|
-| `BATO_VIEW` | `view=home\|examples\|scroll-lab`, `modal=options\|about`, `scroll=<css px>` (same as Electron). Debug extras: `toast=1` (sample toasts), `demo=sidebar` (collapses the sidebar once after 0.6 s). |
+| `BATO_VIEW` | `view=home\|examples\|scroll-lab`, `modal=options\|about`, `scroll=<css px>` (same as Electron). Debug extras: `toast=1` (sample toasts), `demo=sidebar` (collapses the sidebar once after 0.6 s), `autoscroll=x,y,cy` (BatoScroll engaged at (x, y) with the cursor at (x, cy), e.g. `view=scroll-lab&autoscroll=640,400,700` for the compass with the lit down arrow). |
 | `BATO_SMOKE=1` | prints `first-frame-ms=<n>` (from the kernel's process start time) once the first frame is presented, exits 0 |
 | `BATO_TOUCHPAD_GAIN=<px>` | px per Wayland touchpad `axis` unit (default 12 = Chromium on Wayland, same as the GPUI PoC) |
-| `BATO_SCROLL_DEBUG=1` | logs every scroll input: kind (`wheel`/`precise`/`end`/`key`/`track`/`drag`), the raw iced delta, offset, target, max, animating |
+| `BATO_SCROLL_DEBUG=1` | logs every scroll input: kind (`wheel`/`precise`/`end`/`key`/`track`/`drag`/`touch`), the raw iced event (touch: finger id, position, `outcome/forward`), offset, target, max, animating; and `[autoscroll]` state changes |
 | `BATO_DRAW_DEBUG=1` | logs every frame drawn (idle check: nothing is printed while nothing moves) |
 | `BATO_TIMING=1` | startup milestones |
 | `BATO_TEXT_RASTER=swash` | stock cosmic-text rasterizer instead of FreeType (for comparison) |
@@ -172,7 +172,53 @@ Event path (Wayland → winit → iced → widget):
 | Wheel (any resolution) | `ScrollDelta::Lines { y: −value120/120 }` (fractional for hi-res wheels) | `wheel_notches(−y)` |
 | Touchpad / continuous | `ScrollDelta::Pixels { y }` (physical px) | `precise(−y)` |
 | Fingers lifted (`axis_stop`) | `ScrollDelta::Pixels { 0, 0 }` | `precise_end()` → fling |
+| Touchscreen finger (`wl_touch`) | `touch::Event::Finger{Pressed,Moved,Lifted,Lost}` (logical px) | `TouchDrag::down/moved/up/cancel` with positions × device scale |
+| Middle click (BatoScroll) | `ButtonPressed(Middle)`, then everything via the overlay | `Autoscroll::press_middle` … `tick` → `set_offset(offset + dy)` |
 | Thumb drag / track click / keys | — | `set_offset` / `animate_to` |
+
+### Touchscreen
+
+winit's Wayland seat turns `wl_touch` down/motion/up/cancel into `WindowEvent::Touch` (it ignores
+`wl_touch.frame`); iced converts it to `touch::Event` in logical px. iced does **not** synthesize mouse
+buttons from touch (no double clicks), and Hyprland does not emulate a pointer for touch clients, but
+iced does move its *cursor position* to the finger, so hover follows the finger.
+
+The scroller arbitrates every touch inside its viewport through `scroll_physics::TouchDrag` before the
+content sees it (`TouchRouter` in `widgets/scroller.rs`): positions are multiplied by the device
+scale so they are in the axis' units and content tracks the finger exactly at every UI and output
+scale.
+
+| TouchDrag outcome | What the content gets |
+|---|---|
+| press (`Pending`) | the `FingerPressed` (buttons arm, the text field focuses) |
+| move inside the 15 px slop (`Pending`) | the `FingerMoved` |
+| `ScrollStarted` | a synthetic `FingerLost` for that finger, once; the press is cancelled |
+| `Scrolling` | nothing (and no cursor, so no hover flicker) |
+| `Tap` | the `FingerLifted` → exactly one click |
+| `Ended` after a scroll | nothing (fling started if fast enough) |
+| `Ended` that only stopped a fling | `FingerLost` (no click) |
+| second finger, `FingerLost` while scrolling | nothing |
+
+`Surface` (all buttons/rows), the switch and the modal scrim handle `FingerPressed`/`FingerLifted`
+as a click and `FingerLost` as a cancel; the modal also swallows every touch so the page below never
+scrolls. The sidebar is outside the scroller, so taps there go straight to the rows. The 15 px slop is
+in logical px at every scale (`TouchDrag::set_scale(device_scale)`, since positions are device px).
+
+### BatoScroll (middle-click autoscroll)
+
+`scroll_physics::autoscroll::Autoscroll` makes every decision; `widgets/autoscroll.rs` wires it:
+the main scroller arms it on a middle press inside its viewport that no child consumed (the text field
+consumes middle presses, so it is ineligible; buttons and rows are eligible) and only if `max > 0`;
+the sidebar has no scroller, so a middle press there does nothing. An `AutoscrollLayer` wraps the
+whole shell: while engaged it sees every event first and (`route_engaged`) swallows all pointer and
+touch input to the content (the content gets no cursor, so hover is frozen), stops on any press
+(swallowing it and its release), Esc, wheel/touchpad, touch-down or window focus loss, ticks the
+gesture on each redraw (`tick(now, device_scale)`; the scroller applies the step with
+`set_offset(offset + dy × device_scale)` after `ScrollAxis::stop()` on engage), draws the compass per
+§6.1 (ring quad with drop shadow, four triangles drawn as SVGs through the colour filter, centre dot,
+120 ms pop-in scale + fade) and sets the `all-scroll` cursor (`mouse::Interaction::AllScroll` →
+winit `CursorIcon::AllScroll`). Frames are requested only while engaged. Settings are re-read from
+`~/.config/bato/batoscroll.json` on every engage, like the extension.
 
 Where things get lost upstream, and what the PoC does about it:
 
@@ -265,3 +311,11 @@ graph as separate projects.
 6. Type in "Your name", select text, press Primary; press Notify (real desktop notification).
 7. Test connection / Save in Server address against `:42998` and a dead port.
 8. Compare text side by side with Electron at 100 % on your monitors.
+9. Touchscreen: drag the Scroll lab list (content sticks to the finger, no 15 px jump), flick (fling),
+   touch a flinging list (stops, no click), tap buttons/rows/switch/swatches (exactly one action each),
+   start a drag on a button (no click), tap the name field (focus), tap the scrim (closes the dialog),
+   two-finger touches do nothing. Watch `BATO_SCROLL_DEBUG=1`.
+10. BatoScroll: middle-click on the Scroll lab (also on a row or button) → compass + all-scroll cursor;
+   move away to scroll, click anywhere to stop (that click must not activate anything); hold-and-drag
+   mode; Esc, wheel, Alt-Tab stop it; middle-click on the name field and on the sidebar does nothing;
+   Home (short page at 1280×800) does not arm.

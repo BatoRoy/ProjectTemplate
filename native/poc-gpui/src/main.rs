@@ -1,12 +1,15 @@
 //! bato-template native client, GPUI flavor (proof of concept).
 
 mod app;
+mod autoscroll_ui;
 mod http;
+mod input;
 mod pages;
 mod scroll;
 mod selftest;
 mod text_input;
 mod theme;
+mod touch;
 mod tracked_text;
 mod ui;
 

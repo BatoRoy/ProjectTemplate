@@ -62,6 +62,8 @@ pub struct TextInput {
     caret_on: bool,
     blink: Option<Task<()>>,
     was_focused: bool,
+    /// Window bounds of the whole control (autoscroll treats it as ineligible).
+    pub control_bounds: std::rc::Rc<std::cell::Cell<Bounds<Pixels>>>,
 }
 
 pub enum InputEvent {
@@ -86,6 +88,7 @@ impl TextInput {
             caret_on: true,
             blink: None,
             was_focused: false,
+            control_bounds: Default::default(),
         }
     }
 
@@ -472,6 +475,11 @@ impl Render for TextInput {
         let _ = py_;
         div()
             .id("text-input")
+            .relative()
+            .child({
+                let cell = self.control_bounds.clone();
+                gpui::canvas(move |b, _, _| cell.set(b), |_, _, _, _| {}).absolute().inset_0()
+            })
             .key_context("TextInput")
             .track_focus(&self.focus_handle)
             .cursor(CursorStyle::IBeam)

@@ -23,7 +23,8 @@ use iced::advanced::renderer::{self, Quad, Renderer as _};
 use iced::advanced::widget::{self, Tree, Widget, tree};
 use iced::advanced::{Clipboard, Shell};
 use iced::{Border, Color, Element, Event, Length, Point, Rectangle, Size, Vector, mouse, window};
-use scroll_physics::ScrollAxis;
+use iced::touch;
+use scroll_physics::{ScrollAxis, TouchDrag, TouchOutcome};
 
 use crate::widgets::device_scale;
 
@@ -77,6 +78,7 @@ fn draw_debug() -> bool {
 
 pub struct Scroller<'a, Message> {
     content: Element<'a, Message, iced::Theme, iced::Renderer>,
+    autoscroll: Option<crate::widgets::autoscroll::AutoscrollBus>,
     thumb: Color,
     thumb_hover: Color,
     initial: Option<f32>,
@@ -87,14 +89,117 @@ pub fn scroller<'a, Message>(
     thumb: Color,
     thumb_hover: Color,
 ) -> Scroller<'a, Message> {
-    Scroller { content: content.into(), thumb, thumb_hover, initial: None }
+    Scroller { content: content.into(), autoscroll: None, thumb, thumb_hover, initial: None }
 }
 
 impl<'a, Message> Scroller<'a, Message> {
+    /// This scroller is a BatoScroll target: a middle press on it arms
+    /// autoscroll, and the bus' steps move its axis.
+    pub fn autoscroll(mut self, bus: crate::widgets::autoscroll::AutoscrollBus) -> Self {
+        self.autoscroll = Some(bus);
+        self
+    }
+
     /// Initial offset in CSS px (BATO_VIEW `scroll=`), applied once.
     pub fn initial(mut self, px: Option<f32>) -> Self {
         self.initial = px;
         self
+    }
+}
+
+/// What the content underneath gets for a touch event.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum Forward {
+    /// Deliver the event as is (press, pending move, tap lift).
+    Pass,
+    /// Deliver `FingerLost` instead: the press the content saw is cancelled
+    /// (the finger became a scroll, or it only stopped a fling).
+    Lost,
+    /// Deliver nothing (scrolling finger, or a second finger).
+    Swallow,
+}
+
+/// Touchscreen arbitration for one scroller, around `scroll_physics::TouchDrag`
+/// (Chromium's slop, 1:1 drag, fling, fling-stop). Positions are in the
+/// axis' units (device px).
+#[derive(Debug, Default)]
+pub struct TouchRouter {
+    drag: TouchDrag,
+    /// The finger TouchDrag tracks.
+    finger: Option<u64>,
+    /// That finger turned into a scroll; the content already got `FingerLost`.
+    stolen: bool,
+}
+
+impl TouchRouter {
+    pub fn is_scrolling(&self) -> bool {
+        self.drag.is_scrolling()
+    }
+
+    pub fn route(
+        &mut self,
+        ev: &touch::Event,
+        pos: (f32, f32),
+        inside: bool,
+        now: Instant,
+        axis: &mut ScrollAxis,
+    ) -> (TouchOutcome, Forward) {
+        let mine = |r: &Self, id: u64| r.finger == Some(id);
+        match *ev {
+            touch::Event::FingerPressed { id, .. } => {
+                if self.finger.is_some() {
+                    return (TouchOutcome::Ignored, Forward::Swallow);
+                }
+                if !inside {
+                    return (TouchOutcome::Ignored, Forward::Pass);
+                }
+                // Positions are device px; keep the slop at 15 logical px.
+                self.drag.set_scale(device_scale());
+                let out = self.drag.down(id.0, pos.0, pos.1, axis);
+                self.finger = Some(id.0);
+                self.stolen = false;
+                (out, Forward::Pass)
+            }
+            touch::Event::FingerMoved { id, .. } => {
+                if !mine(self, id.0) {
+                    return (TouchOutcome::Ignored, if self.finger.is_some() { Forward::Swallow } else { Forward::Pass });
+                }
+                let out = self.drag.moved(id.0, pos.0, pos.1, now, axis);
+                match out {
+                    TouchOutcome::ScrollStarted => {
+                        self.stolen = true;
+                        (out, Forward::Lost)
+                    }
+                    TouchOutcome::Scrolling => (out, Forward::Swallow),
+                    _ => (out, Forward::Pass),
+                }
+            }
+            touch::Event::FingerLifted { id, .. } => {
+                if !mine(self, id.0) {
+                    return (TouchOutcome::Ignored, if self.finger.is_some() { Forward::Swallow } else { Forward::Pass });
+                }
+                let out = self.drag.up(id.0, now, axis);
+                let stolen = self.stolen;
+                self.finger = None;
+                self.stolen = false;
+                match out {
+                    TouchOutcome::Tap => (out, Forward::Pass),
+                    _ if stolen => (out, Forward::Swallow),
+                    // Ended without scrolling: the touch only stopped a fling.
+                    _ => (out, Forward::Lost),
+                }
+            }
+            touch::Event::FingerLost { id, .. } => {
+                if !mine(self, id.0) {
+                    return (TouchOutcome::Ignored, if self.finger.is_some() { Forward::Swallow } else { Forward::Pass });
+                }
+                self.drag.cancel(axis);
+                let stolen = self.stolen;
+                self.finger = None;
+                self.stolen = false;
+                (TouchOutcome::Ended, if stolen { Forward::Swallow } else { Forward::Pass })
+            }
+        }
     }
 }
 
@@ -107,6 +212,7 @@ struct State {
     overflow: bool,
     drag: Option<(f32, f32)>,
     thumb_hover: bool,
+    touch: TouchRouter,
     t0: Instant,
 }
 
@@ -120,6 +226,7 @@ impl Default for State {
             overflow: false,
             drag: None,
             thumb_hover: false,
+            touch: TouchRouter::default(),
             t0: Instant::now(),
         }
     }
@@ -220,7 +327,60 @@ impl<'a, Message: 'a> Widget<Message, iced::Theme, iced::Renderer> for Scroller<
     ) {
         let b = layout.bounds();
         let offset = tree.state.downcast_ref::<State>().offset();
-        let dragging = tree.state.downcast_ref::<State>().drag.is_some();
+        let dragging = tree.state.downcast_ref::<State>().drag.is_some()
+            || tree.state.downcast_ref::<State>().touch.is_scrolling();
+
+        // Touchscreen: arbitrate tap vs drag before the content sees anything.
+        let mut routed: Option<Event> = None;
+        if let Event::Touch(te) = event {
+            let position = match te {
+                touch::Event::FingerPressed { position, .. }
+                | touch::Event::FingerMoved { position, .. }
+                | touch::Event::FingerLifted { position, .. }
+                | touch::Event::FingerLost { position, .. } => *position,
+            };
+            // iced reports touch in logical px (window scale × UI scale);
+            // the axis works in device px, so the content tracks the finger
+            // exactly at every scale.
+            let s = device_scale();
+            let inside = Rectangle { width: b.width - BAR, ..b }.contains(position)
+                && viewport.contains(position);
+            let state = tree.state.downcast_mut::<State>();
+            let (outcome, fwd) = state.touch.route(te, (position.x * s, position.y * s), inside, Instant::now(), &mut state.axis);
+            if !matches!(outcome, TouchOutcome::Ignored) || debug_enabled() && inside {
+                state.log("touch", format!("{te:?} -> {outcome:?}/{fwd:?}"));
+            }
+            if matches!(outcome, TouchOutcome::ScrollStarted | TouchOutcome::Scrolling | TouchOutcome::Ended)
+                || state.axis.is_animating()
+            {
+                shell.request_redraw();
+            }
+            let shifted = Point::new(position.x, position.y + offset);
+            match fwd {
+                Forward::Pass => {
+                    routed = Some(Event::Touch(match *te {
+                        touch::Event::FingerPressed { id, .. } => touch::Event::FingerPressed { id, position: shifted },
+                        touch::Event::FingerMoved { id, .. } => touch::Event::FingerMoved { id, position: shifted },
+                        touch::Event::FingerLifted { id, .. } => touch::Event::FingerLifted { id, position: shifted },
+                        touch::Event::FingerLost { id, .. } => touch::Event::FingerLost { id, position: shifted },
+                    }))
+                }
+                Forward::Lost => {
+                    let id = match te {
+                        touch::Event::FingerPressed { id, .. }
+                        | touch::Event::FingerMoved { id, .. }
+                        | touch::Event::FingerLifted { id, .. }
+                        | touch::Event::FingerLost { id, .. } => *id,
+                    };
+                    routed = Some(Event::Touch(touch::Event::FingerLost { id, position: shifted }));
+                }
+                Forward::Swallow => {
+                    shell.capture_event();
+                    return;
+                }
+            }
+        }
+        let event = routed.as_ref().unwrap_or(event);
         let content_cursor = if dragging {
             mouse::Cursor::Unavailable
         } else {
@@ -241,12 +401,40 @@ impl<'a, Message: 'a> Widget<Message, iced::Theme, iced::Renderer> for Scroller<
             shell,
             &content_viewport.intersection(&Rectangle { y: viewport.y + offset, ..*viewport }).unwrap_or(content_viewport),
         );
-        if shell.is_event_captured() {
+        if shell.is_event_captured() || routed.is_some() {
+            if routed.is_some() {
+                shell.capture_event();
+            }
             return;
         }
 
         let state = tree.state.downcast_mut::<State>();
         let now = Instant::now();
+        if let Some(bus) = &self.autoscroll {
+            match event {
+                Event::Window(window::Event::RedrawRequested(_)) => {
+                    let dy = std::mem::take(&mut bus.borrow_mut().pending_dy);
+                    if dy != 0.0 {
+                        let s = device_scale();
+                        state.axis.set_offset(state.axis.offset() + dy * s);
+                    }
+                }
+                // Eligible middle press: inside the viewport, not consumed by
+                // a child (text fields consume it), and something to scroll.
+                Event::Mouse(mouse::Event::ButtonPressed(mouse::Button::Middle)) => {
+                    if let Some(p) = cursor.position_over(b) {
+                        if state.axis.max() > 0.0 {
+                            state.axis.stop();
+                            bus.borrow_mut().arm(p.x, p.y, now);
+                            shell.request_redraw();
+                        }
+                        shell.capture_event();
+                    }
+                    return;
+                }
+                _ => {}
+            }
+        }
         match event {
             Event::Window(window::Event::RedrawRequested(at)) => {
                 if state.axis.is_animating() {
@@ -478,5 +666,110 @@ mod tests {
         }
         assert_eq!(classify(Pixels { x: 0.0, y: 0.0 }), ScrollInput::End);
         assert!(a.precise_end(t + std::time::Duration::from_millis(95)));
+    }
+
+    // ── Touchscreen arbitration ─────────────────────────────────────────
+
+    use iced::Point;
+    use iced::touch::{Event as T, Finger};
+
+    fn ev(kind: u8, id: u64, y: f32) -> T {
+        let (id, position) = (Finger(id), Point::new(100.0, y));
+        match kind {
+            0 => T::FingerPressed { id, position },
+            1 => T::FingerMoved { id, position },
+            2 => T::FingerLifted { id, position },
+            _ => T::FingerLost { id, position },
+        }
+    }
+
+    fn feed(r: &mut TouchRouter, a: &mut ScrollAxis, t: Instant, steps: &[(u8, u64, f32, u64)]) -> Vec<(TouchOutcome, Forward)> {
+        steps
+            .iter()
+            .map(|&(k, id, y, ms)| r.route(&ev(k, id, y), (100.0, y), true, t + std::time::Duration::from_millis(ms), a))
+            .collect()
+    }
+
+    fn axis() -> ScrollAxis {
+        let mut a = ScrollAxis::default();
+        a.set_max(100_000.0);
+        a.set_offset(5_000.0);
+        a
+    }
+
+    #[test]
+    fn tap_reaches_children_once() {
+        let (mut r, mut a, t) = (TouchRouter::default(), axis(), Instant::now());
+        let out = feed(&mut r, &mut a, t, &[(0, 1, 300.0, 0), (1, 1, 306.0, 20), (2, 1, 306.0, 60)]);
+        assert_eq!(out.iter().map(|o| o.1).collect::<Vec<_>>(), [Forward::Pass, Forward::Pass, Forward::Pass]);
+        assert_eq!(out[2].0, TouchOutcome::Tap);
+        assert_eq!(a.offset(), 5_000.0, "inside the slop nothing scrolls");
+    }
+
+    #[test]
+    fn drag_cancels_the_press_and_tracks_the_finger_1_to_1() {
+        let (mut r, mut a, t) = (TouchRouter::default(), axis(), Instant::now());
+        let out = feed(
+            &mut r,
+            &mut a,
+            t,
+            &[(0, 1, 300.0, 0), (1, 1, 280.0, 16), (1, 1, 200.0, 32), (2, 1, 200.0, 2_000)],
+        );
+        assert_eq!(out[1], (TouchOutcome::ScrollStarted, Forward::Lost), "children get FingerLost once");
+        assert_eq!(out[2], (TouchOutcome::Scrolling, Forward::Swallow));
+        assert_eq!(out[3], (TouchOutcome::Ended, Forward::Swallow), "no click after a scroll");
+        // 100 px up minus the 15 px slop: content moved 85 px, no jump.
+        assert_eq!(a.offset(), 5_085.0);
+        assert!(!a.is_animating(), "fingers rested before lifting: no fling");
+    }
+
+    #[test]
+    fn quick_lift_flings() {
+        let (mut r, mut a, t) = (TouchRouter::default(), axis(), Instant::now());
+        let mut steps = vec![(0u8, 1u64, 600.0f32, 0u64)];
+        for i in 1..=10 {
+            steps.push((1, 1, 600.0 - 20.0 * i as f32, 8 * i));
+        }
+        steps.push((2, 1, 400.0, 85));
+        let out = feed(&mut r, &mut a, t, &steps);
+        assert_eq!(out.last().unwrap().0, TouchOutcome::Ended);
+        assert!(a.is_animating(), "fling started");
+    }
+
+    #[test]
+    fn touch_that_stops_a_fling_does_not_click() {
+        let (mut r, mut a, t) = (TouchRouter::default(), axis(), Instant::now());
+        a.wheel_notches(3.0, t);
+        let out = feed(&mut r, &mut a, t, &[(0, 1, 300.0, 50), (2, 1, 300.0, 120)]);
+        assert_eq!(out[0].1, Forward::Pass);
+        assert_eq!(out[1], (TouchOutcome::Ended, Forward::Lost), "the press is cancelled, not clicked");
+        assert!(!a.is_animating());
+    }
+
+    #[test]
+    fn second_finger_and_cancel() {
+        let (mut r, mut a, t) = (TouchRouter::default(), axis(), Instant::now());
+        let out = feed(
+            &mut r,
+            &mut a,
+            t,
+            &[(0, 1, 300.0, 0), (0, 2, 500.0, 10), (2, 2, 500.0, 20), (1, 1, 250.0, 30), (3, 1, 250.0, 40)],
+        );
+        assert_eq!(out[1].1, Forward::Swallow, "second finger never reaches children");
+        assert_eq!(out[2].1, Forward::Swallow);
+        assert_eq!(out[4], (TouchOutcome::Ended, Forward::Swallow), "cancel after scroll: no fling, no click");
+        assert!(!a.is_animating());
+        // A fresh touch works again.
+        let out = feed(&mut r, &mut a, t, &[(0, 3, 300.0, 100), (2, 3, 300.0, 150)]);
+        assert_eq!(out[1].0, TouchOutcome::Tap);
+    }
+
+    #[test]
+    fn outside_the_viewport_passes_through() {
+        let (mut r, mut a, t) = (TouchRouter::default(), axis(), Instant::now());
+        let o = r.route(&ev(0, 1, 300.0), (100.0, 300.0), false, t, &mut a);
+        assert_eq!(o, (TouchOutcome::Ignored, Forward::Pass));
+        let o = r.route(&ev(2, 1, 300.0), (100.0, 300.0), false, t, &mut a);
+        assert_eq!(o, (TouchOutcome::Ignored, Forward::Pass));
     }
 }
