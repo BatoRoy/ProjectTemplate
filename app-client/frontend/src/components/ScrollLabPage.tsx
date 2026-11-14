@@ -3,7 +3,7 @@ import { Card } from './Feedback'
 import { useTheme } from '../lib/theme'
 
 // Native-client proof of concept: a deterministic page that every client flavor
-// renders identically (see native/SCROLL-LAB.md), so scroll feel and text
+// renders identically (bato-native: examples/gallery/src/scroll_lab.rs), so scroll feel and text
 // rendering can be compared side by side. Not virtualized on purpose: it is the
 // Chromium baseline.
 

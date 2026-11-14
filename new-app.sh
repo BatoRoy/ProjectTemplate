@@ -3,7 +3,7 @@ set -euo pipefail
 
 # Scaffold a new app from this template with a FRESH git history.
 #
-#   ./new-app.sh <AppName> <dest-dir> [--electron] [--force]
+#   ./new-app.sh <AppName> <dest-dir> [--electron|--native] [--force]
 #
 # Exports the template's committed HEAD (git archive — ignored/untracked files
 # never leak in), stamps the app name/slug into the identity files, resets the
@@ -14,17 +14,17 @@ set -euo pipefail
 # Linux-oriented: uses GNU `sed -i` (same as version.sh).
 
 usage() {
-  echo "Usage: $0 <AppName> <dest-dir> [--electron] [--force]"
+  echo "Usage: $0 <AppName> <dest-dir> [--electron|--native] [--force]"
   echo ""
   echo "  AppName      Display name, e.g. MyApp or \"My App\" (letters, digits, space, - _)"
   echo "  dest-dir     Directory to create (must not exist or be empty)"
-  echo "  --electron   Electron + React client (the only client today, and the default)"
+  echo "  --electron   Electron + React client (the default)"
+  echo "  --native     Native Rust (iced) client on bato-native: one process, about a third"
+  echo "               of the memory, no web bundle, no bato-hub, Linux only"
   echo "  --force      Skip the dirty-template confirmation"
   echo ""
-  echo "The client flavor is recorded in .template and drives which identity files are"
-  echo "stamped and which release workflow the new app keeps. Electron is the only"
-  echo "flavor the template ships; the plumbing stays flavor-aware so another can be"
-  echo "added without reshaping this script."
+  echo "The client flavor is recorded in .template and drives which client directory the"
+  echo "new app keeps, which identity files are stamped and which release workflow survives."
 }
 
 NAME="" DEST="" FORCE=0 FLAVOR=""
@@ -32,6 +32,7 @@ for arg in "$@"; do
   case "$arg" in
     --force) FORCE=1 ;;
     --electron) FLAVOR="electron" ;;
+    --native) FLAVOR="native" ;;
     -h|--help) usage; exit 0 ;;
     # Caught here rather than falling through to the positional branch, where an
     # unknown flag becomes the app name and fails the name regex instead.
@@ -44,9 +45,7 @@ for arg in "$@"; do
   esac
 done
 
-# Electron by default — and, today, the only option. Kept as a variable rather than
-# inlined because it is what the per-flavor branches below key off, and a second client
-# should be an added branch, not a rewrite.
+# Electron by default. Everything per-flavor below keys off this variable.
 FLAVOR="${FLAVOR:-electron}"
 
 if [[ -z "$NAME" || -z "$DEST" ]]; then
@@ -102,10 +101,26 @@ git -C "$TEMPLATE_ROOT" archive HEAD | tar -x -C "$DEST"
 rm -f "$DEST/new-app.sh"   # an app doesn't create apps
 
 # ── Keep one client ─────────────────────────────────────────────────────────
-# An app wants exactly one client: two means two things to keep working and an
-# ambiguous `make dev-client`. The template ships one today, so there is nothing to
-# delete here — but the release workflow is still named per flavor, and the workflow
-# that does not match the client has to go.
+# Both clients ship in the template so improvements to either can be made in one
+# place, but an app wants exactly one: two means two things to keep working and an
+# ambiguous `make dev-client`. The Makefile detects which one is present, so deleting
+# the other is all that is needed — nothing to configure.
+if [[ "$FLAVOR" == "native" ]]; then
+  rm -rf "$DEST/app-client"
+  # Electron-only documents: electron-updater, the AppImage server bundling (the native
+  # supervisor is in bato-shell, CLIENT.md), the React restyle port, and the
+  # Electron-driven contrast check (the native palette maths is tested in bato-native).
+  rm -f "$DEST/AUTOUPDATE.md" "$DEST/BUNDLED-SERVICES.md" "$DEST/STYLE-MIGRATION.md"
+  rm -f "$DEST/tools/check-contrast.mjs"
+else
+  rm -rf "$DEST/app-client-native"
+  # The native block at the end of .gitignore, then the blank line before it.
+  sed -i '/^# ── Native client/,$d' "$DEST/.gitignore"
+  sed -i -e :a -e '/^\n*$/{$d;N;ba' -e '}' "$DEST/.gitignore"
+fi
+
+# The release workflow is named per flavor, and the one that does not match the
+# client has to go.
 #
 # BatoAI is the cautionary tale: it swapped its renderer and left the template's
 # Electron workflow in place, so pushing a version tag has failed there ever since —
@@ -145,8 +160,7 @@ stamp() { # stamp <file> <sed-expr> <expected-substring>
 
 echo "→ Stamping identity: name='$NAME' slug='$SLUG' exec='$EXEC_NAME'"
 
-# Per-flavor, because each client keeps its identity in its own files. A second
-# client adds its own branch here.
+# Per-flavor, because each client keeps its identity in its own files.
 if [[ "$FLAVOR" == "electron" ]]; then
   stamp app-client/frontend/src/brand.ts \
     "s/appName: 'App',/appName: '$NAME',/" "appName: '$NAME',"
@@ -160,6 +174,21 @@ if [[ "$FLAVOR" == "electron" ]]; then
     "s/slug: 'app',/slug: '$SLUG',/" "slug: '$SLUG',"
   stamp app-client/frontend/index.html \
     "s|<title>App</title>|<title>$NAME</title>|" "<title>$NAME</title>"
+else
+  # brand.rs is the one identity file the code reads (window title, app_id, config
+  # dir, registry name, About). The [[bin]] name is the binary's file name; the Cargo
+  # package (`app-client`) is deliberately not renamed, so Cargo.lock stays valid and
+  # `--locked` builds keep working. bato.json is stamped with node below, and
+  # `cargo test` checks all three agree.
+  stamp app-client-native/src/brand.rs \
+    "s|    \"App\", // name: stamped by new-app.sh|    \"$NAME\", // name: stamped by new-app.sh|" \
+    "    \"$NAME\", // name: stamped by new-app.sh"
+  stamp app-client-native/src/brand.rs \
+    "s|    \"app\", // slug: stamped by new-app.sh|    \"$SLUG\", // slug: stamped by new-app.sh|" \
+    "    \"$SLUG\", // slug: stamped by new-app.sh"
+  stamp app-client-native/Cargo.toml \
+    "s|^name = \"app\" # bin: stamped by new-app.sh|name = \"$SLUG\" # bin: stamped by new-app.sh|" \
+    "name = \"$SLUG\" # bin: stamped by new-app.sh"
 fi
 
 stamp app-server/internal/config/config.go \
@@ -200,6 +229,22 @@ edit('app-client/bato.json', (p) => {
   p.executableName = execName
   p.s3Path = `apps/${slug}`
 })
+// The native client publishes as type "desktop". iced sets the Wayland app_id and
+// the X11 WM_CLASS from the slug (brand.rs), so startupWMClass is the slug too —
+// measured with hyprctl clients, not guessed.
+edit('app-client-native/bato.json', (p) => {
+  p.name = slug
+  p.description = `Desktop client for ${name}`
+  p.artifacts = p.artifacts.map((a) => (a === 'app' ? slug : a))
+  p.bin = [{ name: slug, target: slug }]
+  p.desktop = { ...p.desktop, name, exec: slug, startupWMClass: slug }
+})
+// BatoGit Ship's mapping for this layout, for an app that needs a ship.json.
+if (flavor === 'native') {
+  edit('ship.example.json', (p) => {
+    p.targets['publish-client'] = { paths: ['app-client-native/'], registry: slug }
+  })
+}
 // The deployable-server identity. `port` is deliberately left unset: it has to
 // be claimed in BatoApps/PORTS.md by hand, and a stamped-in default would have
 // every generated app collide on the same one. `bato deploy` says so plainly
@@ -229,12 +274,20 @@ if [[ "$FLAVOR" == "electron" ]]; then
     echo "✗ Stamping failed for app-client/package.json — update new-app.sh." >&2
     exit 1
   }
+else
+  grep -qF "\"startupWMClass\": \"$SLUG\"" "$DEST/app-client-native/bato.json" || {
+    echo "✗ Stamping failed for app-client-native/bato.json — update new-app.sh." >&2
+    exit 1
+  }
 fi
 
 # ── README: make it the app's, not the template's ────────────────────────────
-# The template's README explains how the client plugs in and how another one would be
-# added. That is the right thing for the template and noise in an app, which has exactly
-# one client and no interest in the seam. Replaced with one line naming it.
+# The template's README compares the two clients and documents both. That is the right
+# thing for the template and noise in an app, which has exactly one client: the
+# comparison is replaced with one line naming it, and the per-flavor blocks
+# (`<!-- electron -->…<!-- /electron -->`, `<!-- native -->…`) are resolved: the other
+# flavor's are dropped, this one's lose their markers. `<!-- template -->` blocks
+# (headings that only make sense with both) go in every app.
 #
 # node rather than sed: the section is multi-line and node is already required (the
 # Makefile reads bato.json with it).
@@ -247,7 +300,12 @@ const file = path.join(dest, 'README.md')
 if (!fs.existsSync(file)) process.exit(0)
 let md = fs.readFileSync(file, 'utf8')
 
-const names = { electron: '**Electron + React** client (`app-client/`)' }
+const names = {
+  electron: '**Electron + React** client (`app-client/`)',
+  native: '**native Rust (iced)** client (`app-client-native/`), built on\n' +
+    "[bato-native](https://github.com/BatoRoy/bato-native)'s kit and shell. See\n" +
+    '`app-client-native/CLIENT.md`',
+}
 
 const start = md.indexOf('## Clients')
 const end = md.indexOf('## Stack')
@@ -257,12 +315,31 @@ if (start !== -1 && end > start) {
     md.slice(end)
 }
 
+// Per-flavor blocks.
+const other = flavor === 'native' ? 'electron' : 'native'
+for (const tag of [other, 'template']) {
+  md = md.replace(new RegExp(`<!-- ${tag} -->\\n[\\s\\S]*?<!-- /${tag} -->\\n`, 'g'), '')
+}
+md = md.replace(new RegExp(`<!-- /?${flavor} -->\\n`, 'g'), '')
+
+// Stack rows for the client this app does not have.
+const dropRows = flavor === 'native' ? ['| Frontend ', '| Desktop shell '] : ['| Native client ']
+md = md.split('\n').filter((l) => !dropRows.some((r) => l.startsWith(r))).join('\n')
+
 // The opening sentence describes a template, not an app.
 md = md.replace(
-  'A starting template for desktop apps: a **Go** backend, an **Electron + React** client, a\n' +
-  'polished theming system, and a version-tagged build/release pipeline.',
-  `${name} — a **Go** backend, an **Electron + React** client, a polished theming\n` +
-  'system, and a version-tagged build/release pipeline.')
+  'A starting template for desktop apps: a **Go** backend, a choice of two clients that look\n' +
+  'the same — **Electron + React** or **native Rust (iced)** — a polished theming system, and a\n' +
+  'version-tagged build/release pipeline.',
+  flavor === 'native'
+    ? `${name} — a **Go** backend, a **native Rust (iced)** client, a polished theming\n` +
+      'system, and a version-tagged build/release pipeline.'
+    : `${name} — a **Go** backend, an **Electron + React** client, a polished theming\n` +
+      'system, and a version-tagged build/release pipeline.')
+if (flavor === 'native') {
+  // "Look & contrast" is an Electron section.
+  md = md.replace(' (see [Look & contrast](#look--contrast))', '')
+}
 
 fs.writeFileSync(file, md)
 EOF
@@ -293,6 +370,28 @@ cat <<SUMMARY
   Client:   $FLAVOR
   Version:  $NEW_VERSION
 SUMMARY
+
+if [[ "$FLAVOR" == "native" ]]; then
+  cat <<SUMMARY
+
+Next steps:
+  cd $DEST
+  git remote add origin <your-repo-url>   # whenever you're ready
+  make dev-setup && make dev-client       # first build: a few minutes
+
+Publishing the client (see app-client-native/CLIENT.md):
+  • make publish-check    — what would ship, and whether bato would accept it
+  • make publish-client   — then: bato install $SLUG
+  • The launcher icon is fetched from the registry, NOT the release. Register
+    "$SLUG" in BatoApps/bato/icons (ACCENTS + a glyph + distribute.sh CENTRAL),
+    then \`make publish-icons\` there — otherwise the launcher has no icon.
+
+Still yours to brand (see README → "Branding"):
+  • app-client-native/src/brand.rs: tagline, accent (match the icon colour in
+    bato/icons/generate.py ACCENTS), icon
+  • LICENSE, README.md
+SUMMARY
+fi
 
 if [[ "$FLAVOR" == "electron" ]]; then
   cat <<SUMMARY

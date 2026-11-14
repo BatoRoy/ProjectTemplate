@@ -57,5 +57,8 @@ tools/*
 !tools/check-contrast.mjs
 *.AppImage
 
-# Native client crates (Rust)
-native/**/target/
+# ── Native client (app-client-native) ─────────────────────
+# new-app.sh drops this block in Electron apps (everything from the heading down).
+app-client-native/target/
+# Local overrides, e.g. building against a bato-native checkout (CLIENT.md).
+app-client-native/.cargo/

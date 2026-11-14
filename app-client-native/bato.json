@@ -1,0 +1,13 @@
+{
+  "name": "app",
+  "type": "desktop",
+  "description": "Desktop client built from BatoTemplate (native, iced)",
+  "artifacts": ["app", "licenses"],
+  "bin": [{ "name": "app", "target": "app" }],
+  "desktop": {
+    "name": "App",
+    "exec": "app",
+    "categories": "Utility;",
+    "startupWMClass": "app"
+  }
+}

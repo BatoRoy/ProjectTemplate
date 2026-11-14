@@ -8,7 +8,7 @@ name: Test
 #
 # Deliberately layout-agnostic. Repos in this suite disagree about directory
 # names (app-server, backend, nem-remote; app-client/frontend, frontend,
-# nem-client/frontend), so both jobs discover what to run instead of hardcoding
+# nem-client/frontend), so every job discovers what to run instead of hardcoding
 # a path. That means this same file can be dropped into any repo unchanged.
 
 on:
@@ -87,3 +87,57 @@ jobs:
             found=1
           done < <(find . -name package.json -not -path '*/node_modules/*' -not -path '*/dist/*' | sort)
           if [ "$found" -eq 0 ]; then echo "no frontends — nothing to do"; fi
+
+  rust:
+    name: Rust — fmt, clippy, test
+    runs-on: ubuntu-24.04
+    env:
+      CARGO_TERM_COLOR: always
+      CARGO_INCREMENTAL: 0
+      # Debug info dominates target/ size, and so the cache.
+      CARGO_PROFILE_DEV_DEBUG: 0
+      CARGO_PROFILE_TEST_DEBUG: 0
+    steps:
+      - uses: actions/checkout@v7
+
+      # Every Cargo project with a committed lockfile (app-client-native in a
+      # native app), outside build output.
+      - name: Find Cargo projects
+        id: find
+        run: |
+          set -euo pipefail
+          dirs=$(find . -name Cargo.lock -not -path '*/target/*' -not -path '*/node_modules/*' -printf '%h\n' | sort)
+          {
+            echo "dirs<<EOF"; echo "$dirs"; echo "EOF"
+            echo "cache<<EOF"; for d in $dirs; do echo "$d -> target"; done; echo "EOF"
+          } >> "$GITHUB_OUTPUT"
+          if [ -z "$dirs" ]; then echo "no Cargo projects — nothing to do"; fi
+
+      - if: steps.find.outputs.dirs != ''
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt, clippy
+
+      # FreeType is built from source (bato-kit's `bundled`); pkg-config finds zlib.
+      - if: steps.find.outputs.dirs != ''
+        run: sudo apt-get update && sudo apt-get install -y --no-install-recommends pkg-config zlib1g-dev
+
+      - if: steps.find.outputs.dirs != ''
+        uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: ${{ steps.find.outputs.cache }}
+          key: test
+
+      - name: Check every Cargo project
+        if: steps.find.outputs.dirs != ''
+        run: |
+          set -euo pipefail
+          while IFS= read -r dir; do
+            echo "::group::$dir"
+            # --all-features: optional code (the native client's bundled-server
+            # supervisor) is linted and tested too.
+            ( cd "$dir" && cargo fmt --all -- --check \
+              && cargo clippy --locked --all-targets --all-features -- -D warnings \
+              && cargo test --locked --all-features )
+            echo "::endgroup::"
+          done <<< "${{ steps.find.outputs.dirs }}"

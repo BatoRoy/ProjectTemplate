@@ -3,9 +3,10 @@
 //
 //   node tools/check-desktop-manifest.mjs <staged-dir>     (make check-desktop-manifest)
 //
-// Nothing in the template publishes as `desktop` today — the Electron client publishes
-// as `type: "electron"`. This is here for a client that ships as a binary plus resources
-// rather than one self-contained file; see README → "Publishing a native app".
+// The native client (app-client-native/) publishes as `desktop`: `make publish-check`
+// stages deploy/desktop/ and runs this on it, and `make publish-client` will not upload
+// without it passing. The Electron client publishes as `type: "electron"` and does not
+// use it. See README → "Publishing a native app".
 //
 // Why it exists: `bato publish` runs these checks itself, but as the first step of a
 // command that then uploads. There is no dry-run flag. So the only way to find out that

@@ -1,7 +1,8 @@
 # Project Template
 
-A starting template for desktop apps: a **Go** backend, an **Electron + React** client, a
-polished theming system, and a version-tagged build/release pipeline.
+A starting template for desktop apps: a **Go** backend, a choice of two clients that look
+the same — **Electron + React** or **native Rust (iced)** — a polished theming system, and a
+version-tagged build/release pipeline.
 
 It ships the look-and-feel ready to go — the **Hybrid** style: neutral surfaces with
 hairlines and soft depth, rounded cards, theme presets (Dark / Dim / a soft-gray Light),
@@ -13,27 +14,33 @@ backend routes; the chrome is done.
 
 ## Clients
 
-The template ships one client: **Electron + React** in `app-client/`. It packages as a
-self-contained AppImage (plus a Windows NSIS build), publishes to bato as
-`type: "electron"`, and self-updates from there.
+`new-app.sh` keeps exactly one (`--electron`, the default, or `--native`). Both draw the
+same palette, sidebar, App Options and About, and the same Home, Examples and Scroll lab
+pages; the native one is measured against Electron screenshots pixel by pixel
+(bato-native's `tools/compare`).
 
-It is not *wired in*, though, and that is deliberate. The client is the part of an app
-most likely to be swapped, so the plumbing dispatches on what is in the tree rather than
-assuming Electron:
+| | `--electron` (default) | `--native` |
+|---|---|---|
+| Stack | Electron + React + TS + Tailwind (`app-client/`) | Rust + iced 0.14 on [bato-native](https://github.com/BatoRoy/bato-native)'s kit and shell (`app-client-native/`) |
+| Startup / memory | Chromium: heavier | one process, about a third of the memory, about 3× faster to first frame |
+| Ships as | one self-contained AppImage (+ Windows NSIS) | one stripped binary (fonts and icons compiled in) |
+| Publishes as | `type: "electron"` | `type: "desktop"` |
+| Auto-update | electron-updater | through `bato install` (checked on launch and every 30 min) |
+| Runs in bato-hub | yes (web bundle) | no |
+| Windows build | yes | Linux only (Wayland and X11) |
+| Component kit | ~95 React components | bato-kit; growing towards parity (bato-native `docs/PORT-PLAN.md`) |
+| Runtime deps | none | a Vulkan driver for the GPU renderer (falls back to software without one) |
 
-- `make client` / `make publish-client` / `make dev-client` are the names you type. They
-  forward to the Electron targets today; a different client adds its own `HAS_<FLAVOR>`
-  probe and branches in the `Makefile` and the generic names keep working.
-- `new-app.sh` takes a `--<flavor>` flag, records the choice in `.template`, stamps the
-  identity files that flavor owns, and keeps `.github/workflows/release-<flavor>.yml`
-  while deleting the others. Electron is the only flavor today, so it is also the default.
-- A client that ships as a binary plus resources rather than one file publishes as
-  `type: "desktop"` instead — see [Publishing a native app](#publishing-a-native-app-the-desktop-type)
-  for the manifest, and `make check-desktop-manifest DIR=…` to validate a staged one.
+Pick Electron for the full component kit, a web bundle, bato-hub or a Windows build. Pick
+native when startup time and memory matter more. A native app depends on bato-native by git
+tag, so kit, text and scrolling fixes arrive with `make native-bump TAG=…`; see
+[`app-client-native/CLIENT.md`](app-client-native/CLIENT.md).
 
-> The template carried a second client for a while, so this dispatch is load-bearing
-> rather than speculative — it has been exercised. What is left is the shape: adding a
-> client is a new branch in each of the three places above, not a reshaping.
+The plumbing dispatches on what is in the tree: `make client` / `make publish-client` /
+`make dev-client` / `make lint` / `make test` are the names you type in either flavor, and
+`new-app.sh` stamps the identity files the flavor owns, keeps its
+`.github/workflows/release-<flavor>.yml`, deletes the other client, and records the choice
+in `.template`.
 
 ## Stack
 
@@ -41,11 +48,17 @@ assuming Electron:
 |---------------|----------------------------|---------------------------------------------|
 | Frontend      | `app-client/frontend`      | React 18, TypeScript, Vite, Tailwind        |
 | Desktop shell | `app-client/electron`      | Electron (main + preload)                   |
+| Native client | `app-client-native`        | Rust, iced 0.14 (wgpu), bato-kit + bato-shell |
 | Backend       | `app-server`               | Go 1.22, `net/http`                         |
 | Pipeline      | root                       | `VERSION`, `version.sh`, `Makefile`, GitHub Actions |
 
 ## Quick start
 
+<!-- template -->
+### Electron flavor
+
+<!-- /template -->
+<!-- electron -->
 ```bash
 # One-time: install all frontend + electron deps
 make dev-setup
@@ -60,6 +73,36 @@ make dev-server
 make dev-client
 ```
 
+<!-- /electron -->
+<!-- template -->
+### Native flavor
+
+In the template, the native client's targets are `dev-native`, `client-native` and
+`publish-native` (the generic names mean Electron while both clients are present).
+
+<!-- /template -->
+<!-- native -->
+```bash
+# One-time: fetch the Rust dependencies (bato-native by git tag; current stable Rust)
+make dev-setup
+
+# Initialize the backend config (writes ~/.config/app/config.json)
+cd app-server && go run . --init && cd ..
+
+# Terminal 1 — Go backend on :8080
+make dev-server
+
+# Terminal 2 — the client (debug build, dependencies optimised; the first build takes a few minutes)
+make dev-client
+```
+
+No npm and no bundler. Building needs only a C compiler and `pkg-config` + zlib headers
+(FreeType is built from source); running needs a Wayland or X11 session and, for the GPU
+renderer, a Vulkan driver. See `app-client-native/CLIENT.md` for the environment hooks and
+for working on bato-native and the app together.
+
+<!-- /native -->
+<!-- electron -->
 ## Branding — make it yours
 
 Each app built from this template gets its own identity so it stands out in bato-hub and
@@ -84,8 +127,31 @@ The Electron side needs its identity in two places:
   and `linux.executableName`, read by electron-builder **at package time**, plus the
   icons in `app-client/build/`.
 
+<!-- /electron -->
+<!-- native -->
+## Branding — make it yours
+
+The native client keeps its identity in **`app-client-native/src/brand.rs`**:
+
+| Field | What it controls |
+|---|---|
+| `APP` name | Window title, sidebar header, Home, About, notification sender |
+| `APP` slug | Registry name, binary name, `~/.config/<slug>/` (settings), Wayland app_id / X11 WM_CLASS — **must be unique per app** |
+| `BRAND.tagline` | Home and About subtitle |
+| `BRAND.accent` | Default accent color (users can still change it in App Options); match the icon colour in `bato/icons/generate.py` `ACCENTS` |
+| `BRAND.icon` | Sidebar / About badge (any `bato_kit::Ico`) |
+
+The slug appears in two more files, and `cargo test` fails when they disagree with
+`brand.rs`: **`app-client-native/bato.json`** (`name`, `bin`, `desktop.exec`,
+`desktop.startupWMClass`, and `desktop.name` = the product name) and
+**`app-client-native/Cargo.toml`** (`[[bin]] name`). The version is in none of them:
+`build.rs` reads `VERSION`. The launcher icon is not in the repo at all — it comes from
+the registry (see [Publishing a native app](#publishing-a-native-app-the-desktop-type)).
+
+<!-- /native -->
 ## Building
 
+<!-- electron -->
 ```bash
 make server          # Go binary  → dist/app-server-linux-amd64
 make client-linux    # AppImage   → dist/electron/
@@ -94,14 +160,36 @@ make all             # everything
 make clean
 ```
 
+<!-- /electron -->
+<!-- native -->
+```bash
+make server          # Go binary  → dist/app-server-linux-amd64
+make client          # native     → dist/<slug> (release build of app-client-native)
+make smoke           # start it, print first-frame-ms=<n>, exit (needs a display)
+make all             # everything
+make clean           # make clean-native also drops app-client-native/target/ (2+ GB)
+```
+
+<!-- /native -->
 ## Publishing
 
+<!-- electron -->
 ```bash
 make publish-client                    # AppImage → bato, self-updating
 make publish-server                    # tarball  → bato, `bato install`-able
 make publish-server NOTES="what changed"
 make stage-server                      # what would ship, without uploading
 ```
+<!-- /electron -->
+<!-- native -->
+```bash
+make publish-check                     # stage deploy/desktop/ and validate it; uploads nothing
+make publish-client                    # desktop release → bato; then: bato install <slug>
+make publish-client NOTES="what changed"
+make publish-server                    # tarball  → bato, `bato install`-able
+make stage-server                      # what would ship, without uploading
+```
+<!-- /native -->
 
 Both need the `bato` CLI on PATH and `BATO_*` credentials in the environment.
 Details, and how to publish a native (non-Electron) client, are in
@@ -115,11 +203,20 @@ tag, then runs only the `publish-server` / `publish-client` / `deploy` targets w
 files changed since they last shipped. It works out which files feed which target
 from this layout, so a fresh app needs nothing:
 
+<!-- electron -->
 | Target | Rebuilt when these change |
 |---|---|
 | `publish-server` | `app-server/` |
 | `publish-client` | `app-client/` — plus `app-server/` once you bundle the server (a `beforePack` hook) |
 | `deploy` | whatever the Dockerfile `COPY`s, plus `bato.json` |
+<!-- /electron -->
+<!-- native -->
+| Target | Rebuilt when these change |
+|---|---|
+| `publish-server` | `app-server/` |
+| `publish-client` | `app-client-native/` — plus `app-server/` when the client bundles it |
+| `deploy` | whatever the Dockerfile `COPY`s, plus `bato.json` |
+<!-- /native -->
 
 Docs, tests, CI config, `VERSION`, `version.sh` and `tools/` never trigger a publish.
 
@@ -131,6 +228,7 @@ exists it replaces the inference entirely, so list every target you want shipped
 Optional per target: `"registry": "<name>"` when the published name can't be read
 from the nearest `bato.json`. Run `bit ship <App> --dry-run` to check the result.
 
+<!-- electron -->
 ### Bundling the service into the client
 
 Published apps usually ship the Go server **inside** the AppImage and spawn it on
@@ -139,6 +237,18 @@ for the full pattern (extraResources + a beforePack hook that fails the build if
 binary is missing + an `electron/backend.js` supervisor) and live examples (BatoGit,
 BatoDeck, BatoSound, BatoCompose, BatoFetch).
 
+<!-- /electron -->
+<!-- native -->
+### Bundling the service into the client
+
+A native app does local work in-process and needs no server for it. To ship `app-server`
+inside the release anyway (the apps migrating from an Electron client that bundles its
+Go server), add `"app-server"` to `app-client-native/bato.json` `artifacts`: `make` then
+builds the client with bato-shell's supervisor (feature `bundled-server`) and stages the
+server beside the binary. The supervisor starts it on a free loopback port when nothing
+outranks it and stops it with the window. See `app-client-native/CLIENT.md`.
+
+<!-- /native -->
 ## Versioning & releases
 
 A single `VERSION` file is the source of truth; `version.sh` syncs it into the frontend
@@ -151,9 +261,19 @@ A single `VERSION` file is the source of truth; `version.sh` syncs it into the f
 git push && git push origin v1.0.0
 ```
 
+<!-- electron -->
 Pushing a `v*.*.*` tag triggers `.github/workflows/release-electron.yml`, which builds the Go binaries
 (Linux + Windows) and the Electron clients (AppImage + NSIS) and attaches them to a GitHub Release.
+<!-- /electron -->
+<!-- native -->
+The native client takes its version from `VERSION` at build time (`build.rs`), so
+`version.sh` has nothing to sync there. Pushing a `v*.*.*` tag triggers
+`.github/workflows/release-native.yml`, which runs the tests, stages the release with
+`make stage-native`, validates it and attaches a tarball to a GitHub Release. Publishing to
+bato stays local (`make publish-client`): it needs the MinIO credentials and the LAN.
+<!-- /native -->
 
+<!-- electron -->
 ## Architecture notes
 
 - **Theme engine** lives in `app-client/frontend/src/lib/theme.tsx` and `src/index.css`. Colors
@@ -371,19 +491,49 @@ const menu = useContextMenu()
 )}
 ```
 
+<!-- /electron -->
+<!-- native -->
+## Architecture notes
+
+- **The client** (`app-client-native/src/`) is an iced application on two crates from
+  [bato-native](https://github.com/BatoRoy/bato-native), pinned by git tag. **bato-kit** is the
+  widget kit and the app frame (sidebar, App Options, About, toasts, BatoScroll), and the
+  only way the app reaches iced (`bato_kit::iced`). **bato-shell** is the platform: identity,
+  `~/.config/<slug>/settings.json`, HTTP, portal file dialogs, notifications, the updater and
+  the bundled-server supervisor. `main.rs` wires them up, `home.rs` is the Home page, and
+  Examples and Scroll lab are bato-native's gallery pages. Delete those two (and the
+  `gallery` dependency) once your own pages exist.
+- **Theme and contrast** use the Electron client's palette and rules (bato-theme is a port
+  of `theme.tsx`); the contrast maths is tested in bato-native. Build pages from kit
+  widgets on the frame's `Ctx`, which knows the surface a widget sits on.
+- **Frontend ↔ backend** goes through `bato_shell::http::Http` on worker threads (5 s timeout,
+  the system CA store, so `https://*.bato.lan` works). The address is `BATO_BACKEND_URL`, else
+  the one saved in App Options, else a bundled server, else `http://localhost:8080`.
+- **Backend** uses a plain `http.ServeMux` with a CORS middleware
+  (`app-server/internal/api/server.go`). Add routes in `registerRoutes`.
+- **Middle-click autoscroll** (BatoScroll) is built into the kit's scroller and reads the
+  shared `~/.config/bato/batoscroll.json`.
+- **Patched crates.** `[patch.crates-io]` in `app-client-native/Cargo.toml` pulls four patched
+  upstream crates from bato-native (text hinting, gamma, wheel deltas, blur). The kit refuses
+  to compile without them, and every bato-native line must carry the same tag
+  (`make native-bump TAG=…` moves them together; `make lint` checks).
+
+<!-- /native -->
 ## Starting a new project from this template
 
-`./new-app.sh <AppName> <dest> [--electron]` — the flag picks the client. Electron is the
-only one the template ships today and is the default, so an unqualified invocation is the
-normal case; the flag exists because the choice drives which identity files are stamped
-and which `release-<flavor>.yml` workflow survives. It is recorded in `.template` next to
-the template version and commit, so a later diff against the template can tell a
-deliberate omission from drift.
+`./new-app.sh <AppName> <dest> [--electron|--native]` — the flag picks the client (see
+[Clients](#clients)); Electron is the default. The choice drives which client directory
+is kept, which identity files are stamped and which `release-<flavor>.yml` workflow
+survives. It is recorded in `.template` next to the template version and commit, so a
+later diff against the template can tell a deliberate omission from drift.
 
 From a checkout of the template, run the scaffold script (or its make wrapper):
 
 ```bash
 ./new-app.sh MyApp ../MyApp          # or: make new-app NAME=MyApp DEST=../MyApp
+<!-- native -->
+./new-app.sh MyApp ../MyApp --native # or: make new-app NAME=MyApp DEST=../MyApp FLAVOR=native
+<!-- /native -->
 ```
 
 The new app starts with a **fresh, single-commit git history** — none of the template's
@@ -393,6 +543,7 @@ the version to `0.1.0`, and records provenance — the template version and comm
 both the initial commit message and a one-line `.template` file, so you can always diff
 against the exact template state you started from (see "Porting template improvements").
 
+<!-- electron -->
 1. Verify/finish the branding (see "Branding" above). The script pre-stamps the
    mechanical name/slug fields; the rest is yours:
 
@@ -417,6 +568,19 @@ against the exact template state you started from (see "Porting template improve
 2. Icons: replace `app-client/build/appicon.png` and `app-client/build/windows/icon.ico`.
 3. Add your remote and push: `git remote add origin <your-repo-url> && git push -u origin main`.
 
+<!-- /electron -->
+<!-- native -->
+1. Verify/finish the branding (see "Branding" above). The script stamps the name and
+   slug into `app-client-native/src/brand.rs`, `bato.json` and `Cargo.toml` (`[[bin]]`),
+   and the server's config dir and `.env` lookup (`app-server/internal/config/config.go`,
+   `main.go`, `.env.example`). Tagline, accent and icon are yours; the `app-client`
+   package name in `Cargo.toml` stays as it is (renaming it rewrites `Cargo.lock`).
+2. Register the launcher icon in `BatoApps/bato/icons` (see
+   [Publishing a native app](#publishing-a-native-app-the-desktop-type)) before the first
+   `make publish-client`.
+3. Add your remote and push: `git remote add origin <your-repo-url> && git push -u origin main`.
+
+<!-- /native -->
 ### Optional: a test environment
 
 New apps are production-only. To get a test copy (own hostname, volumes and
@@ -443,6 +607,7 @@ cd ../ProjectTemplate
 git diff cf60a2e..HEAD                     # optionally: -- <path> to narrow it down
 ```
 
+<!-- electron -->
 Port the pieces you want by hand — or hand the diff to Claude and ask it to apply what's
 relevant, skipping your customized files (`brand.ts`, `identity.js`, identity fields in
 `package.json`, your own pages). Afterwards run `make dev-setup && make lint && make test`.
@@ -450,6 +615,15 @@ relevant, skipping your customized files (`brand.ts`, `identity.js`, identity fi
 The **Hybrid restyle** is a larger port with its own guide — which files to take, which API
 changes to handle (e.g. the `ghost` → `secondary` button rename) and how to check the result:
 **[STYLE-MIGRATION.md](STYLE-MIGRATION.md)**.
+<!-- /electron -->
+<!-- native -->
+Port the pieces you want by hand — or hand the diff to Claude and ask it to apply what's
+relevant, skipping your customized files (`brand.rs`, the identity fields in `bato.json`
+and `Cargo.toml`, your own pages). Afterwards run `make dev-setup && make lint && make test`.
+
+The kit, text, scrolling and theme are not ported this way: they live in bato-native and
+arrive with `make native-bump TAG=…`.
+<!-- /native -->
 If you port a large batch, update the SHA in `.template` so the next diff starts there.
 
 # Publishing a backend service to bato
@@ -544,12 +718,13 @@ If you port a large batch, update the SHA in `.template` so the next diff starts
   that is a binary plus resources rather than one file — publishes as `type: "desktop"`
   instead.
 
-  > Nothing in the template publishes this way today. The section stays because this is
-  > the mechanism a replacement client would use, and `tools/check-desktop-manifest.mjs`
-  > (via `make check-desktop-manifest DIR=…`) already validates a staged tree against
-  > exactly these rules without uploading — `bato publish` runs them only as the first
-  > step of a command that then uploads, and a republished version silently overwrites
-  > the previous one.
+  > The template's native client (`app-client-native/`, `new-app.sh --native`) publishes
+  > this way: `make publish-check` stages `deploy/desktop/` and validates it with
+  > `tools/check-desktop-manifest.mjs` against exactly these rules without uploading —
+  > `bato publish` runs them only as the first step of a command that then uploads, and a
+  > republished version silently overwrites the previous one — and `make publish-client`
+  > runs that check, then `bato publish -v $(VERSION)`. Its manifest is annotated in
+  > `app-client-native/CLIENT.md`.
 
   A desktop release is a versioned tarball like a backend, but the manifest also
   declares what the install should *do*, so no post-install script is needed (and

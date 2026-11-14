@@ -1,0 +1,388 @@
+//! The native client: bato-kit's frame for the UI, bato-shell for the
+//! platform (identity, settings, HTTP, notifications, updates, `BATO_VIEW` /
+//! `BATO_SMOKE`). Pages: Home (this crate), Examples and Scroll lab (the
+//! bato-native gallery). See CLIENT.md.
+
+mod brand;
+mod home;
+
+use bato_kit::frame::{self, Action, Dialog, Frame, NavItem, Start};
+use bato_kit::iced::{self, Subscription, Task};
+use bato_kit::{El, Ico, Tone, fonts};
+use bato_shell::hooks::{self, BootView, Smoke};
+use bato_shell::http::Http;
+use bato_shell::notify::{Notification, Notifier};
+use bato_shell::updater::{self, UpdatePhase, Updater};
+use bato_shell::{backend, iced_ext};
+use gallery::showcase::{self, Effect, Tab};
+
+use brand::{APP, BRAND, REGISTRY_URL};
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum Page {
+    Home,
+    Examples,
+    ScrollLab,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum Status {
+    Checking,
+    Online,
+    Offline,
+}
+
+#[derive(Debug, Clone)]
+pub enum Msg {
+    Frame(frame::Msg<Page>),
+    Showcase(showcase::Msg),
+    Name(String),
+    AutoUpdate(bool),
+    Ping,
+    Health(bool),
+    Version(Option<String>),
+    Notify,
+    NotifyResult(bool),
+    /// A click on one of our notifications.
+    FocusWindow,
+    Update(UpdatePhase),
+    #[cfg(feature = "bundled-server")]
+    Server(bato_shell::supervisor::Event),
+    /// `BATO_SMOKE`: a frame event.
+    SmokeFrame,
+}
+
+struct App {
+    frame: Frame<Page>,
+    showcase: showcase::State,
+    notifier: Notifier,
+    /// Listen for notification clicks only once one was sent, so an app that
+    /// never notifies never opens a session-bus connection.
+    notified: bool,
+    updater: Updater,
+    update: Option<UpdatePhase>,
+    name: String,
+    auto_update: bool,
+    status: Status,
+    backend_version: Option<String>,
+    /// The bundled server, while it runs (dropping it stops the child).
+    #[cfg(feature = "bundled-server")]
+    server: Option<bato_shell::supervisor::Supervisor>,
+    smoke: Smoke,
+}
+
+/// The page, Showcase tab and `card=` anchor a `BATO_VIEW` asks for.
+fn route(view: &BootView) -> (Page, Tab, Option<iced::widget::Id>) {
+    let page = match view.view.as_deref() {
+        Some("scroll-lab") => Page::ScrollLab,
+        Some("examples") => Page::Examples,
+        _ => Page::Home,
+    };
+    // `card=` selects its tab when `tab=` is missing.
+    let tab = view
+        .tab
+        .as_deref()
+        .and_then(Tab::parse)
+        .or_else(|| view.card.as_deref().and_then(Tab::of_card))
+        .unwrap_or_default();
+    let anchor = view
+        .card
+        .as_deref()
+        .filter(|c| page == Page::Examples && tab.cards().contains(c))
+        .map(|c| showcase::card_id(tab, c));
+    (page, tab, anchor)
+}
+
+/// The About dialog's line for an update phase (Electron's `AboutDialog`).
+fn update_note(phase: &UpdatePhase) -> String {
+    match phase {
+        UpdatePhase::Checking => "Checking for updates…".into(),
+        UpdatePhase::None => "You’re up to date.".into(),
+        UpdatePhase::Available { version } => format!("Update v{version} found — downloading…"),
+        UpdatePhase::Downloading { percent } => format!("Downloading update… {percent}%"),
+        UpdatePhase::Downloaded { version } => {
+            format!("v{version} is installed — restart to use it.")
+        }
+        UpdatePhase::Error { message } => format!("Update check failed: {message}"),
+    }
+}
+
+impl App {
+    fn boot(view: BootView) -> (Self, Task<Msg>) {
+        hooks::mark("boot (window + renderer created)");
+        let (page, tab, anchor) = route(&view);
+        let nav = vec![
+            NavItem::new(Page::Home, Ico::Home, "Home"),
+            NavItem::new(Page::Examples, Ico::LayoutGrid, "Examples"),
+            NavItem::new(Page::ScrollLab, Ico::Rows3, "Scroll lab"),
+        ];
+        let start = Start {
+            dialog: view.modal.as_deref().and_then(Dialog::parse),
+            scroll: view.scroll,
+            anchor,
+            no_animations: hooks::smoke_enabled(),
+        };
+        let settings = APP.load_settings();
+        #[cfg(feature = "bundled-server")]
+        let mut server =
+            bato_shell::supervisor::Supervisor::start_bundled(&APP, &settings, Default::default());
+        let frame = Frame::new(BRAND, nav, settings, page).start(start);
+        let app = App {
+            frame,
+            showcase: showcase::State::new(tab),
+            notifier: Notifier::new(&APP),
+            notified: false,
+            updater: Updater::new(&APP, REGISTRY_URL),
+            update: None,
+            name: String::new(),
+            auto_update: true,
+            status: Status::Checking,
+            backend_version: None,
+            #[cfg(feature = "bundled-server")]
+            server: None,
+            smoke: Smoke::default(),
+        };
+        #[allow(unused_mut)]
+        let mut tasks = vec![app.ping()];
+        #[cfg(feature = "bundled-server")]
+        let app = {
+            let mut app = app;
+            if let Some(sup) = server.as_mut() {
+                tasks.push(iced_ext::supervisor_events(sup).map(Msg::Server));
+            }
+            app.server = server;
+            app
+        };
+        (app, Task::batch(tasks))
+    }
+
+    /// The backend in effect: `BATO_BACKEND_URL`, the address saved in App
+    /// Options, the bundled server, `http://localhost:8080`.
+    fn backend_url(&self) -> String {
+        #[cfg(feature = "bundled-server")]
+        let bundled = self.server.as_ref().map(|s| s.url());
+        #[cfg(not(feature = "bundled-server"))]
+        let bundled = None;
+        backend::resolve_for(self.frame.settings(), bundled).url
+    }
+
+    fn ping(&self) -> Task<Msg> {
+        let api = Http::new(&self.backend_url());
+        iced_ext::blocking(move || api.health()).map(Msg::Health)
+    }
+
+    fn save_settings(&self) {
+        if let Err(e) = APP.save_settings(self.frame.settings()) {
+            eprintln!("settings: {e}");
+        }
+    }
+
+    fn update(&mut self, msg: Msg) -> Task<Msg> {
+        match msg {
+            Msg::Frame(m) => match self.frame.update(m) {
+                Action::None | Action::Navigated(_) => {}
+                Action::SaveSettings => self.save_settings(),
+                Action::TestServer(url) => {
+                    let api = Http::new(&url);
+                    return iced_ext::blocking(move || api.health())
+                        .map(|ok| Msg::Frame(frame::Msg::ServerTested(ok)));
+                }
+                Action::ServerSaved => {
+                    self.save_settings();
+                    return self.update(Msg::Ping);
+                }
+                Action::CheckUpdates => {
+                    if !self.updater.is_supported() {
+                        self.frame
+                            .set_update_note(Some(updater::NOT_PACKAGED.into()));
+                    } else if let Some(phase @ UpdatePhase::Downloaded { .. }) = &self.update {
+                        // Nothing to fetch: the next launch runs it.
+                        self.frame.set_update_note(Some(update_note(phase)));
+                    } else {
+                        return iced_ext::check_update(&self.updater).map(Msg::Update);
+                    }
+                }
+            },
+            Msg::Showcase(m) => {
+                if let Some(Effect::Toast(text, tone)) = showcase::update(&mut self.showcase, m) {
+                    self.frame.toast(text, tone);
+                }
+            }
+            Msg::Name(n) => self.name = n,
+            Msg::AutoUpdate(v) => self.auto_update = v,
+            Msg::Ping => {
+                self.status = Status::Checking;
+                return self.ping();
+            }
+            Msg::Health(ok) => {
+                if ok {
+                    self.status = Status::Online;
+                    let api = Http::new(&self.backend_url());
+                    return iced_ext::blocking(move || api.info_version()).map(Msg::Version);
+                }
+                self.status = Status::Offline;
+                self.backend_version = None;
+            }
+            Msg::Version(v) => self.backend_version = v,
+            Msg::Notify => {
+                let body = if self.name.is_empty() {
+                    "This is a native OS notification.".to_string()
+                } else {
+                    format!("Notifying you, {}.", self.name)
+                };
+                self.notified = true;
+                let n = Notification::new("Hello from the template", body);
+                return iced_ext::notify(&self.notifier, n).map(Msg::NotifyResult);
+            }
+            Msg::NotifyResult(ok) => {
+                if !ok {
+                    self.frame
+                        .toast("Notifications are blocked or unsupported", Tone::Error);
+                }
+            }
+            Msg::FocusWindow => {
+                return iced::window::latest().and_then(iced::window::gain_focus);
+            }
+            Msg::Update(phase) => {
+                // A manual check that finds a release installs it, as the
+                // background check does (Electron's autoDownload).
+                let apply = matches!(phase, UpdatePhase::Available { .. })
+                    && !matches!(self.update, Some(UpdatePhase::Downloading { .. }));
+                if let UpdatePhase::Downloaded { version } = &phase {
+                    self.frame.toast(
+                        format!("v{version} is installed — restart to use it"),
+                        Tone::Success,
+                    );
+                }
+                self.frame.set_update_note(Some(update_note(&phase)));
+                self.update = Some(phase);
+                if apply {
+                    return iced_ext::apply_update(&self.updater).map(Msg::Update);
+                }
+            }
+            #[cfg(feature = "bundled-server")]
+            Msg::Server(event) => {
+                use bato_shell::supervisor::Event;
+                match event {
+                    Event::Healthy { .. } => return self.update(Msg::Ping),
+                    Event::Unhealthy { .. } | Event::Exited { .. } => {
+                        self.status = Status::Offline;
+                    }
+                    Event::Restarting { .. } => self.status = Status::Checking,
+                }
+            }
+            Msg::SmokeFrame => {
+                if self.smoke.on_frame() {
+                    return iced::exit();
+                }
+            }
+        }
+        Task::none()
+    }
+
+    fn subscription(&self) -> Subscription<Msg> {
+        let clicks = if self.notified {
+            iced_ext::notification_clicks(&self.notifier).map(|_| Msg::FocusWindow)
+        } else {
+            Subscription::none()
+        };
+        Subscription::batch([
+            self.frame.subscription().map(Msg::Frame),
+            // Check on launch and every 30 min, install in the background.
+            // Nothing for a dev build.
+            iced_ext::update_status(&self.updater, true).map(Msg::Update),
+            clicks,
+            iced_ext::smoke_frames().map(|_| Msg::SmokeFrame),
+        ])
+    }
+
+    fn view(&self) -> El<'_, Msg> {
+        let cx = self.frame.ctx();
+        let wide = self.frame.wide();
+        let page: El<'_, Msg> = match self.frame.page() {
+            Page::Home => home::view(
+                cx,
+                home::Home {
+                    brand: self.frame.brand(),
+                    backend: self.backend_url(),
+                    status: self.status,
+                    version: self.backend_version.clone(),
+                    name: &self.name,
+                    auto_update: self.auto_update,
+                },
+                wide,
+            ),
+            Page::Examples => showcase::view(&self.showcase, cx, wide).map(Msg::Showcase),
+            Page::ScrollLab => gallery::scroll_lab::view(cx, wide),
+        };
+        self.frame.view(page, Msg::Frame)
+    }
+}
+
+fn main() -> iced::Result {
+    // Before any thread starts: it may set WGPU_BACKEND.
+    bato_shell::gpu::prefer_vulkan();
+    hooks::mark("main");
+    let view = BootView::from_env();
+    fonts::setup();
+    hooks::mark("fonts ready");
+
+    iced::application(move || App::boot(view.clone()), App::update, App::view)
+        .title(|_: &App| String::from(APP.product_name))
+        .window(iced_ext::window_settings(&APP))
+        .default_font(fonts::sans())
+        .subscription(App::subscription)
+        .scale_factor(|a: &App| a.frame.scale_factor())
+        .style(|a: &App, _| a.frame.style())
+        .theme(|_: &App| iced::Theme::Dark)
+        .run()
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn bato_view_routes_pages_tabs_and_cards() {
+        let (p, t, a) = route(&BootView::parse("view=examples&tab=data&card=charts"));
+        assert_eq!((p, t), (Page::Examples, Tab::Data));
+        assert_eq!(a, Some(showcase::card_id(Tab::Data, "charts")));
+        let (_, t, a) = route(&BootView::parse("view=examples&card=pickers"));
+        assert_eq!(t, Tab::Date, "card= picks its tab");
+        assert!(a.is_some());
+        let (_, _, a) = route(&BootView::parse("view=examples&tab=inputs&card=charts"));
+        assert_eq!(a, None, "a card of another tab is ignored");
+        assert_eq!(
+            route(&BootView::parse("view=scroll-lab")).0,
+            Page::ScrollLab
+        );
+        assert_eq!(route(&BootView::parse("")).0, Page::Home);
+    }
+
+    #[test]
+    fn identity_matches_the_manifest() {
+        let manifest: serde_json::Value =
+            serde_json::from_str(include_str!("../bato.json")).expect("bato.json parses");
+        assert_eq!(manifest["name"], APP.slug, "bato.json name = brand.rs slug");
+        assert_eq!(manifest["type"], "desktop");
+        assert_eq!(
+            manifest["desktop"]["startupWMClass"], APP.slug,
+            "iced sets the app_id from the slug"
+        );
+        assert_eq!(manifest["desktop"]["exec"], APP.slug);
+        assert_eq!(manifest["bin"][0]["name"], env!("CARGO_BIN_NAME"));
+        assert_eq!(env!("CARGO_BIN_NAME"), APP.slug, "[[bin]] name = slug");
+        assert_eq!(manifest["desktop"]["name"], APP.product_name);
+        assert_eq!(APP.version, env!("APP_VERSION"));
+        assert!(!APP.version.is_empty() && APP.version != "0.0.0");
+    }
+
+    #[test]
+    fn update_notes_follow_electron() {
+        assert_eq!(update_note(&UpdatePhase::None), "You’re up to date.");
+        assert_eq!(
+            update_note(&UpdatePhase::Downloading { percent: 42 }),
+            "Downloading update… 42%"
+        );
+    }
+}

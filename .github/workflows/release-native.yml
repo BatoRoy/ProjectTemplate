@@ -1,0 +1,77 @@
+name: Release
+
+# The native client's release workflow (new-app.sh keeps it in --native apps and
+# deletes it in Electron ones). On a v*.*.* tag: run the tests, stage the release the
+# same way `make publish-client` does (`make stage-native`, so the two layouts cannot
+# differ), validate it with the publish rules and attach a tarball to a GitHub Release.
+#
+# `bato publish` stays local (`make publish-client`): it needs the MinIO credentials
+# and the LAN, neither of which a GitHub runner has. This workflow is the compile and
+# test gate on every tag, plus a downloadable build.
+
+on:
+  push:
+    tags:
+      - 'v*.*.*'
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    name: Build and release the native client
+    # glibc 2.39: the binary runs on anything at least that new (the Arch fleet).
+    runs-on: ubuntu-24.04
+    env:
+      CARGO_TERM_COLOR: always
+      CARGO_INCREMENTAL: 0
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Check the tag matches VERSION
+        run: |
+          tag="${GITHUB_REF_NAME#v}"
+          file="$(tr -d '[:space:]' < VERSION)"
+          if [ "$tag" != "$file" ]; then
+            echo "::error::tag $GITHUB_REF_NAME but VERSION is $file — tag with ./version.sh"
+            exit 1
+          fi
+
+      - uses: actions/setup-go@v7
+        with:
+          go-version-file: app-server/go.mod
+
+      # The Makefile reads bato.json with node.
+      - uses: actions/setup-node@v7
+        with:
+          node-version: '24'
+
+      - uses: dtolnay/rust-toolchain@stable
+
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: app-client-native -> target
+          key: release
+
+      # FreeType is built from source (bato-kit's `bundled`); pkg-config finds zlib.
+      - name: Install build dependencies
+        run: sudo apt-get update && sudo apt-get install -y --no-install-recommends pkg-config zlib1g-dev
+
+      - name: Test
+        run: make test
+
+      - name: Stage the release
+        run: make stage-native
+
+      - name: Validate it like bato publish will
+        run: node tools/check-desktop-manifest.mjs deploy/desktop
+
+      - name: Pack
+        run: |
+          name=$(node -p "require('./app-client-native/bato.json').name")
+          tar -czf "dist/$name-${GITHUB_REF_NAME#v}-linux-amd64.tar.gz" -C deploy/desktop .
+
+      - uses: softprops/action-gh-release@v2
+        with:
+          generate_release_notes: true
+          files: dist/*-linux-amd64.tar.gz
