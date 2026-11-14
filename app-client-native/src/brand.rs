@@ -8,11 +8,15 @@ use bato_shell::AppIdentity;
 /// config dir (`~/.config/<slug>/`) and the Wayland app_id / X11 WM_CLASS, so
 /// it must match `bato.json` (`name`, `desktop.startupWMClass`). `BATO_APP_ID`
 /// overrides the app_id (off-screen tests, side-by-side dev builds).
+///
+/// The icon is the X11 window icon (Wayland takes the launcher's): your app's
+/// 256 px PNG from `BatoApps/bato/icons/png/256/`. CLIENT.md, "The icon".
 pub const APP: AppIdentity = AppIdentity::new(
     "App", // name: stamped by new-app.sh
     "app", // slug: stamped by new-app.sh
     env!("APP_VERSION"),
-);
+)
+.with_icon(include_bytes!("../assets/appicon.png"));
 
 /// What the frame shows: sidebar header, Home, About.
 pub const BRAND: Brand = Brand {

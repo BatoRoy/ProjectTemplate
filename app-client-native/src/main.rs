@@ -6,7 +6,7 @@
 mod brand;
 mod home;
 
-use bato_kit::frame::{self, Action, Dialog, Frame, NavItem, Start};
+use bato_kit::frame::{self, Action, Dialog, Frame, NavItem, Start, UpdateStatus};
 use bato_kit::iced::{self, Subscription, Task};
 use bato_kit::{El, Ico, Tone, fonts};
 use bato_shell::hooks::{self, BootView, Smoke};
@@ -45,7 +45,12 @@ pub enum Msg {
     NotifyResult(bool),
     /// A click on one of our notifications.
     FocusWindow,
+    /// The background updater (check on launch and every 30 min, install).
     Update(UpdatePhase),
+    /// A check from About: like `Update`, and installs what it finds.
+    Checked(UpdatePhase),
+    /// "Restart to install" could not start the installed binary.
+    RestartFailed(String),
     #[cfg(feature = "bundled-server")]
     Server(bato_shell::supervisor::Event),
     /// `BATO_SMOKE`: a frame event.
@@ -60,7 +65,6 @@ struct App {
     /// never notifies never opens a session-bus connection.
     notified: bool,
     updater: Updater,
-    update: Option<UpdatePhase>,
     name: String,
     auto_update: bool,
     status: Status,
@@ -93,17 +97,15 @@ fn route(view: &BootView) -> (Page, Tab, Option<iced::widget::Id>) {
     (page, tab, anchor)
 }
 
-/// The About dialog's line for an update phase (Electron's `AboutDialog`).
-fn update_note(phase: &UpdatePhase) -> String {
+/// The updater's phase as the frame shows it (About, the sidebar card).
+fn update_status(phase: UpdatePhase) -> UpdateStatus {
     match phase {
-        UpdatePhase::Checking => "Checking for updates…".into(),
-        UpdatePhase::None => "You’re up to date.".into(),
-        UpdatePhase::Available { version } => format!("Update v{version} found — downloading…"),
-        UpdatePhase::Downloading { percent } => format!("Downloading update… {percent}%"),
-        UpdatePhase::Downloaded { version } => {
-            format!("v{version} is installed — restart to use it.")
-        }
-        UpdatePhase::Error { message } => format!("Update check failed: {message}"),
+        UpdatePhase::Checking => UpdateStatus::Checking,
+        UpdatePhase::Available { version } => UpdateStatus::Available { version },
+        UpdatePhase::None => UpdateStatus::UpToDate,
+        UpdatePhase::Downloading { percent } => UpdateStatus::Downloading { percent },
+        UpdatePhase::Downloaded { version } => UpdateStatus::Downloaded { version },
+        UpdatePhase::Error { message } => UpdateStatus::Error { message },
     }
 }
 
@@ -133,7 +135,6 @@ impl App {
             notifier: Notifier::new(&APP),
             notified: false,
             updater: Updater::new(&APP, REGISTRY_URL),
-            update: None,
             name: String::new(),
             auto_update: true,
             status: Status::Checking,
@@ -195,12 +196,14 @@ impl App {
                     if !self.updater.is_supported() {
                         self.frame
                             .set_update_note(Some(updater::NOT_PACKAGED.into()));
-                    } else if let Some(phase @ UpdatePhase::Downloaded { .. }) = &self.update {
-                        // Nothing to fetch: the next launch runs it.
-                        self.frame.set_update_note(Some(update_note(phase)));
                     } else {
-                        return iced_ext::check_update(&self.updater).map(Msg::Update);
+                        return iced_ext::check_update(&self.updater).map(Msg::Checked);
                     }
+                }
+                // Start the installed release, then exit (a bundled server
+                // stops with this process and starts with the new one).
+                Action::RestartToUpdate => {
+                    return iced_ext::restart_to_update(&self.updater, Msg::RestartFailed);
                 }
             },
             Msg::Showcase(m) => {
@@ -243,22 +246,24 @@ impl App {
             Msg::FocusWindow => {
                 return iced::window::latest().and_then(iced::window::gain_focus);
             }
-            Msg::Update(phase) => {
+            Msg::Update(phase) => self.frame.set_update_status(update_status(phase)),
+            Msg::Checked(phase) => {
                 // A manual check that finds a release installs it, as the
-                // background check does (Electron's autoDownload).
+                // background one does (Electron's autoDownload), unless the
+                // background loop is already installing.
                 let apply = matches!(phase, UpdatePhase::Available { .. })
-                    && !matches!(self.update, Some(UpdatePhase::Downloading { .. }));
-                if let UpdatePhase::Downloaded { version } = &phase {
-                    self.frame.toast(
-                        format!("v{version} is installed — restart to use it"),
-                        Tone::Success,
+                    && !matches!(
+                        self.frame.update_status(),
+                        UpdateStatus::Downloading { .. } | UpdateStatus::Downloaded { .. }
                     );
-                }
-                self.frame.set_update_note(Some(update_note(&phase)));
-                self.update = Some(phase);
+                self.frame.set_update_status(update_status(phase));
                 if apply {
                     return iced_ext::apply_update(&self.updater).map(Msg::Update);
                 }
+            }
+            Msg::RestartFailed(e) => {
+                self.frame
+                    .toast(format!("Restart failed: {e}"), Tone::Error);
             }
             #[cfg(feature = "bundled-server")]
             Msg::Server(event) => {
@@ -378,11 +383,27 @@ mod tests {
     }
 
     #[test]
-    fn update_notes_follow_electron() {
-        assert_eq!(update_note(&UpdatePhase::None), "You’re up to date.");
+    fn update_phases_reach_the_frame() {
+        assert_eq!(update_status(UpdatePhase::None), UpdateStatus::UpToDate);
         assert_eq!(
-            update_note(&UpdatePhase::Downloading { percent: 42 }),
-            "Downloading update… 42%"
+            update_status(UpdatePhase::Downloaded {
+                version: "1.2.0".into()
+            }),
+            UpdateStatus::Downloaded {
+                version: "1.2.0".into()
+            }
         );
+        assert_eq!(
+            UpdateStatus::Downloading { percent: 42 }.note().as_deref(),
+            Some("Downloading update… 42%")
+        );
+    }
+
+    #[test]
+    fn x11_icon_decodes() {
+        let png = APP.icon_png.expect("brand.rs gives APP an icon");
+        let icon = iced_ext::icon_from_png(png);
+        assert!(icon.is_some(), "assets/appicon.png is a PNG iced can take");
+        assert!(iced_ext::window_settings(&APP).icon.is_some());
     }
 }

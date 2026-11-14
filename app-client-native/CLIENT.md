@@ -18,6 +18,7 @@ Rust + [iced](https://iced.rs) 0.14 on two crates from
 | `Cargo.toml` | `[[bin]] name` = slug (stamped); the package is always `app-client`, so `Cargo.lock` stays valid |
 | `Cargo.lock` | Committed; every build is `--locked` |
 | `bato.json` | The `desktop` release manifest (below) |
+| `assets/appicon.png` | The X11 window icon, compiled in (`brand.rs`; below) |
 | `licenses/` | Shipped in the release: the fonts are OFL and compiled into the binary, so their licence must travel with it; lucide is ISC |
 
 ## Running
@@ -40,6 +41,9 @@ needs: a Wayland or X11 session, and a Vulkan driver for the GPU renderer (wgpu)
 Without one the app falls back to a software renderer and loses the dialog backdrop blur.
 Optional: a session D-Bus with a notification server; `xdg-desktop-portal` with a
 FileChooser backend (`-gtk`, `-kde`, `-gnome`; Hyprland's portal has none) for file dialogs.
+`bato_shell::iced_ext::open_files` / `open_directory` / `save_file` make the dialog modal
+to the app window: by window id on X11, by an xdg-foreign export on Wayland (when the
+compositor has `zxdg_exporter_v2`/`v1`; without it the dialog opens unparented).
 
 ### Environment
 
@@ -143,23 +147,29 @@ tarball. Without it the launcher is blank. Register one in `BatoApps/bato`:
 
 then `./icons/distribute.sh && make publish-icons` there. Nothing to rebuild here.
 
-There is no window icon in the binary: Wayland takes it from the launcher. For X11
-window managers that read `_NET_WM_ICON`, add
-`.with_icon(include_bytes!("../assets/appicon.png"))` to `APP` in `brand.rs`.
+Wayland takes the window icon from that launcher (`startupWMClass` = app_id). X11 window
+managers read `_NET_WM_ICON` from the window, so the binary carries one:
+`assets/appicon.png`, passed by `APP.with_icon(…)` in `brand.rs`. It is the template's
+icon; replace it with your app's 256 px PNG from `BatoApps/bato/icons/png/256/`
+(the same icon the registry serves). `cargo test` checks that it decodes.
 
 ## Updates
 
 A packaged build (running from `~/.local/share/bato/apps/<slug>/`) checks the registry on
 launch and every 30 minutes, and when there is a newer release runs
 `bato install <slug> --json --progress` in the background (Electron's `autoDownload`).
-About shows the phases, and "Check for updates" runs a check now. `bato install` swaps
-the files without touching the running binary's inode, so the next launch is the new
-version; the app says so with a toast. Without the bato CLI it shows
-`bato install <slug>` to run by hand. A dev build says "Updates apply to packaged builds
-only." (`bato_shell::updater`.)
+About and the sidebar show the phases as the Electron client does: About's note
+("Checking for updates…", "Downloading update… 42%", …), a progress card in the sidebar
+while downloading, then "vX is ready" with a **Restart** button there and **Restart to
+install vX** in About. "Check for updates" runs a check now. Without the bato CLI the
+note says to run `bato install <slug>`. A dev build says "Updates apply to packaged
+builds only." (`bato_shell::updater`.)
 
-The kit's About dialog has no "Restart to update" button yet; `bato_shell::iced_ext::
-restart_to_update` is there for when it does.
+`bato install` swaps the files without touching the running binary's inode, so the old
+process keeps running until it is restarted. Restart (`Action::RestartToUpdate` →
+`iced_ext::restart_to_update`) starts the installed binary, with the same arguments and
+in its own process group, then exits; a bundled server stops with the old process and
+starts with the new one. If the start fails, a toast says why and nothing exits.
 
 ## A bundled server
 
