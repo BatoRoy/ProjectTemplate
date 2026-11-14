@@ -204,8 +204,8 @@ as a click and `FingerLost` as a cancel; the modal also swallows every touch so 
 scrolls. The sidebar is outside the scroller, so taps there go straight to the rows. The 15 px slop is
 in logical px at every scale (`TouchDrag::set_scale(device_scale)`, since positions are device px).
 
-**Hover under touch** follows Chromium: while a touch may still be a tap the content sees it at
-the finger; once it becomes a scroll nothing is hovered; a tap leaves the hover on the tapped
+**Hover under touch** follows Chromium: while a touch may still be a tap, touch events reach the
+content at the finger but nothing is drawn hovered (no flash when a scroll starts); once it becomes a scroll nothing is hovered; a tap leaves the hover on the tapped
 element until the mouse moves (`HoverSource` in `widgets/scroller.rs`). iced reports the finger as
 the cursor and a tap alone causes no redraw, so before this the Scroll lab highlight tracked the
 finger's screen position during a drag and never appeared on a tap.

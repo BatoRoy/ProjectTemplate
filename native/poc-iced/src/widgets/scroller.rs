@@ -214,13 +214,19 @@ impl TouchRouter {
 enum HoverSource {
     Mouse,
     TouchNone,
-    /// Content coordinates.
+    /// A finger is down and may still be a tap: touch events reach the
+    /// content at the finger (so buttons arm and click), but nothing is drawn
+    /// hovered — otherwise the row under the finger flashes when a scroll
+    /// begins. Content coordinates.
+    TouchPending(Point),
+    /// After a tap: hovered like a parked mouse. Content coordinates.
     TouchAt(Point),
 }
 
 fn hover_after(current: HoverSource, outcome: TouchOutcome, at: Point) -> HoverSource {
     match outcome {
-        TouchOutcome::Pending | TouchOutcome::Tap => HoverSource::TouchAt(at),
+        TouchOutcome::Pending => HoverSource::TouchPending(at),
+        TouchOutcome::Tap => HoverSource::TouchAt(at),
         TouchOutcome::ScrollStarted | TouchOutcome::Scrolling | TouchOutcome::Ended => HoverSource::TouchNone,
         TouchOutcome::Ignored => current,
     }
@@ -262,7 +268,7 @@ impl State {
     /// counts (the viewport, minus the scrollbar where relevant).
     fn content_cursor(&self, cursor: mouse::Cursor, area: Rectangle, offset: f32) -> mouse::Cursor {
         match self.hover {
-            HoverSource::TouchNone => mouse::Cursor::Unavailable,
+            HoverSource::TouchNone | HoverSource::TouchPending(_) => mouse::Cursor::Unavailable,
             HoverSource::TouchAt(p) => mouse::Cursor::Available(p),
             HoverSource::Mouse => match cursor {
                 mouse::Cursor::Available(p) if area.contains(p) => mouse::Cursor::Available(p + Vector::new(0.0, offset)),
@@ -396,9 +402,9 @@ impl<'a, Message: 'a> Widget<Message, iced::Theme, iced::Renderer> for Scroller<
             }
             let shifted = Point::new(position.x, position.y + offset);
             state.hover = hover_after(state.hover, outcome, shifted);
-            if !matches!(outcome, TouchOutcome::Ignored) || state.axis.is_animating() {
-                // Pending/Tap too: hover-only content (the Scroll lab rows)
-                // updates on redraw, and a tap alone would not cause one.
+            if !matches!(outcome, TouchOutcome::Ignored | TouchOutcome::Pending) || state.axis.is_animating() {
+                // Tap too: hover-only content (the Scroll lab rows) updates on
+                // redraw, and a tap alone would not cause one.
                 shell.request_redraw();
             }
             match fwd {
@@ -429,7 +435,11 @@ impl<'a, Message: 'a> Widget<Message, iced::Theme, iced::Renderer> for Scroller<
         let content_cursor = if dragging {
             mouse::Cursor::Unavailable
         } else {
-            tree.state.downcast_ref::<State>().content_cursor(cursor, b, offset)
+            let state = tree.state.downcast_ref::<State>();
+            match (state.hover, event) {
+                (HoverSource::TouchPending(p), Event::Touch(_)) => mouse::Cursor::Available(p),
+                _ => state.content_cursor(cursor, b, offset),
+            }
         };
         let content_viewport = Rectangle { y: b.y + offset, ..b };
         self.content.as_widget_mut().update(
@@ -682,9 +692,14 @@ mod tests {
     fn touch_hover_follows_chromium_rules() {
         let p = Point::new(10.0, 500.0);
         let q = Point::new(10.0, 900.0);
-        // Finger down: the content sees it (taps must hit buttons).
+        // Finger down: touch events see it (taps must hit buttons) but
+        // nothing is drawn hovered, so a starting scroll never flashes a row.
         let h = hover_after(HoverSource::Mouse, TouchOutcome::Pending, p);
-        assert_eq!(h, HoverSource::TouchAt(p));
+        assert_eq!(h, HoverSource::TouchPending(p));
+        let mut pending = State::default();
+        pending.hover = h;
+        let area0 = Rectangle { x: 0.0, y: 0.0, width: 800.0, height: 600.0 };
+        assert_eq!(pending.content_cursor(mouse::Cursor::Available(p), area0, 0.0), mouse::Cursor::Unavailable);
         // Becomes a scroll: nothing hovers while the content slides.
         let h = hover_after(h, TouchOutcome::ScrollStarted, q);
         assert_eq!(h, HoverSource::TouchNone);
