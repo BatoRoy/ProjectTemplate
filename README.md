@@ -521,10 +521,9 @@ const menu = useContextMenu()
 <!-- /native -->
 ## Starting a new project from this template
 
-`./new-app.sh <AppName> <dest> [--electron|--native]` — the flag picks the client (see
-[Clients](#clients)); Electron is the default. The choice drives which client directory
-is kept, which identity files are stamped and which `release-<flavor>.yml` workflow
-survives. It is recorded in `.template` next to the template version and commit, so a
+`./new-app.sh <AppName> <dest> [--electron|--native]` — the flag picks the client;
+Electron is the default. The choice drives which client directory is kept, which
+identity files are stamped and which `release-<flavor>.yml` workflow survives. It is recorded in `.template` next to the template version and commit, so a
 later diff against the template can tell a deliberate omission from drift.
 
 From a checkout of the template, run the scaffold script (or its make wrapper):

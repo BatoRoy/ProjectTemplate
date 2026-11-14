@@ -338,7 +338,10 @@ md = md.replace(
       'system, and a version-tagged build/release pipeline.')
 if (flavor === 'native') {
   // "Look & contrast" is an Electron section.
-  md = md.replace(' (see [Look & contrast](#look--contrast))', '')
+  md = md.replace(
+    'any accent on any theme (see [Look & contrast](#look--contrast)). Drop in your pages and\n' +
+    'backend routes; the chrome is done.',
+    'any accent on any theme. Drop in your pages and backend routes; the chrome is done.')
 }
 
 fs.writeFileSync(file, md)
