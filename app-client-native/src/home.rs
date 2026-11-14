@@ -100,9 +100,11 @@ pub fn view<'a>(cx: &Ctx, h: Home<'_>, wide: bool) -> El<'a, Msg> {
     let notif_body = column![
         rich(
             vec![
-                Span::new("A native OS notification over the session bus ("),
-                Span::new("org.freedesktop.Notifications").mono().size(12.0),
-                Span::new("). Clicking it brings this window to the front."),
+                // Electron's wording, kept so Home diffs clean against the Electron
+                // reference shots (bato-native tools/compare). Rewrite it with the page.
+                Span::new("A native OS notification from the Electron main process. Falls back to the web "),
+                Span::new("Notification").mono().size(12.0),
+                Span::new(" API in a plain browser."),
             ],
             13.0,
             21.125

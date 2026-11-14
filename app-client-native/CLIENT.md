@@ -120,7 +120,7 @@ do. `bato install <slug>` unpacks it to `~/.local/share/bato/apps/<slug>/`, syml
   `[[bin]]` name.
 - **No `requires`**: fonts and icons are compiled in and every system library is opened
   at run time, so there is nothing to check before the download. The binary links only
-  glibc (built on ubuntu-24.04 in CI: glibc ≥ 2.39).
+  glibc, libgcc_s and zlib (a CI build on ubuntu-24.04 needs glibc ≥ 2.39).
 - **No `postInstall`**: the `desktop` type refuses it; everything is declarative.
 - **No `service`**: add one only for a daemon that outlives the window, with a port
   claimed in `BatoApps/PORTS.md` first. `service.port` becomes `--port <n>` in the unit.
