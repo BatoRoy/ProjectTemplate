@@ -261,13 +261,26 @@ A single `VERSION` file is the source of truth; `version.sh` syncs it into the f
 git push && git push origin v1.0.0
 ```
 
+### GitHub Actions are off by default
+
+No workflow runs on GitHub unless asked: no builds, no artifacts filling the storage quota, no
+failure emails. Every job is gated on the repo variable `BATO_CI`:
+
+- **One-off run:** Actions tab → pick the workflow → *Run workflow*. For a release, choose the tag
+  in "Use workflow from".
+- **Turn CI on for this app:** set `BATO_CI` to `true` (Settings → Secrets and variables → Actions →
+  Variables, or `gh variable set BATO_CI --body true`). The workflows then run on their triggers
+  (tests on push, release on tag) as described below. Delete the variable to turn it off again.
+
+Artifacts that jobs hand to each other are kept 3 days.
+
 <!-- electron -->
-Pushing a `v*.*.*` tag triggers `.github/workflows/release-electron.yml`, which builds the Go binaries
+With CI on, pushing a `v*.*.*` tag triggers `.github/workflows/release-electron.yml`, which builds the Go binaries
 (Linux + Windows) and the Electron clients (AppImage + NSIS) and attaches them to a GitHub Release.
 <!-- /electron -->
 <!-- native -->
 The native client takes its version from `VERSION` at build time (`build.rs`), so
-`version.sh` has nothing to sync there. Pushing a `v*.*.*` tag triggers
+`version.sh` has nothing to sync there. With CI on, pushing a `v*.*.*` tag triggers
 `.github/workflows/release-native.yml`, which runs the tests, stages the release with
 `make stage-native`, validates it and attaches a tarball to a GitHub Release. Publishing to
 bato stays local (`make publish-client`): it needs the MinIO credentials and the LAN.
