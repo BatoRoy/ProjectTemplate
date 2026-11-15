@@ -284,8 +284,8 @@ checksum = "ac07cdecf99051d9a5238b80f35af32cdeba5b336e55d957b318b50137e18da5"
 
 [[package]]
 name = "bato-kit"
-version = "1.0.0"
-source = "git+https://github.com/BatoRoy/bato-native?tag=v1.0.0#fe632a8ec49373ba3fc005e6f7d4ba09c2f3d6a6"
+version = "1.1.0"
+source = "git+https://github.com/BatoRoy/bato-native?tag=v1.1.0#0b35d7a72286e28eb74c904814b7b9d8869ae2bc"
 dependencies = [
  "bato-theme",
  "chrono",
@@ -296,38 +296,45 @@ dependencies = [
  "iced",
  "iced_wgpu",
  "iced_winit",
+ "image",
  "modit",
  "scroll-physics",
  "serde",
  "serde_json",
  "syntect",
  "two-face",
+ "unicode-segmentation",
  "wgpu",
  "winit",
 ]
 
 [[package]]
 name = "bato-shell"
-version = "1.0.0"
-source = "git+https://github.com/BatoRoy/bato-native?tag=v1.0.0#fe632a8ec49373ba3fc005e6f7d4ba09c2f3d6a6"
+version = "1.1.0"
+source = "git+https://github.com/BatoRoy/bato-native?tag=v1.1.0#0b35d7a72286e28eb74c904814b7b9d8869ae2bc"
 dependencies = [
  "ashpd",
  "bato-theme",
  "futures",
  "iced",
  "libc",
- "png",
+ "png 0.17.16",
  "raw-window-handle",
  "serde",
  "serde_json",
  "ureq",
+ "wayland-backend",
+ "wayland-client",
+ "wayland-protocols",
+ "wayland-protocols-wlr",
+ "x11rb",
  "zbus",
 ]
 
 [[package]]
 name = "bato-theme"
-version = "1.0.0"
-source = "git+https://github.com/BatoRoy/bato-native?tag=v1.0.0#fe632a8ec49373ba3fc005e6f7d4ba09c2f3d6a6"
+version = "1.1.0"
+source = "git+https://github.com/BatoRoy/bato-native?tag=v1.1.0#0b35d7a72286e28eb74c904814b7b9d8869ae2bc"
 dependencies = [
  "serde",
  "serde_json",
@@ -630,7 +637,7 @@ dependencies = [
 [[package]]
 name = "cosmic-text"
 version = "0.15.0"
-source = "git+https://github.com/BatoRoy/bato-native?tag=v1.0.0#fe632a8ec49373ba3fc005e6f7d4ba09c2f3d6a6"
+source = "git+https://github.com/BatoRoy/bato-native?tag=v1.1.0#0b35d7a72286e28eb74c904814b7b9d8869ae2bc"
 dependencies = [
  "bitflags 2.13.2",
  "cosmic_undo_2",
@@ -689,7 +696,7 @@ checksum = "460fbee9c2c2f33933d720630a6a0bac33ba7053db5344fac858d4b8952d77d5"
 [[package]]
 name = "cryoglyph"
 version = "0.1.0"
-source = "git+https://github.com/BatoRoy/bato-native?tag=v1.0.0#fe632a8ec49373ba3fc005e6f7d4ba09c2f3d6a6"
+source = "git+https://github.com/BatoRoy/bato-native?tag=v1.1.0#0b35d7a72286e28eb74c904814b7b9d8869ae2bc"
 dependencies = [
  "cosmic-text",
  "etagere",
@@ -775,7 +782,7 @@ checksum = "75b325c5dbd37f80359721ad39aca5a29fb04c89279657cffdda8736d0c0b9d2"
 [[package]]
 name = "dpi"
 version = "0.1.1"
-source = "git+https://github.com/BatoRoy/bato-native?tag=v1.0.0#fe632a8ec49373ba3fc005e6f7d4ba09c2f3d6a6"
+source = "git+https://github.com/BatoRoy/bato-native?tag=v1.1.0#0b35d7a72286e28eb74c904814b7b9d8869ae2bc"
 
 [[package]]
 name = "dtor"
@@ -1109,8 +1116,8 @@ dependencies = [
 
 [[package]]
 name = "gallery"
-version = "1.0.0"
-source = "git+https://github.com/BatoRoy/bato-native?tag=v1.0.0#fe632a8ec49373ba3fc005e6f7d4ba09c2f3d6a6"
+version = "1.1.0"
+source = "git+https://github.com/BatoRoy/bato-native?tag=v1.1.0#0b35d7a72286e28eb74c904814b7b9d8869ae2bc"
 dependencies = [
  "bato-kit",
  "bato-shell",
@@ -1165,6 +1172,16 @@ name = "gif"
 version = "0.13.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "4ae047235e33e2829703574b54fdec96bfbad892062d97fed2f76022287de61b"
+dependencies = [
+ "color_quant",
+ "weezl",
+]
+
+[[package]]
+name = "gif"
+version = "0.14.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "ee8cfcc411d9adbbaba82fb72661cc1bcca13e8bba98b364e62b2dba8f960159"
 dependencies = [
  "color_quant",
  "weezl",
@@ -1389,6 +1406,7 @@ dependencies = [
  "iced_runtime",
  "iced_widget",
  "iced_winit",
+ "image",
  "thiserror 2.0.21",
 ]
 
@@ -1447,6 +1465,8 @@ dependencies = [
  "half",
  "iced_core",
  "iced_futures",
+ "image",
+ "kamadak-exif",
  "log",
  "raw-window-handle",
  "rustc-hash 2.1.3",
@@ -1511,7 +1531,7 @@ dependencies = [
 [[package]]
 name = "iced_wgpu"
 version = "0.14.0"
-source = "git+https://github.com/BatoRoy/bato-native?tag=v1.0.0#fe632a8ec49373ba3fc005e6f7d4ba09c2f3d6a6"
+source = "git+https://github.com/BatoRoy/bato-native?tag=v1.1.0#0b35d7a72286e28eb74c904814b7b9d8869ae2bc"
 dependencies = [
  "bitflags 2.13.2",
  "bytemuck",
@@ -1545,7 +1565,7 @@ dependencies = [
 [[package]]
 name = "iced_winit"
 version = "0.14.1"
-source = "git+https://github.com/BatoRoy/bato-native?tag=v1.0.0#fe632a8ec49373ba3fc005e6f7d4ba09c2f3d6a6"
+source = "git+https://github.com/BatoRoy/bato-native?tag=v1.1.0#0b35d7a72286e28eb74c904814b7b9d8869ae2bc"
 dependencies = [
  "iced_debug",
  "iced_program",
@@ -1557,6 +1577,24 @@ dependencies = [
  "web-sys",
  "window_clipboard",
  "winit",
+]
+
+[[package]]
+name = "image"
+version = "0.25.10"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "85ab80394333c02fe689eaf900ab500fbd0c2213da414687ebf995a65d5a6104"
+dependencies = [
+ "bytemuck",
+ "byteorder-lite",
+ "color_quant",
+ "gif 0.14.2",
+ "image-webp",
+ "moxcms",
+ "num-traits",
+ "png 0.18.1",
+ "zune-core 0.5.3",
+ "zune-jpeg 0.5.15",
 ]
 
 [[package]]
@@ -1668,6 +1706,15 @@ dependencies = [
  "cfg-if",
  "futures-util",
  "wasm-bindgen",
+]
+
+[[package]]
+name = "kamadak-exif"
+version = "0.6.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "8772c92c0f41c4a672cbdee6728253e5ae8fcc1c5eb5c6c676579565684bbf68"
+dependencies = [
+ "mutate_once",
 ]
 
 [[package]]
@@ -1884,6 +1931,22 @@ checksum = "7dfa19a1eabc3418aab2e905785d347386cb0f1ed3fbb34957460b2f685ef359"
 dependencies = [
  "log",
 ]
+
+[[package]]
+name = "moxcms"
+version = "0.8.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "bb85c154ba489f01b25c0d36ae69a87e4a1c73a72631fc6c0eb6dde34a73e44b"
+dependencies = [
+ "num-traits",
+ "pxfm",
+]
+
+[[package]]
+name = "mutate_once"
+version = "0.1.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "13d2233c9842d08cfe13f9eac96e207ca6a2ea10b80259ebe8ad0268be27d2af"
 
 [[package]]
 name = "naga"
@@ -2472,6 +2535,19 @@ dependencies = [
 ]
 
 [[package]]
+name = "png"
+version = "0.18.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "60769b8b31b2a9f263dae2776c37b1b28ae246943cf719eb6946a1db05128a61"
+dependencies = [
+ "bitflags 2.13.2",
+ "crc32fast",
+ "fdeflate",
+ "flate2",
+ "miniz_oxide 0.8.9",
+]
+
+[[package]]
 name = "polling"
 version = "3.11.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2535,6 +2611,12 @@ name = "profiling"
 version = "1.0.18"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "3d595e54a326bc53c1c197b32d295e14b169e3cfeaa8dc82b529f947fba6bcf5"
+
+[[package]]
+name = "pxfm"
+version = "0.1.30"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "d55d956fa96f5ec02be2e13af0e20391a5aa83d6a074e3ad368959d0fab299ea"
 
 [[package]]
 name = "quick-error"
@@ -2657,7 +2739,7 @@ version = "0.45.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "a8928798c0a55e03c9ca6c4c6846f76377427d2c1e1f7e6de3c06ae57942df43"
 dependencies = [
- "gif",
+ "gif 0.13.3",
  "image-webp",
  "log",
  "pico-args",
@@ -2665,7 +2747,7 @@ dependencies = [
  "svgtypes",
  "tiny-skia 0.11.4",
  "usvg",
- "zune-jpeg",
+ "zune-jpeg 0.4.21",
 ]
 
 [[package]]
@@ -2870,8 +2952,8 @@ checksum = "94143f37725109f92c262ed2cf5e59bce7498c01bcc1502d7b9afe439a4e9f49"
 
 [[package]]
 name = "scroll-physics"
-version = "1.0.0"
-source = "git+https://github.com/BatoRoy/bato-native?tag=v1.0.0#fe632a8ec49373ba3fc005e6f7d4ba09c2f3d6a6"
+version = "1.1.0"
+source = "git+https://github.com/BatoRoy/bato-native?tag=v1.1.0#0b35d7a72286e28eb74c904814b7b9d8869ae2bc"
 dependencies = [
  "serde_json",
 ]
@@ -3413,7 +3495,7 @@ dependencies = [
  "bytemuck",
  "cfg-if",
  "log",
- "png",
+ "png 0.17.16",
  "tiny-skia-path 0.11.4",
 ]
 
@@ -4330,7 +4412,7 @@ checksum = "589f6da84c646204747d1270a2a5661ea66ed1cced2631d546fdfb155959f9ec"
 [[package]]
 name = "winit"
 version = "0.30.13"
-source = "git+https://github.com/BatoRoy/bato-native?tag=v1.0.0#fe632a8ec49373ba3fc005e6f7d4ba09c2f3d6a6"
+source = "git+https://github.com/BatoRoy/bato-native?tag=v1.1.0#0b35d7a72286e28eb74c904814b7b9d8869ae2bc"
 dependencies = [
  "ahash",
  "android-activity",
@@ -4600,12 +4682,27 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "3f423a2c17029964870cfaabb1f13dfab7d092a62a29a89264f4d36990ca414a"
 
 [[package]]
+name = "zune-core"
+version = "0.5.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "d56377fd46368984a170bc5aac5567e52ca5da874caa60bea39fcbca78fb658b"
+
+[[package]]
 name = "zune-jpeg"
 version = "0.4.21"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "29ce2c8a9384ad323cf564b67da86e21d3cfdff87908bc1223ed5c99bc792713"
 dependencies = [
- "zune-core",
+ "zune-core 0.4.12",
+]
+
+[[package]]
+name = "zune-jpeg"
+version = "0.5.15"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "27bc9d5b815bc103f142aa054f561d9187d191692ec7c2d1e2b4737f8dbd7296"
+dependencies = [
+ "zune-core 0.5.3",
 ]
 
 [[package]]
