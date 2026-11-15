@@ -218,3 +218,52 @@ The supervisor (`bato_shell::supervisor`):
   bato-auth identities keeps the variable (`Config::strip_env`) and sends a Bearer token.
 - **Ports**: a session-bound server is never listed in `PORTS.md`. A daemon is a
   `service` block with a claimed port instead, and the UI uses the saved address.
+- **A daemon-capable server on a claimed port** (other clients call it there, and a
+  `systemd --user` unit may already run it): set `Config::port` to that port. Then
+  `supervisor::answers(url, &cfg)` (on a worker; 500 ms) tells whether something healthy
+  already answers, and the client attaches to it; otherwise `Supervisor::start_bundled`
+  spawns the bundled server on that same port (an `AddrInUse` error if something
+  unhealthy holds it). `Supervisor::attach_or_start` does both in one blocking call.
+  Only a server the client spawned is stopped when it quits.
+
+## Living in the system tray (opt-in)
+
+The template opens one window with `iced::application` and quits when it closes. An app
+that should keep running without a window (BatoSound keeps its server and auto-routing
+going) opts in to a tray icon and close-to-tray, as Electron's `tray.js` did:
+
+1. `Cargo.toml`: `bato-shell = { …, features = ["tray"] }` (a StatusNotifierItem over
+   D-Bus, shown by Waybar's `tray` module, KDE and GNOME's AppIndicator extension).
+2. `main.rs`: `iced::daemon(boot, update, view)` instead of `iced::application`. A daemon
+   opens no window by itself and does not exit when the last one closes, so:
+   - `boot` makes `iced_ext::MainWindow::new(iced_ext::window_settings(&APP))` and returns
+     its `show()` task, and starts `tray::Tray::start(tray::Spec::for_app(&APP))` (the app
+     icon, the product name as tooltip, and the menu "Show <App>", a separator, "Quit");
+   - `view`, `title`, `theme` and `scale_factor` take the window id: draw the frame for
+     `main.id()`;
+   - the subscription adds `window::close_events()` and `iced_ext::tray_events(&tray)`.
+3. `update`:
+
+   ```rust
+   Msg::Closed(id) if self.main.closed(id) => {
+       // No tray host (no bar, or Waybar without `tray`): nobody could bring the
+       // window back, so quit as before.
+       if !self.tray.as_ref().is_some_and(Tray::is_shown) {
+           return self.quit();
+       }
+   }
+   Msg::Tray(tray::Event::Activate) => return self.main.toggle(),  // left click
+   Msg::Tray(tray::Event::Menu(id)) if id == tray::SHOW => return self.main.show(),
+   Msg::Tray(tray::Event::Menu(id)) if id == tray::QUIT => return self.quit(),
+   ```
+
+   `quit()` shuts the tray down, stops a bundled server (drop its `Supervisor` on a
+   worker: it waits up to 2 s for the child) and then returns `iced::exit()`.
+
+Wayland cannot hide a window, so closing to the tray closes it and Show opens a new one.
+Everything the app keeps in its state (page, data, settings, dialogs) comes back as it
+was; widget-local state such as a scroll offset does not. `Tray::is_shown` is asked at
+the moment the window closes: the tray registers by itself when a bar starts later or
+Waybar restarts, and reports `NoWatcher` while none runs. BatoNotify-style trays change
+the icon, tooltip and menu at runtime (`set_icon_png`, `set_tooltip`, `set_menu`, checkmark
+rows with `MenuItem::check`); a click on any row is `tray::Event::Menu(id)`.
