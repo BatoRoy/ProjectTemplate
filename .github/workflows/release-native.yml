@@ -9,16 +9,22 @@ name: Release
 # and the LAN, neither of which a GitHub runner has. This workflow is the compile and
 # test gate on every tag, plus a downloadable build.
 
+# Off by default: no runs, no artifacts, no failure emails. Run it from the
+# Actions tab (Run workflow), or set the repo variable BATO_CI to 'true'
+# (Settings > Secrets and variables > Actions > Variables) to run it on the
+# triggers below.
 on:
   push:
     tags:
       - 'v*.*.*'
+  workflow_dispatch:
 
 permissions:
   contents: write
 
 jobs:
   release:
+    if: ${{ vars.BATO_CI == 'true' || github.event_name == 'workflow_dispatch' }}
     name: Build and release the native client
     # glibc 2.39: the binary runs on anything at least that new (the Arch fleet).
     runs-on: ubuntu-24.04

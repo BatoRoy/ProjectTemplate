@@ -11,13 +11,19 @@ name: Test
 # nem-client/frontend), so every job discovers what to run instead of hardcoding
 # a path. That means this same file can be dropped into any repo unchanged.
 
+# Off by default: no runs, no artifacts, no failure emails. Run it from the
+# Actions tab (Run workflow), or set the repo variable BATO_CI to 'true'
+# (Settings > Secrets and variables > Actions > Variables) to run it on the
+# triggers below.
 on:
   push:
     branches: ['**']
   pull_request:
+  workflow_dispatch:
 
 jobs:
   go:
+    if: ${{ vars.BATO_CI == 'true' || github.event_name == 'workflow_dispatch' }}
     name: Go — vet, race, build
     runs-on: ubuntu-latest
     steps:
@@ -48,6 +54,7 @@ jobs:
           if [ "$found" -eq 0 ]; then echo "no Go modules — nothing to do"; fi
 
   frontend:
+    if: ${{ vars.BATO_CI == 'true' || github.event_name == 'workflow_dispatch' }}
     name: Frontend — typecheck, lint, test
     runs-on: ubuntu-latest
     steps:
@@ -89,6 +96,7 @@ jobs:
           if [ "$found" -eq 0 ]; then echo "no frontends — nothing to do"; fi
 
   rust:
+    if: ${{ vars.BATO_CI == 'true' || github.event_name == 'workflow_dispatch' }}
     name: Rust — fmt, clippy, test
     runs-on: ubuntu-24.04
     env:
