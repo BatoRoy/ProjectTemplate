@@ -111,9 +111,9 @@ local checkout in a git-ignored `app-client-native/.cargo/config.toml`:
 
 ```toml
 [patch."https://github.com/BatoRoy/bato-native"]
-bato-kit   = { path = "/home/batoroy/Code/BatoApps/bato-native/crates/bato-kit" }
-bato-shell = { path = "/home/batoroy/Code/BatoApps/bato-native/crates/bato-shell" }
-gallery    = { path = "/home/batoroy/Code/BatoApps/bato-native/examples/gallery" }
+bato-kit   = { path = "/path/to/bato-native/crates/bato-kit" }
+bato-shell = { path = "/path/to/bato-native/crates/bato-shell" }
+gallery    = { path = "/path/to/bato-native/examples/gallery" }
 ```
 
 The patched crates still come from the tag. The override rewrites `Cargo.lock` (path
