@@ -284,8 +284,8 @@ checksum = "ac07cdecf99051d9a5238b80f35af32cdeba5b336e55d957b318b50137e18da5"
 
 [[package]]
 name = "bato-kit"
-version = "1.2.0"
-source = "git+https://github.com/BatoRoy/bato-native?tag=v1.2.0#8b0d29558fec2757d5a99cedd70480e5df295209"
+version = "1.3.0"
+source = "git+https://github.com/BatoRoy/bato-native?tag=v1.3.0#993ccdf12cd18625c67e4ef8f1f5c7abe15db18d"
 dependencies = [
  "bato-theme",
  "chrono",
@@ -298,6 +298,7 @@ dependencies = [
  "iced_winit",
  "image",
  "modit",
+ "qrcodegen",
  "scroll-physics",
  "serde",
  "serde_json",
@@ -311,8 +312,8 @@ dependencies = [
 
 [[package]]
 name = "bato-shell"
-version = "1.2.0"
-source = "git+https://github.com/BatoRoy/bato-native?tag=v1.2.0#8b0d29558fec2757d5a99cedd70480e5df295209"
+version = "1.3.0"
+source = "git+https://github.com/BatoRoy/bato-native?tag=v1.3.0#993ccdf12cd18625c67e4ef8f1f5c7abe15db18d"
 dependencies = [
  "ashpd",
  "bato-theme",
@@ -334,8 +335,8 @@ dependencies = [
 
 [[package]]
 name = "bato-theme"
-version = "1.2.0"
-source = "git+https://github.com/BatoRoy/bato-native?tag=v1.2.0#8b0d29558fec2757d5a99cedd70480e5df295209"
+version = "1.3.0"
+source = "git+https://github.com/BatoRoy/bato-native?tag=v1.3.0#993ccdf12cd18625c67e4ef8f1f5c7abe15db18d"
 dependencies = [
  "serde",
  "serde_json",
@@ -638,7 +639,7 @@ dependencies = [
 [[package]]
 name = "cosmic-text"
 version = "0.15.0"
-source = "git+https://github.com/BatoRoy/bato-native?tag=v1.2.0#8b0d29558fec2757d5a99cedd70480e5df295209"
+source = "git+https://github.com/BatoRoy/bato-native?tag=v1.3.0#993ccdf12cd18625c67e4ef8f1f5c7abe15db18d"
 dependencies = [
  "bitflags 2.13.2",
  "cosmic_undo_2",
@@ -697,7 +698,7 @@ checksum = "460fbee9c2c2f33933d720630a6a0bac33ba7053db5344fac858d4b8952d77d5"
 [[package]]
 name = "cryoglyph"
 version = "0.1.0"
-source = "git+https://github.com/BatoRoy/bato-native?tag=v1.2.0#8b0d29558fec2757d5a99cedd70480e5df295209"
+source = "git+https://github.com/BatoRoy/bato-native?tag=v1.3.0#993ccdf12cd18625c67e4ef8f1f5c7abe15db18d"
 dependencies = [
  "cosmic-text",
  "etagere",
@@ -783,7 +784,7 @@ checksum = "75b325c5dbd37f80359721ad39aca5a29fb04c89279657cffdda8736d0c0b9d2"
 [[package]]
 name = "dpi"
 version = "0.1.1"
-source = "git+https://github.com/BatoRoy/bato-native?tag=v1.2.0#8b0d29558fec2757d5a99cedd70480e5df295209"
+source = "git+https://github.com/BatoRoy/bato-native?tag=v1.3.0#993ccdf12cd18625c67e4ef8f1f5c7abe15db18d"
 
 [[package]]
 name = "dtor"
@@ -1117,8 +1118,8 @@ dependencies = [
 
 [[package]]
 name = "gallery"
-version = "1.2.0"
-source = "git+https://github.com/BatoRoy/bato-native?tag=v1.2.0#8b0d29558fec2757d5a99cedd70480e5df295209"
+version = "1.3.0"
+source = "git+https://github.com/BatoRoy/bato-native?tag=v1.3.0#993ccdf12cd18625c67e4ef8f1f5c7abe15db18d"
 dependencies = [
  "bato-kit",
  "bato-shell",
@@ -1532,7 +1533,7 @@ dependencies = [
 [[package]]
 name = "iced_wgpu"
 version = "0.14.0"
-source = "git+https://github.com/BatoRoy/bato-native?tag=v1.2.0#8b0d29558fec2757d5a99cedd70480e5df295209"
+source = "git+https://github.com/BatoRoy/bato-native?tag=v1.3.0#993ccdf12cd18625c67e4ef8f1f5c7abe15db18d"
 dependencies = [
  "bitflags 2.13.2",
  "bytemuck",
@@ -1566,7 +1567,7 @@ dependencies = [
 [[package]]
 name = "iced_winit"
 version = "0.14.1"
-source = "git+https://github.com/BatoRoy/bato-native?tag=v1.2.0#8b0d29558fec2757d5a99cedd70480e5df295209"
+source = "git+https://github.com/BatoRoy/bato-native?tag=v1.3.0#993ccdf12cd18625c67e4ef8f1f5c7abe15db18d"
 dependencies = [
  "iced_debug",
  "iced_program",
@@ -2620,6 +2621,12 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "d55d956fa96f5ec02be2e13af0e20391a5aa83d6a074e3ad368959d0fab299ea"
 
 [[package]]
+name = "qrcodegen"
+version = "1.8.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "4339fc7a1021c9c1621d87f5e3505f2805c8c105420ba2f2a4df86814590c142"
+
+[[package]]
 name = "quick-error"
 version = "2.0.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2953,8 +2960,8 @@ checksum = "94143f37725109f92c262ed2cf5e59bce7498c01bcc1502d7b9afe439a4e9f49"
 
 [[package]]
 name = "scroll-physics"
-version = "1.2.0"
-source = "git+https://github.com/BatoRoy/bato-native?tag=v1.2.0#8b0d29558fec2757d5a99cedd70480e5df295209"
+version = "1.3.0"
+source = "git+https://github.com/BatoRoy/bato-native?tag=v1.3.0#993ccdf12cd18625c67e4ef8f1f5c7abe15db18d"
 dependencies = [
  "serde_json",
 ]
@@ -3225,7 +3232,7 @@ dependencies = [
 [[package]]
 name = "smithay-clipboard"
 version = "0.7.3"
-source = "git+https://github.com/BatoRoy/bato-native?tag=v1.2.0#8b0d29558fec2757d5a99cedd70480e5df295209"
+source = "git+https://github.com/BatoRoy/bato-native?tag=v1.3.0#993ccdf12cd18625c67e4ef8f1f5c7abe15db18d"
 dependencies = [
  "libc",
  "smithay-client-toolkit 0.20.0",
@@ -4412,7 +4419,7 @@ checksum = "589f6da84c646204747d1270a2a5661ea66ed1cced2631d546fdfb155959f9ec"
 [[package]]
 name = "winit"
 version = "0.30.13"
-source = "git+https://github.com/BatoRoy/bato-native?tag=v1.2.0#8b0d29558fec2757d5a99cedd70480e5df295209"
+source = "git+https://github.com/BatoRoy/bato-native?tag=v1.3.0#993ccdf12cd18625c67e4ef8f1f5c7abe15db18d"
 dependencies = [
  "ahash",
  "android-activity",
