@@ -91,6 +91,25 @@ half the time. Idle memory barely changes, because unused code is never paged in
 `src/examples.rs` and the `gallery` dependency can stay; delete them when you like.
 `make lint` and CI run clippy both with and without the feature.
 
+## Wheel input
+
+A widget that does something on the wheel itself (zoom, value steps, a canvas that pans) must
+scale by the size of each wheel event, never act once per event. A plain mouse sends one event
+per notch, but a hi-res wheel (Logitech HID++, e.g. the G502 X) sends 8, each an eighth of a
+notch, and a touchpad sends a stream of small ones: a fixed zoom step per event zooms 8x per
+notch on such a wheel. TheHopper, BatoMidi and BatoEdit each shipped that bug. Use
+`bato_kit::wheel` (bato-native ≥ v1.4.2):
+
+```rust
+use bato_kit::wheel;
+
+let k = wheel::zoom_factor(*delta, 1.25);         // 1.25x per notch, any device
+let n = st.steps.take(wheel::notches(*delta) * 2.0); // whole steps (wheel::Steps in the state)
+let dy = wheel::delta_y(*delta);                   // the browser's deltaY, porting a React onWheel
+```
+
+Plain scrolling needs none of this: a `scroller` / `scroll_area` handles the wheel already.
+
 ## bato-native versions
 
 Every bato-native line in `Cargo.toml` (bato-kit, bato-shell, gallery and the five
