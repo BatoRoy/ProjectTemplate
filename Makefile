@@ -2,7 +2,7 @@
         publish-client stage-server publish-server check-desktop-manifest \
         stage-native publish-check publish-native native-bump native-tags smoke \
         dev-setup verify-electron dev-server dev-client dev-native \
-        docker deploy deploy-test promote new-app lint test check-contrast \
+        docker deploy new-app lint test check-contrast \
         clean clean-native
 
 VERSION := $(shell cat VERSION)
@@ -287,16 +287,6 @@ docker:
 # BATO_DOKPLOY_URL and BATO_DOKPLOY_KEY — see README.
 deploy:
 	cd app-server && bato deploy build
-
-# The test copy, only for apps with deploy.environments.test in
-# app-server/bato.json (see the bato skill's references/deploy.md). Production
-# is untouched: own Dokploy app <App>-test, own hostname, own volumes.
-deploy-test:
-	cd app-server && bato deploy build -E test
-
-# Ship what test runs to production — the same image, re-tagged. Asks first.
-promote:
-	cd app-server && bato deploy promote $$(node -p "const d=require('./bato.json'); (d.deploy&&d.deploy.app)||d.name")
 
 # ─── New app ─────────────────────────────────────────────────────────────────
 

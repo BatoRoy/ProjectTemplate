@@ -594,18 +594,12 @@ against the exact template state you started from (see "Porting template improve
 3. Add your remote and push: `git remote add origin <your-repo-url> && git push -u origin main`.
 
 <!-- /native -->
-### Optional: a test environment
+### Optional: a one-off test copy
 
-New apps are production-only. To get a test copy (own hostname, volumes and
-secrets) that you can promote from, add to `app-server/bato.json` → `deploy`:
-
-```json
-"environments": { "test": { "inherit": ["BATO_AUTH_URL", "BATO_AUTH_PUBLIC_URL"] } }
-```
-
-Then `make deploy-test`, check `https://<slug>-test.bato.lan`, and `make promote`
-ships the very same image to production. See the bato skill's
-`references/deploy.md` and `references/bato-json.md`.
+There is no test environment. To try a risky change before it reaches
+production, deploy a second application named `<App>-test`. The recipe is in
+the bato skill's `references/deploy.md` → "A one-off test copy". **Rename the
+volumes**, or the copy writes to production's data.
 
 ## Porting template improvements into your app
 
